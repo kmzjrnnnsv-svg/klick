@@ -1,9 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import { LinkRegistration } from "@/components/auth/link-registration";
+import { withMessages } from "@/components/i18n/with-messages";
 
 // Zugang zurücksetzen (ADR-019): /zugang#klk_recover_… — neuer Passkey für ein
 // bestehendes Konto, ausgestellt von Owner oder Plattform-Admin.
-export default async function RecoverPage() {
+async function RecoverPage() {
 	const t = await getTranslations("Recover");
 	return (
 		<div className="flex flex-col gap-6">
@@ -14,3 +15,10 @@ export default async function RecoverPage() {
 		</div>
 	);
 }
+
+export default withMessages(RecoverPage, [
+	"Activate",
+	"Auth",
+	"Invitation",
+	"Recover",
+]);

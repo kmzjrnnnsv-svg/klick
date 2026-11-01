@@ -17,6 +17,7 @@ import {
 } from "@/components/entity/entity-layout";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
+import { withMessages } from "@/components/i18n/with-messages";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { assets, providers, sites } from "@/db/schema";
@@ -39,11 +40,11 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 // /verwahrung/[id] — eine Wallet: Quorum, Schlüsselinhaber:innen (Ort
 // feldverschlüsselt), Zeremonien und Tests, Aufgaben, Aktivität.
-export default async function WalletDetailPage({
+async function WalletDetailPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
@@ -432,3 +433,14 @@ export default async function WalletDetailPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(WalletDetailPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Custody",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"Tasks",
+]);

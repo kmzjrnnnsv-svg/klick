@@ -1,4 +1,4 @@
-import { DOCUMENT_STATUS } from "@/db/schema/grc";
+import { DOCUMENT_STATUS } from "@/db/schema/enums";
 import { transitions } from "./status-machine";
 import type { EntityDef, StatusMachine } from "./types";
 

@@ -31,12 +31,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { CRITICALITY } from "@/db/schema/enums";
+import { PROVIDER_CATEGORIES } from "@/db/schema/enums";
 import type {
 	SupplierArea,
 	SupplierCriterion,
 	SupplierThreshold,
 } from "@/db/schema/platform";
-import { PROVIDER_CATEGORIES } from "@/db/schema/registers";
 import type { RatingProfile, RatingScore } from "@/db/schema/supplier-ratings";
 import {
 	CRITICALITY_HELP,
@@ -48,6 +48,7 @@ import {
 	summarizeRating,
 	TRAFFIC_TONE,
 } from "@/lib/compliance/supplier-rating";
+import { scrollAppToTop } from "@/lib/ui/scroll";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -175,7 +176,7 @@ export function RatingWizard({
 	function goto(s: Step) {
 		setStep(s);
 		router.replace(`?schritt=${s}`, { scroll: false });
-		if (typeof window !== "undefined") window.scrollTo({ top: 0 });
+		if (typeof window !== "undefined") scrollAppToTop();
 	}
 
 	async function rate(code: string, score: number | null, noteText?: string) {

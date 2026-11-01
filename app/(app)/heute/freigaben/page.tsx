@@ -6,6 +6,7 @@ import { DelegationForm } from "@/components/approvals/delegation-form";
 import { RouteProgress } from "@/components/approvals/route-progress";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { DecisionAttachments } from "@/components/resolutions/decision-attachments";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +24,7 @@ import { listMembersForPicker } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
 
-export default async function ApprovalsInboxPage({
+async function ApprovalsInboxPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ tab?: string; request?: string }>;
@@ -196,3 +197,11 @@ export default async function ApprovalsInboxPage({
 		</>
 	);
 }
+
+export default withMessages(ApprovalsInboxPage, [
+	"Appointments",
+	"Approvals",
+	"Auth",
+	"Common",
+	"Settings",
+]);

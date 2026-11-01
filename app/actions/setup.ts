@@ -24,6 +24,7 @@ import { ensureOrgWorkflows } from "@/lib/approvals/service";
 import { insertSelfAssessment } from "@/lib/assessments/create-service";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
 import {
 	proposeAssignment,
 	proposeRevocation,
@@ -34,7 +35,9 @@ import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
 import type { WorkflowEnabledByDuty } from "@/lib/compliance/catalog/approval-duties";
 import {
 	areaOf,
+	RESPONSIBILITY_AREAS,
 	type ResponsibilityArea,
+	suggestAreaFunction,
 } from "@/lib/compliance/catalog/domain-functions";
 import { requiredFunctions } from "@/lib/compliance/catalog/required-functions";
 import {
@@ -42,6 +45,7 @@ import {
 	prefillFromSetup,
 } from "@/lib/compliance/company-profile";
 import { loadAssignments } from "@/lib/compliance/function-holders-service";
+import { isOwnRoleKey } from "@/lib/compliance/function-key";
 import { syncOwnersAndNotify } from "@/lib/compliance/function-owners";
 import {
 	activeFrameworkSlugs,
@@ -301,60 +305,13 @@ async function setupAssignAreasImpl(
 				.filter((a) => held.has(a.function))
 				.map((a) => [a.area, a.function]),
 		);
-		// merken: neue Controls (Rahmenwerke kommen erst in Schritt 6) bekommen
-		// die Funktion in initializeOrg
-		const [cur] = await tx
-			.select({ areaFunctions: orgSettings.areaFunctions })
-			.from(orgSettings)
-			.where(eq(orgSettings.organizationId, c.orgId))
-			.limit(1);
-		await tx
-			.update(orgSettings)
-			.set({
-				areaFunctions: {
-					...(cur?.areaFunctions ?? {}),
-					...Object.fromEntries(byArea),
-				},
-			})
-			.where(eq(orgSettings.organizationId, c.orgId));
-		const rows = await tx
-			.select({
-				id: controlImplementations.id,
-				code: controls.code,
-				domain: controls.domain,
-			})
-			.from(controlImplementations)
-			.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
-			.where(
-				and(
-					eq(controlImplementations.organizationId, c.orgId),
-					isNull(controlImplementations.ownerFunction),
-					or(
-						isNull(controlImplementations.ownerUserId),
-						eq(controlImplementations.ownerUserId, c.userId),
-					),
-				),
-			);
-		const idsBy = new Map<RoleFunction, string[]>();
-		for (const r of rows) {
-			const fn = byArea.get(areaOf(r));
-			if (fn) idsBy.set(fn, [...(idsBy.get(fn) ?? []), r.id]);
-		}
-		let n = 0;
-		for (const [fn, ids] of idsBy) {
-			await tx
-				.update(controlImplementations)
-				.set({ ownerFunction: fn })
-				.where(inArray(controlImplementations.id, ids));
-			n += ids.length;
-		}
-		await syncOwnersAndNotify(tx, c.orgId, c.userId);
+		const { count: n, before } = await assignAreas(tx, c, byArea);
 		return {
 			result: n,
 			audit: {
 				action: "control.owner_areas_assigned",
 				target: `org:${c.orgId}`,
-				before: { areas: cur?.areaFunctions ?? {} },
+				before: { areas: before },
 				after: { areas: Object.fromEntries(byArea), count: n, via: "setup" },
 			},
 		};
@@ -363,12 +320,110 @@ async function setupAssignAreasImpl(
 	return { ok: true, data: { count } };
 }
 
+// Bereiche → Funktion merken (neue Controls bekommen sie in initializeOrg)
+// und an Controls eintragen, die noch bei der einrichtenden Person liegen
+async function assignAreas(
+	tx: OrgTx,
+	c: { orgId: string; userId: string },
+	byArea: ReadonlyMap<ResponsibilityArea, RoleFunction>,
+): Promise<{ count: number; before: unknown }> {
+	const [cur] = await tx
+		.select({ areaFunctions: orgSettings.areaFunctions })
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, c.orgId))
+		.limit(1);
+	await tx
+		.update(orgSettings)
+		.set({
+			areaFunctions: {
+				...(cur?.areaFunctions ?? {}),
+				...Object.fromEntries(byArea),
+			},
+		})
+		.where(eq(orgSettings.organizationId, c.orgId));
+	const rows = await tx
+		.select({
+			id: controlImplementations.id,
+			code: controls.code,
+			domain: controls.domain,
+		})
+		.from(controlImplementations)
+		.innerJoin(controls, eq(controls.id, controlImplementations.controlId))
+		.where(
+			and(
+				eq(controlImplementations.organizationId, c.orgId),
+				isNull(controlImplementations.ownerFunction),
+				or(
+					isNull(controlImplementations.ownerUserId),
+					eq(controlImplementations.ownerUserId, c.userId),
+				),
+			),
+		);
+	const idsBy = new Map<RoleFunction, string[]>();
+	for (const r of rows) {
+		const fn = byArea.get(areaOf(r));
+		if (fn) idsBy.set(fn, [...(idsBy.get(fn) ?? []), r.id]);
+	}
+	let n = 0;
+	for (const [fn, ids] of idsBy) {
+		await tx
+			.update(controlImplementations)
+			.set({ ownerFunction: fn })
+			.where(inArray(controlImplementations.id, ids));
+		n += ids.length;
+	}
+	await syncOwnersAndNotify(tx, c.orgId, c.userId);
+	return { count: n, before: cur?.areaFunctions ?? {} };
+}
+
+// S4: wer im Schritt „Rollen“ keine Bereiche zuordnet, bekommt den Vorschlag
+// aus dem Katalog (domain-functions.ts) für alle noch offenen Bereiche
+async function applyDefaultAreas(c: Awaited<ReturnType<typeof requireOrg>>) {
+	if (!allows(c, { control: ["assign"] })) return;
+	await mutateOrg(toOrgCtx(c), async (tx) => {
+		const [cur] = await tx
+			.select({ areaFunctions: orgSettings.areaFunctions })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		const stored = cur?.areaFunctions ?? {};
+		// die Einrichtung kennt nur Katalog-Funktionen (eigene Rollen: Tafel)
+		const held = new Set(
+			(await loadAssignments(tx, c.orgId))
+				.map((a) => a.function)
+				.filter((f): f is RoleFunction => !isOwnRoleKey(f)),
+		);
+		const byArea = new Map<ResponsibilityArea, RoleFunction>();
+		for (const area of RESPONSIBILITY_AREAS) {
+			if (stored[area]) continue;
+			const fn = suggestAreaFunction(area, held);
+			if (fn) byArea.set(area, fn);
+		}
+		if (byArea.size === 0) return { result: null, audit: [] };
+		const { count: n, before } = await assignAreas(tx, c, byArea);
+		return {
+			result: null,
+			audit: {
+				action: "control.owner_areas_assigned",
+				target: `org:${c.orgId}`,
+				before: { areas: before },
+				after: {
+					areas: Object.fromEntries(byArea),
+					count: n,
+					via: "setup_default",
+				},
+			},
+		};
+	});
+}
+
 // ── Schritte abschließen / später fortsetzen ──────────────────────────────
 
 async function completeSetupStepImpl(input: unknown): Promise<ActionResult> {
 	const c = await requireOrg({ settings: ["update"] });
 	const parsed = setupStepSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
+	if (parsed.data.step === "rollen") await applyDefaultAreas(c);
 	await mutateOrg(toOrgCtx(c), async (tx) => {
 		const s = await loadSettings(tx, c.orgId);
 		return {

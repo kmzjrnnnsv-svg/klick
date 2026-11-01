@@ -11,10 +11,15 @@ export async function listNotifications(tx: OrgTx, userId: string, limit = 8) {
 		.limit(limit);
 }
 
+// Die Glocke zeigt höchstens „9+“: gezählt wird nur bis 10, damit der Rahmen
+// jeder Seite nicht mit den ungelesenen Hinweisen langsamer wird.
+export const UNREAD_CAP = 10;
+
 export async function unreadCount(tx: OrgTx, userId: string): Promise<number> {
 	const rows = await tx
 		.select({ id: notifications.id })
 		.from(notifications)
-		.where(and(eq(notifications.userId, userId), isNull(notifications.readAt)));
+		.where(and(eq(notifications.userId, userId), isNull(notifications.readAt)))
+		.limit(UNREAD_CAP);
 	return rows.length;
 }

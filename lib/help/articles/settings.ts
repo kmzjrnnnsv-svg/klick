@@ -8,13 +8,25 @@ export const SETTINGS: HelpArticle[] = [
 		area: "settings",
 		title: "Einstellungen",
 		summary:
-			"Dein Konto, Organisation, Rahmenwerke, Rollen, SSO, KI, Richtlinien-Portal, Integrationen, Zugriffe durch Klick, Sicherheitsänderungen, Netzwerk, Verlauf, Abo und die Methoden für Freigaben, Audits, Risiken, Lieferanten und Nummernkreise.",
+			"Fünf Gruppen: Dein Konto, Organisation & Team, Sicherheit & Zugang, Verbindungen sowie Methoden & Abläufe. Das Suchfeld oben findet jeden Bereich.",
 		sections: [
+			{
+				id: "gruppen",
+				heading: "So sind die Einstellungen geordnet",
+				list: [
+					"Dein Konto: Anmeldung & Passkeys, Benachrichtigungen.",
+					"Organisation & Team: Organisation, Rahmenwerke & Stufe, Rollen & Rechte, Abo & Leistungen.",
+					"Sicherheit & Zugang: SSO, Netzwerk, Zugriffe durch Klick, Sicherheitsänderungen, Verlauf.",
+					"Verbindungen: Integrationen, Richtlinien-Portal, KI.",
+					"Methoden & Abläufe: Freigaben, Audits & Fristen, Risikomethodik, Lieferantenbewertung, Nummernkreise.",
+				],
+				tip: "Tipp ins Suchfeld über der Liste, zum Beispiel „Passkey“, „IP“ oder „SAML“. Unter jedem Bereich steht ein Satz, was er regelt. Rollen & Rechte meint, was Personen in Klick tun dürfen; Funktionen wie ISB oder GWB besetzt du unter Organisation.",
+			},
 			{
 				id: "konto",
 				heading: "Dein Konto",
 				list: [
-					"Sicherheit: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen. Die Liste zeigt je Passkey „Sicherheitsschlüssel“ (gerätegebunden) oder „Synchronisiert“.",
+					"Anmeldung & Passkeys: Passkeys anlegen und entfernen, Code-App (TOTP) als Alternative, laufende Sitzungen. Die Liste zeigt je Passkey „Sicherheitsschlüssel“ (gerätegebunden) oder „Synchronisiert“.",
 					"Benachrichtigungen: je Art per Mail, als Push auf deinen Geräten und in Microsoft Teams, auch mehrere Wege zugleich (Teams nur, wenn deine Organisation es eingeschaltet hat), und ob die Tages-Mail kommt.",
 				],
 			},

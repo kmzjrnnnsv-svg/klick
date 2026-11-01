@@ -98,6 +98,7 @@ export const assessmentAnswers = pgTable(
 	},
 	(t) => [
 		unique().on(t.assessmentId, t.questionCode),
+		index("assessment_answers_org_idx").on(t.organizationId),
 		orgPolicy("assessment_answers"),
 	],
 ).enableRLS();

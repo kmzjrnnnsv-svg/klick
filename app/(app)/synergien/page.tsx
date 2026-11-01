@@ -2,7 +2,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { CompareControls } from "@/components/synergies/compare-controls";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -37,7 +39,7 @@ import {
 	whatIfAddFramework,
 } from "@/lib/compliance/synergy";
 
-export default async function SynergiesPage({
+async function SynergiesPage({
 	searchParams,
 }: {
 	searchParams: Promise<{
@@ -55,6 +57,8 @@ export default async function SynergiesPage({
 	if (!cov || cov.frameworks.length === 0) {
 		return (
 			<>
+				<SectionSwitch group="synergies" current="/synergien" ctx={ctx} />
+
 				<PageHeader title={t("title")} lead={t("lead")} />
 				<EmptyState title={t("title")} lead={t("whatIfLead")} />
 			</>
@@ -88,6 +92,8 @@ export default async function SynergiesPage({
 
 	return (
 		<>
+			<SectionSwitch group="synergies" current="/synergien" ctx={ctx} />
+
 			<PageHeader title={t("title")} lead={t("lead")} />
 			<p className="mb-4 text-subhead">
 				<span className="font-medium">
@@ -546,3 +552,5 @@ export default async function SynergiesPage({
 		</>
 	);
 }
+
+export default withMessages(SynergiesPage, ["Synergies"]);

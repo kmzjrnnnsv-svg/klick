@@ -1,6 +1,21 @@
 import { z } from "zod";
 import { longText, shortText, uuid } from "./common";
+import {
+	CORRIDOR_STATUSES,
+	FATF_STATUSES,
+	MONITORING_RULE_STATUSES,
+	ORG_STANCES,
+	SUSPICIOUS_KINDS,
+} from "./options";
 import { responsibleRef } from "./responsible";
+
+export {
+	CORRIDOR_STATUSES,
+	FATF_STATUSES,
+	MONITORING_RULE_STATUSES,
+	ORG_STANCES,
+	SUSPICIOUS_KINDS,
+} from "./options";
 
 // Validierung für die CASP-/AML-Module (P4): AML-Risikoanalyse, Monitoring-
 // Regelwerk, Verdachtsmeldungen/STOR, Länder & Korridore, Eigenmittel,
@@ -43,13 +58,6 @@ export const requestAmlApprovalSchema = z.object({
 	selfApprovalReason: z.string().trim().min(3).max(2000).optional(),
 });
 
-// ── Monitoring-Regelwerk ───────────────────────────────────────────────────
-export const MONITORING_RULE_STATUSES = [
-	"active",
-	"paused",
-	"retired",
-] as const;
-
 export const monitoringRuleSchema = z.object({
 	id: uuid.optional(),
 	code: z
@@ -66,8 +74,6 @@ export const monitoringRuleSchema = z.object({
 	status: z.enum(MONITORING_RULE_STATUSES).default("active"),
 });
 
-// ── Verdachtsmeldungen (§ 43 GwG) und STOR (Art. 92 MiCAR) ────────────────
-export const SUSPICIOUS_KINDS = ["gwg_sar", "micar_stor"] as const;
 export const SUSPICIOUS_STATUSES = ["review", "reported", "dismissed"] as const;
 
 export const suspiciousReportSchema = z.object({
@@ -86,17 +92,6 @@ export const suspiciousTransitionSchema = z.object({
 	to: z.enum(SUSPICIOUS_STATUSES),
 	externalRef: z.string().trim().max(120).optional(),
 });
-
-// ── Länder & Korridore ─────────────────────────────────────────────────────
-export const FATF_STATUSES = ["none", "grey", "black"] as const;
-export const ORG_STANCES = ["allowed", "enhanced_dd", "blocked"] as const;
-export const CORRIDOR_STATUSES = [
-	"none",
-	"evaluating",
-	"pilot",
-	"active",
-	"suspended",
-] as const;
 
 export const jurisdictionSchema = z.object({
 	id: uuid.optional(),

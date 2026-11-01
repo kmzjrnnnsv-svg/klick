@@ -33,7 +33,7 @@ import {
 	validateRiskMethod,
 } from "@/lib/compliance/risk-method";
 import { cn } from "@/lib/utils";
-import { RISK_METHOD_ISSUE_TEXT } from "@/lib/validation/risk-method";
+import { RISK_METHOD_ISSUE_TEXT } from "@/lib/validation/risk-method-text";
 
 type RiskPoint = {
 	likelihood: number;

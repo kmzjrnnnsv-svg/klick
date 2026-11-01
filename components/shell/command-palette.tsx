@@ -1,21 +1,17 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-	CommandDialog,
-	CommandEmpty,
-	CommandGroup,
-	CommandInput,
-	CommandItem,
-	CommandList,
-	CommandShortcut,
-} from "@/components/ui/command";
 import type { NavGroup } from "@/lib/nav";
-import { NavIcon } from "./nav-icon";
+
+// Die Palette (cmdk) lädt erst beim ersten Öffnen, nicht mit jeder Seite.
+const CommandPaletteDialog = dynamic(
+	() => import("./command-palette-dialog").then((m) => m.CommandPaletteDialog),
+	{ ssr: false },
+);
 
 // ⌘K: Navigation + Volltextsuche (/suche?q=…).
 // tabBar: unter 1024 px steht die Suche in der Tab-Leiste — kein zweiter Knopf
@@ -28,9 +24,11 @@ export function CommandPalette({
 	tabBar?: boolean;
 }) {
 	const t = useTranslations("Nav");
-	const router = useRouter();
 	const [open, setOpen] = useState(false);
-	const [query, setQuery] = useState("");
+	const [everOpened, setEverOpened] = useState(false);
+	useEffect(() => {
+		if (open) setEverOpened(true);
+	}, [open]);
 
 	useEffect(() => {
 		function onKey(e: KeyboardEvent) {
@@ -42,12 +40,6 @@ export function CommandPalette({
 		document.addEventListener("keydown", onKey);
 		return () => document.removeEventListener("keydown", onKey);
 	}, []);
-
-	const navigable = groups.flatMap((g) =>
-		g.items
-			.filter((i) => !i.phase)
-			.map((i) => ({ ...i, group: g.labelKey ? t(g.labelKey) : "" })),
-	);
 
 	return (
 		<>
@@ -74,54 +66,13 @@ export function CommandPalette({
 			>
 				<Search />
 			</Button>
-			<CommandDialog
-				open={open}
-				onOpenChange={setOpen}
-				title={t("searchHint")}
-				description={t("searchHint")}
-			>
-				<CommandInput
-					placeholder={t("searchHint")}
-					value={query}
-					onValueChange={setQuery}
+			{(open || everOpened) && (
+				<CommandPaletteDialog
+					groups={groups}
+					open={open}
+					onOpenChange={setOpen}
 				/>
-				<CommandList>
-					<CommandEmpty>Nichts gefunden.</CommandEmpty>
-					{query.trim().length >= 2 && (
-						<CommandGroup heading={t("searchGroup")}>
-							<CommandItem
-								value={`suche ${query}`}
-								onSelect={() => {
-									setOpen(false);
-									router.push(`/suche?q=${encodeURIComponent(query.trim())}`);
-									setQuery("");
-								}}
-							>
-								<Search className="size-4" />
-								<span>{t("searchFor", { q: query.trim() })}</span>
-							</CommandItem>
-						</CommandGroup>
-					)}
-					<CommandGroup heading="Navigation">
-						{navigable.map((item) => (
-							<CommandItem
-								key={item.key}
-								value={`${item.label ?? (item.labelKey ? t(item.labelKey) : item.key)} ${item.group}`}
-								onSelect={() => {
-									setOpen(false);
-									router.push(item.href);
-								}}
-							>
-								<NavIcon name={item.icon} className="size-4" />
-								<span>
-									{item.label ?? (item.labelKey ? t(item.labelKey) : item.key)}
-								</span>
-								{item.group && <CommandShortcut>{item.group}</CommandShortcut>}
-							</CommandItem>
-						))}
-					</CommandGroup>
-				</CommandList>
-			</CommandDialog>
+			)}
 		</>
 	);
 }

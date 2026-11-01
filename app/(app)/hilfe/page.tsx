@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { HelpAsk } from "@/components/ai/help-ask";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { NavIcon } from "@/components/shell/nav-icon";
 import { Input } from "@/components/ui/input";
@@ -16,11 +17,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 // (?q=). Für alle Rollen; Mitarbeitende sehen nur ihre Artikel. Mit KI
 // (ADR-032) zusätzlich „Frage stellen“: an die KI gehen nur die Frage und
 // passende Hilfeartikel.
-export default async function HelpPage({
-	searchParams,
-}: {
-	searchParams: Promise<Search>;
-}) {
+async function HelpPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const ctx = await requireOrgPage(undefined, { employees: true });
 	const q = (one((await searchParams).q) ?? "").trim();
 	const t = await getTranslations("Help");
@@ -80,3 +77,5 @@ export default async function HelpPage({
 		</>
 	);
 }
+
+export default withMessages(HelpPage, ["Ai", "AiSettings", "Common"]);

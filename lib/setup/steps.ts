@@ -1,10 +1,12 @@
 // Geführte Einrichtung (D0): Schritte, Stand in org_settings.setupFlags.
 // Pure, getestet (tests/setup-steps.test.ts).
 
+// Sechs Schritte (S4, Nov 2026): Standorte stehen im Schritt „Unternehmen“;
+// /einrichtung/standorte leitet dorthin um, alte Flags mit „standorte“
+// werden beim Lesen übergangen.
 export const SETUP_STEPS = [
 	"rollen",
 	"unternehmen",
-	"standorte",
 	"taetigkeit",
 	"it-daten",
 	"rahmenwerke",

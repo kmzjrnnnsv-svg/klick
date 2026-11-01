@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+	matchSettings,
 	resolveSettingsSection,
 	SETTINGS_SECTIONS,
 	settingsGroups,
 	visibleSettingsSections,
 } from "@/lib/settings/sections";
+import de from "@/messages/de.json";
 
 describe("Einstellungen als Liste", () => {
 	it("blendet Rollen, Abo und Integrationen je Recht aus", () => {
@@ -35,11 +37,38 @@ describe("Einstellungen als Liste", () => {
 		const groups = settingsGroups(
 			visibleSettingsSections({ settings: true, integrations: true }),
 		);
-		expect(groups.map((g) => g.group)).toEqual(["account", "org", "methods"]);
+		expect(groups.map((g) => g.group)).toEqual([
+			"account",
+			"org",
+			"security",
+			"connections",
+			"methods",
+		]);
 		expect(groups[0]?.keys).toEqual(["security", "notifications"]);
 		// jeder Bereich genau einmal
 		const all = groups.flatMap((g) => g.keys);
 		expect(new Set(all).size).toBe(all.length);
+	});
+
+	it("Suche findet über Name, Satz und Suchwörter, Umlaute egal", () => {
+		const items = SETTINGS_SECTIONS.map((x) => ({
+			key: x.key,
+			title: x.key,
+			hint: "",
+		}));
+		expect(matchSettings("ip", items).map((i) => i.key)).toContain("netzwerk");
+		expect(matchSettings("SCHLUSSEL", items).map((i) => i.key)).toContain("ki");
+		expect(matchSettings("entra", items).map((i) => i.key)).toEqual(["sso"]);
+		expect(matchSettings("  ", items)).toHaveLength(items.length);
+		expect(matchSettings("zzqq", items)).toEqual([]);
+	});
+
+	it("jeder Bereich hat einen Satz und Suchwörter", () => {
+		const texts = de.Settings as Record<string, string>;
+		for (const x of SETTINGS_SECTIONS) {
+			expect(texts[`hint_${x.key}`], x.key).toBeTruthy();
+			expect(x.terms.length, x.key).toBeGreaterThan(0);
+		}
 	});
 
 	it("löst ?tab= auf und fällt sonst auf Sicherheit zurück", () => {

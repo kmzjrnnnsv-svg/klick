@@ -9,9 +9,21 @@ import { describe, expect, it } from "vitest";
 // eine Referenz, nicht den Code.
 
 const root = join(__dirname, "..");
-// Datenbank-Client (@/db) und alles unter lib/db; Schema-Konstanten sind
-// erlaubt. Dasselbe für both.money (apps/wallet, Alias @wallet/).
+// Datenbank-Client (@/db) und alles unter lib/db. Dasselbe für both.money
+// (apps/wallet, Alias @wallet/).
 const FORBIDDEN = /^(?:apps\/wallet\/)?(db\/index\.ts$|lib\/db\/)/;
+
+// Server-Code, der sonst still im Browser-Bundle landet (Leistung): Node-
+// Module, drizzle samt Tabellen-Schemas (Werte für Formulare stehen in
+// db/schema/enums.ts) und zod (Auswahlwerte in lib/validation/options.ts u. a.)
+const SERVER_ONLY_SPEC = /^(node:|drizzle-orm|zod(\/|$))/;
+const SERVER_ONLY_FILE =
+	/^(?:apps\/wallet\/)?db\/(schema\/(?!enums\.ts$)|rls\.ts$|columns\.ts$|auth-schema\.ts$)/;
+// mit Grund erlaubt
+const SERVER_ONLY_ALLOWED: Record<string, string> = {
+	// Editor für verfasste Nachweise prüft den Inhalt wie der Server
+	"lib/evidence-authoring/content.ts": "zod",
+};
 
 function walk(dir: string, out: string[] = []): string[] {
 	for (const name of readdirSync(dir)) {
@@ -55,6 +67,29 @@ function imports(src: string): string[] {
 const isDirective = (src: string, d: "client" | "server") =>
 	new RegExp(`^\\s*["']use ${d}["'];?`).test(src);
 
+function pathToServerOnly(entry: string): string[] | null {
+	const seen = new Set<string>([entry]);
+	const queue: string[][] = [[entry]];
+	while (queue.length) {
+		const chain = queue.shift() as string[];
+		const file = chain[chain.length - 1] as string;
+		const src = readFileSync(file, "utf8");
+		if (file !== entry && isDirective(src, "server")) continue;
+		const allowed = SERVER_ONLY_ALLOWED[relative(root, file)];
+		for (const spec of imports(src)) {
+			if (SERVER_ONLY_SPEC.test(spec) && !spec.startsWith(allowed ?? "\0"))
+				return [...chain, spec];
+			const target = resolve(file, spec);
+			if (!target || seen.has(target)) continue;
+			seen.add(target);
+			const next = [...chain, target];
+			if (SERVER_ONLY_FILE.test(relative(root, target))) return next;
+			queue.push(next);
+		}
+	}
+	return null;
+}
+
 function pathToDb(entry: string): string[] | null {
 	const seen = new Set<string>([entry]);
 	const queue: string[][] = [[entry]];
@@ -97,5 +132,18 @@ describe("Client-Grenze", () => {
 	)("%s erreicht die Datenbank nicht", (rel) => {
 		const chain = pathToDb(join(root, rel));
 		expect(chain?.map((f) => relative(root, f)).join(" → ") ?? null).toBe(null);
+	});
+
+	it.each(
+		clientFiles
+			.filter((f) => !relative(root, f).startsWith("apps/"))
+			.map((f) => [relative(root, f)]),
+	)("%s lädt keinen Server-Code in den Browser", (rel) => {
+		const chain = pathToServerOnly(join(root, rel));
+		expect(
+			chain
+				?.map((f) => (f.startsWith(root) ? relative(root, f) : f))
+				.join(" → ") ?? null,
+		).toBe(null);
 	});
 });

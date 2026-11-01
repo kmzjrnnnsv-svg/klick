@@ -20,7 +20,7 @@ import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
-import { ACCESS_GRANTS } from "@/lib/validation/governance";
+import { ACCESS_GRANTS } from "@/lib/validation/options";
 
 // Zeitlich begrenzter Zugang + Grants für sensible Register (Prüfer-Sicht).
 export function MemberAccessForm({

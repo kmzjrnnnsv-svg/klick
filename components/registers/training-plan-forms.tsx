@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
-import { TRAINING_ORG_ROLES } from "@/lib/validation/registers";
+import { TRAINING_ORG_ROLES } from "@/lib/validation/options";
 
 type OrgRoleOption = (typeof TRAINING_ORG_ROLES)[number];
 

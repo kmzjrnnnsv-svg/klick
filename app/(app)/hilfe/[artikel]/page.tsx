@@ -8,6 +8,7 @@ import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
 import {
 	FRAMEWORK_BY_SLUG,
 	REQUIREMENT_BY_KEY,
@@ -17,7 +18,7 @@ import { articleBySlug, articleVisible } from "@/lib/help";
 import { HELP_ICONS } from "@/lib/help/icons";
 import { routesForArticle } from "@/lib/help/routes";
 import type { HelpSection } from "@/lib/help/types";
-import type { NavIcon as NavIconName } from "@/lib/nav";
+import { NAV_SECTIONS, type NavIcon as NavIconName } from "@/lib/nav";
 import { loadOrgNav } from "@/lib/org/nav";
 
 // Seiten ohne eigenen Navigationseintrag (Unterseiten von Heute, Suche)
@@ -58,6 +59,16 @@ export default async function HelpArticlePage({
 	const { groups } = await readOrg(toOrgCtx(ctx), (tx) => loadOrgNav(tx, ctx));
 	const routes = routesForArticle(a.slug);
 	const navItems = groups.flatMap((g) => g.items).filter((i) => !i.phase);
+	// Seiten, die sich einen Eintrag teilen (Umschalter oben), zählen mit
+	const sectionPages = navItems.flatMap((i) =>
+		i.sections
+			? NAV_SECTIONS[i.sections].filter(
+					(s) =>
+						!s.hideFor?.includes(ctx.orgRole) &&
+						(!s.perm || allows(ctx, s.perm)),
+				)
+			: [],
+	);
 	const pages = routes.flatMap((href) => {
 		const item = navItems.find((i) => i.href === href);
 		if (item)
@@ -68,6 +79,9 @@ export default async function HelpArticlePage({
 					label: item.label ?? (item.labelKey ? tn(item.labelKey) : item.key),
 				},
 			];
+		const section = sectionPages.find((s) => s.href === href);
+		if (section)
+			return [{ href, icon: section.icon, label: tn(section.labelKey) }];
 		// Unterseiten nur, wenn ihre Elternseite in dieser Org sichtbar ist
 		const sub = SUBPAGES[href];
 		const parent = `/${href.split("/")[1]}`;

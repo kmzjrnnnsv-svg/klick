@@ -37,8 +37,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { FunctionKey } from "@/db/schema/enums";
-import { RISK_CATEGORIES } from "@/db/schema/grc";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { RISK_CATEGORIES } from "@/db/schema/enums";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 // Stufen 1 … n aus den Beschriftungen (vier oder fünf je Methode)
 const steps = (labels: readonly string[]) =>

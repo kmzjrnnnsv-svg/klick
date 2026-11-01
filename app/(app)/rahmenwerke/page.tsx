@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
 import { EmptyState } from "@/components/entity/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +62,8 @@ export default async function FrameworksPage() {
 
 	return (
 		<>
+			<SectionSwitch group="frameworks" current="/rahmenwerke" ctx={ctx} />
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}

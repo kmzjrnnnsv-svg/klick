@@ -24,13 +24,14 @@ export const BASICS: HelpArticle[] = [
 				id: "navigation",
 				heading: "So findest du dich zurecht",
 				body: [
-					"Am Computer steht links die Seitenleiste mit den Bereichen. Am Handy gibt es unten eine Leiste mit höchstens fünf Tabs: Heute, Umsetzen, Register, Steuerung und Suche. Umsetzen, Register und Steuerung öffnen eine Liste ihrer Seiten.",
+					"Am Computer steht links die Seitenleiste mit den Bereichen. Ab Tablet-Breite scrollen Seitenleiste und Inhalt je für sich; Impressum und Datenschutz stehen klein unten in der Seitenleiste. Zugeklappte Gruppen bleiben zu, bis du sie wieder öffnest. Am Handy gibt es unten eine Leiste mit höchstens fünf Tabs: Heute, Umsetzen, Register, Steuerung und Suche. Umsetzen, Register und Steuerung öffnen eine Liste ihrer Seiten.",
+					"Verwandte Seiten teilen sich einen Eintrag. Oben auf der Seite wechselst du zwischen ihnen: Synergien und Zusammenhänge, Kalender und Roadmap (Planung), Managementbewertung und Berichte an die GL, Abweichungen und Testprogramm, Team und Aktivität, Rahmenwerke und Plattform-Baseline.",
 				],
 				list: [
 					"Heute: deine Aufgaben, offene Freigaben, Kenntnisnahmen und was bald fällig ist.",
-					"Umsetzen: Überblick, Gap-Analyse, Controls, Synergien, Nachweise, Sicherheit und die Rahmenwerke.",
+					"Umsetzen: Überblick, Gap-Analyse, Rahmenwerke (alle gewählten auf einer Seite), Controls, Nachweise, Synergien und Sicherheit.",
 					"Register: Risiken, Dokumente, Prozesse, Dienstleister, Assets, Vorfälle, Produkte, Schulungen, Datenschutz.",
-					"Steuerung: Organisation, Beschlüsse, Audits, Managementbewertung, Berichte, Trust Center, Abweichungen, Testprogramm, Kalender, Roadmap und, je nach Erlaubnis, Geldwäsche und CASP-Themen.",
+					"Steuerung: Organisation, Beschlüsse, Audits, Managementbewertung, Trust Center, Abweichungen, Planung und, je nach Erlaubnis, Geldwäsche und CASP-Themen.",
 					"Oben rechts: Suche (⌘K bzw. Strg+K), Glocke mit Benachrichtigungen, dein Konto und der Hilfe-Knopf. Der Hilfe-Knopf öffnet immer den Artikel zur aktuellen Seite.",
 				],
 			},
@@ -38,7 +39,7 @@ export const BASICS: HelpArticle[] = [
 				id: "start",
 				heading: "Die ersten zehn Minuten",
 				steps: [
-					"Schließ die geführte Einrichtung ab: Rollen, Unternehmen, Standorte, Tätigkeit, IT und Daten, Rahmenwerke. Klick legt daraus deinen Arbeitsvorrat an.",
+					"Schließ die geführte Einrichtung ab: Rollen, Unternehmen und Standorte, Tätigkeit, IT und Daten, Rahmenwerke. Klick legt daraus deinen Arbeitsvorrat an.",
 					"Starte die Gap-Analyse. Sie stellt je Control eine Frage und zeigt dir, wo du heute stehst.",
 					"Öffne Heute. Dort stehen die Aufgaben, die aus Einrichtung und Gap-Analyse entstanden sind.",
 					"Lade für erledigte Controls Nachweise hoch oder erzeuge sie in Klick (Nachweis-Werkstatt).",
@@ -92,12 +93,12 @@ export const BASICS: HelpArticle[] = [
 				id: "karten",
 				heading: "Was auf Heute steht",
 				list: [
+					"Ganz oben „Als Nächstes“: höchstens fünf Schritte, geordnet nach Wirkung, zum Beispiel die Einrichtung fortsetzen, die Gap-Analyse starten, eine überfällige Pflicht erledigen oder eine Pflichtfunktion besetzen.",
 					"Aufgaben, die dir zugewiesen sind oder die du verantwortest, mit Fälligkeit und Status.",
 					"Freigaben, über die du entscheiden darfst (Posteingang unter Heute > Freigaben).",
 					"Dokumente, deren Kenntnisnahme von dir erwartet wird.",
 					"Schulungen, die in den nächsten 30 Tagen fällig sind oder überfällig sind.",
 					"Fällige Reviews, Pflichten-Läufe, Abweichungen und Termine aus dem Kalender.",
-					"Die Karte zur Gap-Analyse, solange noch keine abgeschlossen ist.",
 				],
 			},
 			{
@@ -141,15 +142,14 @@ export const BASICS: HelpArticle[] = [
 		area: "basics",
 		title: "Geführte Einrichtung",
 		summary:
-			"In sieben Schritten von der neuen Organisation zum Arbeitsvorrat: Rollen, Unternehmen, Standorte, Tätigkeit, IT, Rahmenwerke, Gap-Analyse.",
+			"In sechs Schritten von der neuen Organisation zum Arbeitsvorrat: Rollen, Unternehmen und Standorte, Tätigkeit, IT, Rahmenwerke, Gap-Analyse.",
 		sections: [
 			{
 				id: "ablauf",
-				heading: "Die sieben Schritte",
+				heading: "Die sechs Schritte",
 				steps: [
-					"Rollen: Wer ist Geschäftsleitung, wer Informationssicherheitsbeauftragte:r, Datenschutzbeauftragte:r, Geldwäschebeauftragte:r? Eine Person kann mehrere Funktionen tragen, eine Funktion mehrere Personen haben. Dazu legst du fest, welche Funktion für welchen Bereich verantwortlich ist.",
-					"Unternehmen: Rechtsform, Beschäftigte, Umsatz und Bilanzsumme. Klick stuft daraus KMU-Status, NIS2-Betroffenheit und DORA-Anwendbarkeit ein (als Orientierung gekennzeichnet).",
-					"Standorte: Büros, Rechenzentren, Lager. Kritische Standorte bekommen später eine Notfallübung im Testprogramm.",
+					"Rollen: Wer ist Geschäftsleitung, wer Informationssicherheitsbeauftragte:r, Datenschutzbeauftragte:r, Geldwäschebeauftragte:r? Eine Person kann mehrere Funktionen tragen, eine Funktion mehrere Personen haben. Welche Funktion für welchen Bereich verantwortlich ist, legst du auf Wunsch gleich fest; sonst übernimmt Klick beim Weiter den Vorschlag (zum Beispiel Datenschutz bei der oder dem DSB).",
+					"Unternehmen und Standorte: Rechtsform, Beschäftigte, Umsatz und Bilanzsumme. Klick stuft daraus KMU-Status, NIS2-Betroffenheit und DORA-Anwendbarkeit ein (als Orientierung gekennzeichnet). Darunter legst du mindestens einen Standort an; weitere jederzeit unter Organisation > Standorte. Kritische Standorte bekommen später eine Notfallübung im Testprogramm.",
 					"Tätigkeit: Branche, Finanzdienste, Kryptowerte-Dienste, Produkte. Daraus folgen Lizenzstufe und Pflichten.",
 					"IT und Daten: wichtige Systeme, Dienstleister, Art der Daten. Daraus entstehen Assets und Dienstleister im Register. Dazu ein paar Ja/Nein-Fragen, etwa zu KI, Kundschaft aus der Autoindustrie, Aufträgen für US-Behörden, Gesundheitsdaten aus den USA, einer Erlaubnis in New York oder einer Partnerschaft mit AWS oder Microsoft. Sie entscheiden, welche weiteren Rahmenwerke Klick vorschlägt.",
 					"Rahmenwerke: Klick schlägt vor, was für dich gilt; du wählst endgültig aus.",
@@ -209,7 +209,7 @@ export const BASICS: HelpArticle[] = [
 				steps: [
 					"Öffne die Anmeldeseite und tipp auf „Mit Passkey anmelden“, oder wähl den Passkey direkt im E-Mail-Feld aus.",
 					"Bestätige mit Fingerabdruck, Gesicht oder PIN.",
-					"Unter Einstellungen > Sicherheit legst du weitere Passkeys an, zum Beispiel für Handy und Laptop.",
+					"Unter Einstellungen > Anmeldung & Passkeys legst du weitere Passkeys an, zum Beispiel für Handy und Laptop.",
 				],
 				tip: "Leg mindestens zwei Passkeys an. Den letzten Faktor kannst du nicht löschen, damit du dich nicht aussperrst.",
 			},

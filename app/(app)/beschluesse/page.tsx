@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { DecisionAttachments } from "@/components/resolutions/decision-attachments";
 import { DecisionRequestButton } from "@/components/resolutions/decision-request-button";
@@ -38,7 +39,7 @@ import { entityHref } from "@/lib/entities/links";
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function ResolutionsPage({
+async function ResolutionsPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -490,3 +491,11 @@ export default async function ResolutionsPage({
 		</>
 	);
 }
+
+export default withMessages(ResolutionsPage, [
+	"Common",
+	"Decisions",
+	"Dlp",
+	"Resolutions",
+	"Status",
+]);

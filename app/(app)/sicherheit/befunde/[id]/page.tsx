@@ -9,6 +9,7 @@ import {
 	Section,
 } from "@/components/entity/entity-layout";
 import { StatusButton } from "@/components/entity/status-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { AcceptFindingDialog } from "@/components/security/security-forms";
 import { Badge } from "@/components/ui/badge";
@@ -28,11 +29,7 @@ import { remediationFor } from "@/lib/security/remediation";
 
 // Sicherheitsbefund: Schwere, Fundstelle, Erklärung und Abhilfe (je Stack),
 // SLA, Verknüpfung zu Abweichung, Aufgabe, Produkt und Control.
-export default async function FindingPage({
-	params,
-}: {
-	params: Promise<{ id: string }>;
-}) {
+async function FindingPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ security: ["read"] });
@@ -293,3 +290,11 @@ export default async function FindingPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(FindingPage, [
+	"Common",
+	"Dlp",
+	"Entity",
+	"Security",
+	"Status",
+]);

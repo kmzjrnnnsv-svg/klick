@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import { IncidentClocks } from "@/components/incidents/incident-clocks";
 import {
 	ClassifyForm,
@@ -65,7 +66,7 @@ const fmt = new Intl.DateTimeFormat("de-DE", {
 	timeZone: "Europe/Berlin",
 });
 
-export default async function IncidentDetailPage({
+async function IncidentDetailPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
@@ -463,3 +464,17 @@ export default async function IncidentDetailPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(IncidentDetailPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Decisions",
+	"Dlp",
+	"Entity",
+	"Incidents",
+	"Resolutions",
+	"Settings",
+	"Status",
+	"Tasks",
+]);

@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { type RiskDraft, RiskWizard } from "@/components/risks/risk-wizard";
 import { processRisks } from "@/db/schema";
@@ -13,10 +14,10 @@ import { loadRiskWizardData } from "@/lib/compliance/queries-risk-wizard";
 import { plusMonths } from "@/lib/compliance/risk-service";
 import { readOrg } from "@/lib/db/with-org";
 import { getOrgSettings } from "@/lib/org/queries";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 // Neubewertung eines bestehenden Risikos mit dem Assistenten (ab „Bezug“).
-export default async function ReassessRiskPage({
+async function ReassessRiskPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
@@ -106,3 +107,12 @@ export default async function ReassessRiskPage({
 		</>
 	);
 }
+
+export default withMessages(ReassessRiskPage, [
+	"Approvals",
+	"Entity",
+	"Functions",
+	"RiskWizard",
+	"Risks",
+	"Status",
+]);

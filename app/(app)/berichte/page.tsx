@@ -4,6 +4,7 @@ import { deleteManagementReport } from "@/app/actions/management-reports";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	ReportForm,
 	SubmitReportButton,
@@ -11,6 +12,7 @@ import {
 import { ReviewDigestView } from "@/components/management-review/review-digest";
 import { DeleteRowButton } from "@/components/organisation/governance-forms";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
 import { managementReports } from "@/db/schema";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -34,7 +36,7 @@ import { berlinToday } from "@/lib/evidence-studio/queries";
 // Einschätzung, Kennzahlen aus Klick und Maßnahmen; vorgelegt wird er zum
 // Nachweis NW-GL-BERICHT, den die Geschäftsleitung per Passkey zur
 // Kenntnis nimmt.
-export default async function ReportsPage() {
+async function ReportsPage() {
 	const ctx = await requireOrgPage({ management_review: ["read"] });
 	const t = await getTranslations("Reports");
 	const tf = await getTranslations("Functions");
@@ -111,6 +113,8 @@ export default async function ReportsPage() {
 
 	return (
 		<>
+			<SectionSwitch group="review" current="/berichte" ctx={ctx} />
+
 			<PageHeader
 				title={t("pageTitle")}
 				lead={t("lead")}
@@ -294,3 +298,14 @@ export default async function ReportsPage() {
 		</>
 	);
 }
+
+export default withMessages(ReportsPage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"EvidenceStudio",
+	"Functions",
+	"Organisation",
+	"Reports",
+	"Signatures",
+]);

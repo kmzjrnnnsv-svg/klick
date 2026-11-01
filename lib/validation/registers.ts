@@ -15,7 +15,10 @@ import { RISK_SOURCE_KINDS } from "@/lib/compliance/risk-sources";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
 import { RISK_STATUSES } from "@/lib/entities/risk";
 import { httpUrl, longText, shortText, uuid } from "./common";
+import { TRAINING_ORG_ROLES } from "./options";
 import { responsibleRef } from "./responsible";
+
+export { TRAINING_ORG_ROLES } from "./options";
 
 const scale = z.coerce.number().int().min(1).max(5);
 const isoDate = z.iso.date();
@@ -430,14 +433,6 @@ export const trainingSchema = z.object({
 	requirementCode: z.string().max(60).optional(),
 	notes: longText.optional(),
 });
-
-export const TRAINING_ORG_ROLES = [
-	"all",
-	"owner",
-	"editor",
-	"viewer",
-	"auditor",
-] as const;
 
 export const trainingRequirementSchema = z.object({
 	id: uuid.optional(),

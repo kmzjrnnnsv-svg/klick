@@ -13,7 +13,7 @@ import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UrlTabs } from "@/components/entity/url-tabs";
-import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	ConformityForm,
 	LifecycleForm,
@@ -69,7 +69,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 // Produkt (CRA): Überblick mit abgeleiteter Checkliste, Einstufung und
 // Lebenszyklus, Konformität, SBOM, CRA-Checkliste (Fragebogen), Vorfälle.
-export default async function ProductPage({
+async function ProductPage({
 	params,
 	searchParams,
 }: {
@@ -662,3 +662,16 @@ export default async function ProductPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(ProductPage, [
+	"Approvals",
+	"Common",
+	"Decisions",
+	"Dlp",
+	"Entity",
+	"Functions",
+	"Products",
+	"Resolutions",
+	"Status",
+	"Tasks",
+]);

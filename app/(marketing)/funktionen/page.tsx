@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { AtlasIndex } from "@/components/marketing/atlas-index";
 import { AudienceGuide } from "@/components/marketing/audience-guide";
 import { FrameworkPicker } from "@/components/marketing/framework-picker";
@@ -44,7 +45,7 @@ const OUTPUTS = ["soa", "evidence", "package", "incident", "recon"] as const;
 // /funktionen — öffentlich, vor der Anmeldung: jeder Ablauf in Klick mit
 // Auslöser, Schritten und Ergebnis, dazu echte Ausschnitte der Oberfläche
 // (Richtung „The product performs“, taste-skill). Zahlen aus dem Katalog.
-export default async function FeaturesPage() {
+async function FeaturesPage() {
 	const t = await getTranslations("Features");
 	const frameworks = pickerFrameworks();
 	const totals = catalogTotals();
@@ -688,3 +689,5 @@ function ReadinessFragment() {
 		</div>
 	);
 }
+
+export default withMessages(FeaturesPage, ["Features"]);

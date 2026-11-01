@@ -13,6 +13,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import {
 	AddFindingDialog,
 	EngagementFileUpload,
@@ -55,7 +56,7 @@ const RESULT_TONE = {
 // Sicherheitsauftrag: Umfang und Beauftragung → Befunde (manuell/Import) →
 // Nachtest → Bericht (Summary, Datei, ZIP). Lieferung trägt den
 // Wirksamkeitstest ein (/testprogramm).
-export default async function EngagementPage({
+async function EngagementPage({
 	params,
 	searchParams,
 }: {
@@ -473,3 +474,13 @@ export default async function EngagementPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(EngagementPage, [
+	"Auth",
+	"Common",
+	"Dlp",
+	"Engagements",
+	"Entity",
+	"Security",
+	"Status",
+]);

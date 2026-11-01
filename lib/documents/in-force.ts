@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { documentVersions } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { currentPublished } from "./versions";
@@ -16,7 +16,10 @@ export async function currentVersionsByDocument(
 	tx: OrgTx,
 	orgId: string,
 	asOf: Date = new Date(),
+	// Text der Fassung nur, wo er gebraucht wird (Listen laden ihn nicht)
+	opts: { withBody?: boolean } = {},
 ): Promise<Map<string, CurrentVersion>> {
+	const withBody = opts.withBody ?? true;
 	const rows = await tx
 		.select({
 			id: documentVersions.id,
@@ -25,7 +28,9 @@ export async function currentVersionsByDocument(
 			approvedAt: documentVersions.approvedAt,
 			publishedAt: documentVersions.publishedAt,
 			retiredAt: documentVersions.retiredAt,
-			bodyMarkdown: documentVersions.bodyMarkdown,
+			bodyMarkdown: withBody
+				? documentVersions.bodyMarkdown
+				: sql<string | null>`null`,
 			fileEvidenceId: documentVersions.fileEvidenceId,
 		})
 		.from(documentVersions)

@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { GovernanceModeControl } from "@/components/settings/governance-mode-control";
 import { ActivityStep } from "@/components/setup/activity-step";
 import { BoardStep } from "@/components/setup/board-step";
@@ -72,7 +73,7 @@ const BASE_FUNCTIONS: readonly RoleFunction[] = [
 	"internal_audit",
 ];
 
-export default async function SetupStepPage({
+async function SetupStepPage({
 	params,
 	searchParams,
 }: {
@@ -80,6 +81,8 @@ export default async function SetupStepPage({
 	searchParams: Promise<{ ansicht?: string | string[] }>;
 }) {
 	const { schritt } = await params;
+	// früherer eigener Schritt, steht jetzt unter „Unternehmen“
+	if (schritt === "standorte") redirect(stepHref("unternehmen"));
 	if (!isSetupStep(schritt)) notFound();
 	const ctx = await requireOrgPage({ settings: ["update"] });
 	const { ansicht } = await searchParams;
@@ -182,7 +185,7 @@ export default async function SetupStepPage({
 						.where(eq(controlImplementations.organizationId, ctx.orgId)),
 				};
 			}
-			case "standorte":
+			case "unternehmen":
 				return {
 					...base,
 					sites: await tx
@@ -413,27 +416,32 @@ export default async function SetupStepPage({
 						</div>
 					);
 				})()}
-			{schritt === "unternehmen" && (
+			{schritt === "unternehmen" && "sites" in data && (
 				<CompanyStep
 					initial={entity}
 					sector={profile.profile.sector}
 					nextHref={nextHref}
-				/>
-			)}
-			{schritt === "standorte" && "sites" in data && (
-				<SitesStep
-					sites={data.sites.map((s) => ({
-						id: s.id,
-						name: s.name,
-						kind: s.kind,
-						country: s.country,
-						city: s.city,
-						employees: s.employees,
-						critical: s.critical,
-					}))}
-					defaultCountry={entity.country ?? "DE"}
-					nextHref={nextHref}
-				/>
+				>
+					{/* Standorte: einer genügt, weitere jederzeit unter Organisation */}
+					<section className="flex flex-col gap-3">
+						<h2 className="font-semibold text-headline">{t("sitesInline")}</h2>
+						<p className="text-muted-foreground text-subhead">
+							{t("sitesInlineLead")}
+						</p>
+						<SitesStep
+							sites={data.sites.map((s) => ({
+								id: s.id,
+								name: s.name,
+								kind: s.kind,
+								country: s.country,
+								city: s.city,
+								employees: s.employees,
+								critical: s.critical,
+							}))}
+							defaultCountry={entity.country ?? "DE"}
+						/>
+					</section>
+				</CompanyStep>
 			)}
 			{schritt === "taetigkeit" && (
 				<ActivityStep
@@ -502,3 +510,18 @@ export default async function SetupStepPage({
 		</div>
 	);
 }
+
+export default withMessages(SetupStepPage, [
+	"Appointments",
+	"Auth",
+	"Board",
+	"Common",
+	"Dnd",
+	"Entity",
+	"Onboarding",
+	"RiskSources",
+	"Roles",
+	"Setup",
+	"Team",
+	"Workflows",
+]);

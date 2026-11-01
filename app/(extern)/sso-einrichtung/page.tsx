@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { withMessages } from "@/components/i18n/with-messages";
 import { SsoSetupPortal } from "@/components/sso/setup-portal";
 
 // /sso-einrichtung#klk_sso_… — Einrichtungslink für die IT (AP10d). Ohne
@@ -11,6 +12,8 @@ export const metadata: Metadata = {
 	referrer: "no-referrer",
 };
 
-export default function SsoSetupPage() {
+function SsoSetupPage() {
 	return <SsoSetupPortal />;
 }
+
+export default withMessages(SsoSetupPage, ["Common", "SsoSetupPortal"]);

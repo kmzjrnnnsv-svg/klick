@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { TrustCenterSettings } from "@/db/schema";
 import { newToken, tokenKindOf } from "@/lib/security/tokens";
+import { ndaVersion } from "@/lib/trust/nda-version";
 import {
 	documentAccessAllowed,
-	ndaVersion,
 	requestState,
 	slugValid,
 	suggestSlug,

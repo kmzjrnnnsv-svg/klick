@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import type { ResponsibleOption } from "@/lib/compliance/function-holders";
 import { isOwnRoleKey } from "@/lib/compliance/function-key";
-import { FUNCTION_REF } from "@/lib/validation/responsible";
+import { FUNCTION_REF } from "@/lib/validation/responsible-ref";
 import { useFunctionLabel, useResponsibleOptions } from "./responsible-context";
 
 export type { ResponsibleOption };

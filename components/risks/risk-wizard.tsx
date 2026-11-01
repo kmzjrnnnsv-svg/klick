@@ -19,7 +19,7 @@ import { Input, nativeSelectClass } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
-import { RISK_CATEGORIES } from "@/db/schema/grc";
+import { RISK_CATEGORIES } from "@/db/schema/enums";
 import type { RiskMethod } from "@/db/schema/platform";
 import {
 	PROTECTION_GOALS,
@@ -35,8 +35,9 @@ import {
 	pointLabel,
 	ZONE_TONE,
 } from "@/lib/compliance/risk-method";
+import { scrollAppToTop } from "@/lib/ui/scroll";
 import { cn } from "@/lib/utils";
-import { functionOfRef } from "@/lib/validation/responsible";
+import { functionOfRef } from "@/lib/validation/responsible-ref";
 
 export type WizardScenario = Pick<
 	RiskScenario,
@@ -213,13 +214,7 @@ export function RiskWizard({
 		}
 		setErrors({});
 		setStep(to);
-		if (typeof window !== "undefined")
-			window.scrollTo({
-				top: 0,
-				behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
-					? "auto"
-					: "smooth",
-			});
+		if (typeof window !== "undefined") scrollAppToTop("smooth");
 	}
 
 	function pickScenario(s: WizardScenario | null) {

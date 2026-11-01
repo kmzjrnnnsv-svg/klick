@@ -1,6 +1,7 @@
 import { desc, inArray, isNull, or } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import { VerifyChainButton } from "@/components/admin/verify-chain-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +17,7 @@ import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { withPlatform } from "@/lib/db/with-org";
 import { viewableOrgs } from "@/lib/platform-access/service";
 
-export default async function AdminAuditPage() {
+async function AdminAuditPage() {
 	const admin = await requirePlatformAdminPage();
 	const t = await getTranslations("Admin");
 	// Plattform-Protokoll immer; das Protokoll einer Org nur mit deren
@@ -135,3 +136,5 @@ export default async function AdminAuditPage() {
 		</>
 	);
 }
+
+export default withMessages(AdminAuditPage, ["Admin"]);

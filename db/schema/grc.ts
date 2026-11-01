@@ -25,21 +25,36 @@ import {
 	userRef,
 } from "./_shared";
 import { controls, requirements } from "./catalog";
+import type { ExternalSource } from "./enums";
 import {
 	CHANGE_KINDS,
 	CHANGE_STATUS,
 	CLASSIFICATIONS,
 	CONTROL_TEST_METHODS,
 	type ControlSheetState,
+	DOCUMENT_STATUS,
+	DOCUMENT_TYPES,
 	ENTITY_KINDS,
 	EVIDENCE_SOURCES,
 	type EvidenceDlp,
 	IMPL_STATUS,
 	type INCIDENT_REGIMES,
+	RISK_CATEGORIES,
 	ROLE_FUNCTIONS,
 } from "./enums";
 import { products } from "./products";
 import { assets, processes, providers, sites } from "./registers";
+
+export type {
+	ExternalKind,
+	ExternalSource,
+} from "./enums";
+export {
+	DOCUMENT_STATUS,
+	DOCUMENT_TYPES,
+	EXTERNAL_KINDS,
+	RISK_CATEGORIES,
+} from "./enums";
 
 // GRC-Kern je Organisation: Control-Status, Anwendbarkeit, Nachweise,
 // Dokumentenlenkung, Freigaben, Beschlüsse, Risiken, Vorfälle, Aufgaben,
@@ -301,6 +316,10 @@ export const controlEvidence = pgTable(
 			foreignColumns: [controlImplementations.id],
 		}).onDelete("cascade"),
 		unique().on(t.implementationId, t.evidenceId),
+		index("control_evidence_org_evidence_idx").on(
+			t.organizationId,
+			t.evidenceId,
+		),
 		orgPolicy("control_evidence"),
 	],
 ).enableRLS();
@@ -330,54 +349,12 @@ export const controlTests = pgTable(
 	},
 	(t) => [
 		index("control_tests_impl_idx").on(t.implementationId),
+		index("control_tests_org_idx").on(t.organizationId),
 		orgPolicy("control_tests"),
 	],
 ).enableRLS();
 
 // ── Dokumentenlenkung ──────────────────────────────────────────────────────
-
-export const DOCUMENT_TYPES = [
-	"policy",
-	"procedure",
-	"concept",
-	"plan",
-	"manual",
-	"template",
-	"record",
-	"report",
-	"contract",
-	"form",
-	// Marketingmitteilung (MiCAR Art. 66): eigene Freigabe marketing.publish
-	"marketing",
-] as const;
-
-// Herkunft eines externen Dokuments (ISO 27001 7.5.3, letzter Absatz):
-// Norm, Gesetz, Vertrag, Herstellerunterlage, Vorgabe einer Behörde
-export const EXTERNAL_KINDS = [
-	"standard",
-	"law",
-	"contract",
-	"manufacturer",
-	"authority",
-	"other",
-] as const;
-export type ExternalKind = (typeof EXTERNAL_KINDS)[number];
-export type ExternalSource = {
-	kind: ExternalKind;
-	issuer: string;
-	// Ausgabe bzw. Stand, z. B. „ISO/IEC 27001:2022“
-	edition: string;
-	url?: string | null;
-};
-
-export const DOCUMENT_STATUS = [
-	"draft",
-	"in_review",
-	"approved",
-	"published",
-	"retired",
-	"superseded",
-] as const;
 
 export const documents = pgTable(
 	"documents",
@@ -467,7 +444,11 @@ export const documentVersions = pgTable(
 	},
 	// Freigegebene oder veröffentlichte Fassungen sind unveränderlich
 	// (Trigger document_versions_frozen, Migration 0042)
-	(t) => [unique().on(t.documentId, t.version), orgPolicy("document_versions")],
+	(t) => [
+		unique().on(t.documentId, t.version),
+		index("document_versions_org_doc_idx").on(t.organizationId, t.documentId),
+		orgPolicy("document_versions"),
+	],
 ).enableRLS();
 
 export const documentControls = pgTable(
@@ -484,6 +465,7 @@ export const documentControls = pgTable(
 	},
 	(t) => [
 		unique().on(t.documentId, t.controlId),
+		index("document_controls_org_idx").on(t.organizationId),
 		orgPolicy("document_controls"),
 	],
 ).enableRLS();
@@ -502,6 +484,7 @@ export const documentProcesses = pgTable(
 	},
 	(t) => [
 		unique().on(t.documentId, t.processId),
+		index("document_processes_org_idx").on(t.organizationId),
 		orgPolicy("document_processes"),
 	],
 ).enableRLS();
@@ -520,6 +503,7 @@ export const documentRequirements = pgTable(
 	},
 	(t) => [
 		unique().on(t.documentId, t.requirementId),
+		index("document_requirements_org_idx").on(t.organizationId),
 		orgPolicy("document_requirements"),
 	],
 ).enableRLS();
@@ -546,6 +530,10 @@ export const documentAcknowledgements = pgTable(
 			foreignColumns: [documentVersions.id],
 		}).onDelete("cascade"),
 		unique().on(t.documentVersionId, t.userId),
+		index("document_acknowledgements_org_user_idx").on(
+			t.organizationId,
+			t.userId,
+		),
 		orgPolicy("document_acknowledgements"),
 	],
 ).enableRLS();
@@ -564,7 +552,11 @@ export const processControls = pgTable(
 			.notNull()
 			.references(() => controls.id, { onDelete: "cascade" }),
 	},
-	(t) => [unique().on(t.processId, t.controlId), orgPolicy("process_controls")],
+	(t) => [
+		unique().on(t.processId, t.controlId),
+		index("process_controls_org_idx").on(t.organizationId),
+		orgPolicy("process_controls"),
+	],
 ).enableRLS();
 
 export const processAssets = pgTable(
@@ -579,7 +571,11 @@ export const processAssets = pgTable(
 			.notNull()
 			.references(() => assets.id, { onDelete: "cascade" }),
 	},
-	(t) => [unique().on(t.processId, t.assetId), orgPolicy("process_assets")],
+	(t) => [
+		unique().on(t.processId, t.assetId),
+		index("process_assets_org_idx").on(t.organizationId),
+		orgPolicy("process_assets"),
+	],
 ).enableRLS();
 
 export const processProviders = pgTable(
@@ -596,6 +592,7 @@ export const processProviders = pgTable(
 	},
 	(t) => [
 		unique().on(t.processId, t.providerId),
+		index("process_providers_org_idx").on(t.organizationId),
 		orgPolicy("process_providers"),
 	],
 ).enableRLS();
@@ -733,6 +730,7 @@ export const approvalDecisions = pgTable(
 	},
 	(t) => [
 		index("approval_decisions_request_idx").on(t.requestId),
+		index("approval_decisions_org_idx").on(t.organizationId),
 		orgPolicy("approval_decisions"),
 	],
 ).enableRLS();
@@ -751,6 +749,7 @@ export const delegations = pgTable(
 	},
 	(t) => [
 		index("delegations_from_idx").on(t.fromUserId),
+		index("delegations_org_idx").on(t.organizationId),
 		orgPolicy("delegations"),
 	],
 ).enableRLS();
@@ -839,18 +838,6 @@ export const decisionRequests = pgTable(
 
 // ── Risiken ────────────────────────────────────────────────────────────────
 
-export const RISK_CATEGORIES = [
-	"strategic",
-	"operational",
-	"ict_cyber",
-	"compliance_legal",
-	"financial",
-	"third_party",
-	"aml_fraud",
-	"custody_keys",
-	"market_liquidity",
-] as const;
-
 export const risks = pgTable(
 	"risks",
 	{
@@ -921,7 +908,11 @@ export const riskControls = pgTable(
 			.notNull()
 			.references(() => controls.id, { onDelete: "cascade" }),
 	},
-	(t) => [unique().on(t.riskId, t.controlId), orgPolicy("risk_controls")],
+	(t) => [
+		unique().on(t.riskId, t.controlId),
+		index("risk_controls_org_idx").on(t.organizationId),
+		orgPolicy("risk_controls"),
+	],
 ).enableRLS();
 
 export const riskAssets = pgTable(
@@ -936,7 +927,11 @@ export const riskAssets = pgTable(
 			.notNull()
 			.references(() => assets.id, { onDelete: "cascade" }),
 	},
-	(t) => [unique().on(t.riskId, t.assetId), orgPolicy("risk_assets")],
+	(t) => [
+		unique().on(t.riskId, t.assetId),
+		index("risk_assets_org_idx").on(t.organizationId),
+		orgPolicy("risk_assets"),
+	],
 ).enableRLS();
 
 export const processRisks = pgTable(
@@ -951,7 +946,11 @@ export const processRisks = pgTable(
 			.notNull()
 			.references(() => risks.id, { onDelete: "cascade" }),
 	},
-	(t) => [unique().on(t.processId, t.riskId), orgPolicy("process_risks")],
+	(t) => [
+		unique().on(t.processId, t.riskId),
+		index("process_risks_org_idx").on(t.organizationId),
+		orgPolicy("process_risks"),
+	],
 ).enableRLS();
 
 // ── Aufgaben & Zusammenarbeit ──────────────────────────────────────────────
@@ -1003,6 +1002,7 @@ export const tasks = pgTable(
 	(t) => [
 		index("tasks_assignee_status_idx").on(t.assigneeUserId, t.status),
 		index("tasks_entity_idx").on(t.entityType, t.entityId),
+		index("tasks_org_status_due_idx").on(t.organizationId, t.status, t.dueAt),
 		orgPolicy("tasks"),
 	],
 ).enableRLS();
@@ -1053,6 +1053,7 @@ export const riskTreatments = pgTable(
 	},
 	(t) => [
 		index("risk_treatments_risk_idx").on(t.riskId),
+		index("risk_treatments_org_idx").on(t.organizationId),
 		orgPolicy("risk_treatments"),
 	],
 ).enableRLS();
@@ -1075,6 +1076,11 @@ export const comments = pgTable(
 	},
 	(t) => [
 		index("comments_entity_idx").on(t.entityType, t.entityId),
+		index("comments_org_entity_idx").on(
+			t.organizationId,
+			t.entityType,
+			t.entityId,
+		),
 		orgPolicy("comments"),
 	],
 ).enableRLS();
@@ -1090,6 +1096,7 @@ export const watchers = pgTable(
 	},
 	(t) => [
 		unique().on(t.entityType, t.entityId, t.userId),
+		index("watchers_org_idx").on(t.organizationId),
 		orgPolicy("watchers"),
 	],
 ).enableRLS();
@@ -1224,6 +1231,7 @@ export const incidentUpdates = pgTable(
 	},
 	(t) => [
 		index("incident_updates_incident_idx").on(t.incidentId),
+		index("incident_updates_org_idx").on(t.organizationId),
 		orgPolicy("incident_updates"),
 	],
 ).enableRLS();
@@ -1293,6 +1301,7 @@ export const milestoneControls = pgTable(
 	},
 	(t) => [
 		unique().on(t.milestoneId, t.controlId),
+		index("milestone_controls_org_idx").on(t.organizationId),
 		orgPolicy("milestone_controls"),
 	],
 ).enableRLS();
@@ -1372,6 +1381,7 @@ export const trainingAssignments = pgTable(
 	},
 	(t) => [
 		index("training_assignments_user_idx").on(t.userId, t.status),
+		index("training_assignments_org_user_idx").on(t.organizationId, t.userId),
 		orgPolicy("training_assignments"),
 	],
 ).enableRLS();

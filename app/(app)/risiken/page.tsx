@@ -5,10 +5,12 @@ import { importRisksCsv } from "@/app/actions/imports";
 import { CsvImport } from "@/components/entity/csv-import";
 import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
+import { Pagination } from "@/components/entity/pagination";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import {
 	ExceptionForm,
@@ -50,15 +52,12 @@ import {
 import { readOrg } from "@/lib/db/with-org";
 import { RISK_STATUS, RISK_STATUSES } from "@/lib/entities/risk";
 import { getOrgSettings, orgRiskMethod } from "@/lib/org/queries";
+import { PAGE_SIZE, pageParam, pageSlice } from "@/lib/paging";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function RisksPage({
-	searchParams,
-}: {
-	searchParams: Promise<Search>;
-}) {
+async function RisksPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const ctx = await requireOrgPage({ risk: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "register";
@@ -133,6 +132,8 @@ export default async function RisksPage({
 				y.a.effective.score - x.a.effective.score ||
 				x.r.code.localeCompare(y.r.code),
 		);
+	// Register seitenweise zeichnen; Matrix und Zähler nutzen alle Treffer
+	const paged = pageSlice(filtered, pageParam(sp.seite));
 
 	return (
 		<>
@@ -551,98 +552,123 @@ export default async function RisksPage({
 							}
 						/>
 					) : (
-						<Table>
-							<TableHeader>
-								<TableRow>
-									<TableHead className="w-20">{t("code")}</TableHead>
-									<TableHead>{t("titleField")}</TableHead>
-									<TableHead className="w-28">{te("status")}</TableHead>
-									<TableHead className="w-36 text-right">
-										{t("inherent")}
-									</TableHead>
-									<TableHead className="w-36 text-right">
-										{t("residual")}
-									</TableHead>
-									<TableHead className="w-40">{te("owner")}</TableHead>
-									<TableHead className="w-28">{t("reviewAt")}</TableHead>
-								</TableRow>
-							</TableHeader>
-							<TableBody>
-								{filtered.map(({ r, a }) => (
-									<TableRow key={r.id}>
-										<TableCell className="whitespace-nowrap font-mono text-footnote">
-											<Link
-												href={`/risiken/${r.id}`}
-												className="hover:underline"
-											>
-												{r.code}
-											</Link>
-										</TableCell>
-										<TableCell>
-											<Link
-												href={`/risiken/${r.id}`}
-												className="font-medium hover:underline underline-offset-4"
-											>
-												{r.title}
-											</Link>
-											<p className="text-muted-foreground text-footnote">
-												{t(`category_${r.category}`)}
-											</p>
-										</TableCell>
-										<TableCell>
-											<StatusBadge
-												machine={RISK_STATUS}
-												status={r.status}
-												label={ts(RISK_STATUS.labelKey[r.status] as "riskOpen")}
-												waitingLabel={
-													pending.has(r.id) ? ta("waitingBadge") : undefined
-												}
-											/>
-										</TableCell>
-										<TableCell className="text-right">
-											<Badge
-												variant={ZONE_TONE[a.inherent.zone]}
-												title={a.inherent.cls.label}
-											>
-												{pointLabel(a.inherent, method)}
-											</Badge>
-										</TableCell>
-										<TableCell className="text-right">
-											{a.residual ? (
-												<Badge
-													variant={ZONE_TONE[a.residual.zone]}
-													title={a.residual.cls.label}
-												>
-													{pointLabel(a.residual, method)}
-												</Badge>
-											) : (
-												<span className="text-muted-foreground">—</span>
-											)}
-										</TableCell>
-										<TableCell>
-											<OwnerChip
-												ownerFunction={r.ownerFunction}
-												name={r.names.ownerUserId}
-											/>
-										</TableCell>
-										<TableCell
-											className={
-												r.reviewAt &&
-												r.reviewAt < today &&
-												r.status !== "closed"
-													? "text-destructive"
-													: "text-muted-foreground"
-											}
-										>
-											{r.reviewAt ? fmtDate.format(new Date(r.reviewAt)) : "—"}
-										</TableCell>
+						<>
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead className="w-20">{t("code")}</TableHead>
+										<TableHead>{t("titleField")}</TableHead>
+										<TableHead className="w-28">{te("status")}</TableHead>
+										<TableHead className="w-36 text-right">
+											{t("inherent")}
+										</TableHead>
+										<TableHead className="w-36 text-right">
+											{t("residual")}
+										</TableHead>
+										<TableHead className="w-40">{te("owner")}</TableHead>
+										<TableHead className="w-28">{t("reviewAt")}</TableHead>
 									</TableRow>
-								))}
-							</TableBody>
-						</Table>
+								</TableHeader>
+								<TableBody>
+									{paged.rows.map(({ r, a }) => (
+										<TableRow key={r.id}>
+											<TableCell className="whitespace-nowrap font-mono text-footnote">
+												<Link
+													href={`/risiken/${r.id}`}
+													className="hover:underline"
+												>
+													{r.code}
+												</Link>
+											</TableCell>
+											<TableCell>
+												<Link
+													href={`/risiken/${r.id}`}
+													className="font-medium hover:underline underline-offset-4"
+												>
+													{r.title}
+												</Link>
+												<p className="text-muted-foreground text-footnote">
+													{t(`category_${r.category}`)}
+												</p>
+											</TableCell>
+											<TableCell>
+												<StatusBadge
+													machine={RISK_STATUS}
+													status={r.status}
+													label={ts(
+														RISK_STATUS.labelKey[r.status] as "riskOpen",
+													)}
+													waitingLabel={
+														pending.has(r.id) ? ta("waitingBadge") : undefined
+													}
+												/>
+											</TableCell>
+											<TableCell className="text-right">
+												<Badge
+													variant={ZONE_TONE[a.inherent.zone]}
+													title={a.inherent.cls.label}
+												>
+													{pointLabel(a.inherent, method)}
+												</Badge>
+											</TableCell>
+											<TableCell className="text-right">
+												{a.residual ? (
+													<Badge
+														variant={ZONE_TONE[a.residual.zone]}
+														title={a.residual.cls.label}
+													>
+														{pointLabel(a.residual, method)}
+													</Badge>
+												) : (
+													<span className="text-muted-foreground">—</span>
+												)}
+											</TableCell>
+											<TableCell>
+												<OwnerChip
+													ownerFunction={r.ownerFunction}
+													name={r.names.ownerUserId}
+												/>
+											</TableCell>
+											<TableCell
+												className={
+													r.reviewAt &&
+													r.reviewAt < today &&
+													r.status !== "closed"
+														? "text-destructive"
+														: "text-muted-foreground"
+												}
+											>
+												{r.reviewAt
+													? fmtDate.format(new Date(r.reviewAt))
+													: "—"}
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+							<Pagination
+								page={paged.page}
+								total={paged.total}
+								pageSize={PAGE_SIZE}
+								path="/risiken"
+								query={sp}
+							/>
+						</>
 					)}
 				</>
 			)}
 		</>
 	);
 }
+
+export default withMessages(RisksPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Import",
+	"Organisation",
+	"RiskSources",
+	"Risks",
+]);

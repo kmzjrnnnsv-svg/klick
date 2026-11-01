@@ -9,7 +9,7 @@ import { bannersFor, needsAcknowledgement } from "@/lib/announcements/rules";
 import { gateApp } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { roleLabel } from "@/lib/auth/memberships";
-import { getOrgSummary, listUserMemberships } from "@/lib/auth/org";
+import { listUserMemberships } from "@/lib/auth/org";
 import { responsibleOptions } from "@/lib/compliance/function-holders-service";
 import { acknowledgedIds, openAnnouncementsFor } from "@/lib/db/announcements";
 import { deciderIds } from "@/lib/db/platform-access";
@@ -23,11 +23,12 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: { children: ReactNode }) {
 	const ctx = await gateApp();
 	const now = new Date();
-	const [org, memberships, announcements] = await Promise.all([
-		getOrgSummary(ctx.orgId),
+	const [memberships, announcements] = await Promise.all([
 		listUserMemberships(ctx.userId),
 		openAnnouncementsFor(ctx.orgId, now),
 	]);
+	// Name der aktiven Org steht schon in den Mitgliedschaften
+	const org = memberships.find((m) => m.organizationId === ctx.orgId);
 	const { groups, bell, functions, roleNames, acked } = await readOrg(
 		toOrgCtx(ctx),
 		async (tx) => ({
@@ -69,7 +70,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 	return (
 		<AppShell
 			ctx={ctx}
-			orgName={org?.name ?? "Organisation"}
+			orgName={org?.orgName ?? "Organisation"}
 			orgs={memberships.map((m) => ({
 				organizationId: m.organizationId,
 				orgName: m.orgName,

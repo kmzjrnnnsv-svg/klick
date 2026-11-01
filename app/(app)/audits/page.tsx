@@ -11,6 +11,7 @@ import {
 import { EmptyState } from "@/components/entity/empty-state";
 import { ExportLink } from "@/components/entity/export-link";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -59,11 +60,7 @@ const STATUS_TONE = {
 	closed: "muted",
 } as const;
 
-export default async function AuditsPage({
-	searchParams,
-}: {
-	searchParams: Promise<Search>;
-}) {
+async function AuditsPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "audits";
@@ -511,3 +508,12 @@ export default async function AuditsPage({
 		</>
 	);
 }
+
+export default withMessages(AuditsPage, [
+	"Audits",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+]);

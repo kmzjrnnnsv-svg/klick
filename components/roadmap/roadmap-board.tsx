@@ -40,7 +40,7 @@ import {
 	type LicenceStage,
 } from "@/db/schema/enums";
 import { ROADMAP_PHASES } from "@/lib/compliance/catalog/roadmap";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 export type MilestoneCard = {
 	id: string;

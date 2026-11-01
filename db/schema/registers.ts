@@ -20,28 +20,20 @@ import {
 	ts,
 	userRef,
 } from "./_shared";
-import { CLASSIFICATIONS, CRITICALITY, ROLE_FUNCTIONS } from "./enums";
+import {
+	CLASSIFICATIONS,
+	CRITICALITY,
+	PROVIDER_CATEGORIES,
+	PROVIDER_STATUSES,
+	ROLE_FUNCTIONS,
+} from "./enums";
+
+export {
+	PROVIDER_CATEGORIES,
+	PROVIDER_STATUSES,
+} from "./enums";
 
 // Register ohne Abhängigkeit auf grc.ts: Dienstleister, Assets, Prozesse.
-
-export const PROVIDER_CATEGORIES = [
-	"it_service",
-	"cloud",
-	"facility",
-	"maintenance",
-	"consulting",
-	"subcontractor",
-	"other",
-] as const;
-export const PROVIDER_STATUSES = [
-	"active",
-	"onboarding",
-	"paused",
-	"exiting",
-	"terminated",
-	// Aufnahme abgelehnt (Auslöser provider.create)
-	"declined",
-] as const;
 
 export type ContractClauses = Record<string, boolean | string>;
 export type DueDiligence = Record<string, boolean | string | null>;
@@ -263,6 +255,7 @@ export const processRaci = pgTable(
 	},
 	(t) => [
 		index("process_raci_process_idx").on(t.processId),
+		index("process_raci_org_idx").on(t.organizationId),
 		orgPolicy("process_raci"),
 	],
 ).enableRLS();

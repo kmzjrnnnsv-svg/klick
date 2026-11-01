@@ -10,7 +10,7 @@ import { OwnerChip } from "@/components/entity/owner-chip";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { ResponsibleLabel } from "@/components/entity/responsible-select";
 import { StatusBadge } from "@/components/entity/status-badge";
-import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { Button } from "@/components/ui/button";
 import { DOMAINS, type ImplStatus } from "@/db/schema/enums";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -31,7 +31,7 @@ import { CONTROL_STATUS } from "@/lib/entities/control";
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function ControlsPage({
+async function ControlsPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -262,3 +262,11 @@ export default async function ControlsPage({
 		</BulkProvider>
 	);
 }
+
+export default withMessages(ControlsPage, [
+	"Common",
+	"Controls",
+	"Entity",
+	"Functions",
+	"Status",
+]);

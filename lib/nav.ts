@@ -1,10 +1,15 @@
 import type { LicenceStage } from "@/db/schema/enums";
-import type { OrgRole } from "@/lib/auth/permissions";
+import type { OrgRole, Resource } from "@/lib/auth/permissions";
 
 // Navigation wird aus Rahmenwerken, Lizenzstufe und Rolle abgeleitet
 // (reine Funktion, getestet). Module, deren Rahmenwerk nicht gewählt ist,
 // existieren in der Nav nicht. Einträge späterer Phasen tragen `phase`
 // und werden ausgegraut dargestellt, damit die Struktur sichtbar bleibt.
+//
+// Kurz halten (S1, Nov 2026): verwandte Seiten teilen sich einen Eintrag
+// (`sections`), oben auf der Seite wechselt ein Umschalter zwischen ihnen
+// (`SectionSwitch`, components/shell/section-switch.tsx). Die Pfade
+// bleiben; die Rahmenwerke stehen gesammelt unter /rahmenwerke.
 
 export type NavLabelKey =
 	| "today"
@@ -47,7 +52,9 @@ export type NavLabelKey =
 	| "settings"
 	| "activity"
 	| "policies"
-	| "help";
+	| "help"
+	| "frameworks"
+	| "planning";
 
 export type NavGroupKey =
 	| "today"
@@ -56,7 +63,6 @@ export type NavGroupKey =
 	| "registers"
 	| "governance"
 	| "casp"
-	| "frameworks"
 	| "bottom";
 
 export type NavIcon =
@@ -115,7 +121,135 @@ export type NavItem = {
 	icon: NavIcon;
 	phase?: "P2" | "P3" | "P4" | "P5";
 	count?: number;
+	// weitere Seiten unter diesem Eintrag (Umschalter oben auf der Seite)
+	sections?: NavSectionGroup;
+	// Sprungziele nur für die Suche (⌘K), z. B. jedes Rahmenwerk
+	jumps?: { key: string; label: string; href: string }[];
 };
+
+// Seiten, die sich einen Eintrag teilen. Die erste ist die Seite des
+// Eintrags; `perm` blendet einen Abschnitt im Umschalter aus, wenn die
+// Person das Recht nicht hat (wie der Guard der Seite), `hideFor` für
+// Rollen, denen die Navigation die Seite nicht zeigt.
+export type NavSection = {
+	key: string;
+	labelKey: NavLabelKey;
+	href: string;
+	icon: NavIcon;
+	perm?: Partial<Record<Resource, readonly string[]>>;
+	hideFor?: OrgRole[];
+};
+
+export type NavSectionGroup =
+	| "frameworks"
+	| "synergies"
+	| "planning"
+	| "review"
+	| "nonconformities"
+	| "team";
+
+export const NAV_SECTIONS: Record<NavSectionGroup, NavSection[]> = {
+	frameworks: [
+		{
+			key: "frameworks",
+			labelKey: "frameworks",
+			href: "/rahmenwerke",
+			icon: "book-open",
+		},
+		{
+			key: "baseline",
+			labelKey: "baseline",
+			href: "/baseline",
+			icon: "shield-check",
+		},
+	],
+	synergies: [
+		{
+			key: "synergies",
+			labelKey: "synergies",
+			href: "/synergien",
+			icon: "git-merge",
+		},
+		{
+			key: "relations",
+			labelKey: "relations",
+			href: "/zusammenhaenge",
+			icon: "network",
+		},
+	],
+	planning: [
+		{
+			key: "calendar",
+			labelKey: "calendar",
+			href: "/kalender",
+			icon: "calendar",
+			perm: { obligation: ["read"] },
+		},
+		{
+			key: "roadmap",
+			labelKey: "roadmap",
+			href: "/roadmap",
+			icon: "map",
+			perm: { milestone: ["read"] },
+		},
+	],
+	review: [
+		{
+			key: "managementReview",
+			labelKey: "managementReview",
+			href: "/managementbewertung",
+			icon: "presentation",
+			perm: { management_review: ["read"] },
+		},
+		{
+			key: "reports",
+			labelKey: "reports",
+			href: "/berichte",
+			icon: "book-open",
+			perm: { management_review: ["read"] },
+		},
+	],
+	nonconformities: [
+		{
+			key: "nonconformities",
+			labelKey: "nonconformities",
+			href: "/abweichungen",
+			icon: "wrench",
+			perm: { nonconformity: ["read"] },
+		},
+		{
+			key: "testProgramme",
+			labelKey: "testProgramme",
+			href: "/testprogramm",
+			icon: "flask",
+			perm: { control: ["read"] },
+		},
+	],
+	team: [
+		{
+			key: "team",
+			labelKey: "team",
+			href: "/team",
+			icon: "users",
+			hideFor: ["auditor"],
+		},
+		{
+			key: "activity",
+			labelKey: "activity",
+			href: "/aktivitaet",
+			icon: "activity",
+		},
+	],
+};
+
+// Alle Pfade eines Eintrags: eigener, Zusatzpfade, geteilte Seiten
+export function navItemHrefs(item: NavItem): string[] {
+	return [
+		item.href,
+		...(item.match ?? []),
+		...(item.sections ? NAV_SECTIONS[item.sections].map((s) => s.href) : []),
+	];
+}
 
 export type NavGroup = {
 	key: NavGroupKey;
@@ -123,8 +257,7 @@ export type NavGroup = {
 		| "groupImplement"
 		| "groupRegisters"
 		| "groupGovernance"
-		| "groupCasp"
-		| "groupFrameworks";
+		| "groupCasp";
 	items: NavItem[];
 };
 
@@ -228,6 +361,19 @@ export function buildNav(input: NavInput): NavGroup[] {
 					href: "/gap-analyse",
 					icon: "list-checks",
 				},
+				// ein Eintrag für alle Rahmenwerke (Liste mit Abdeckung)
+				{
+					key: "frameworks",
+					labelKey: "frameworks",
+					href: "/rahmenwerke",
+					icon: "book-open",
+					sections: "frameworks",
+					jumps: input.frameworks.map((f) => ({
+						key: `fw-${f.slug}`,
+						label: f.name,
+						href: `/rahmenwerke/${f.slug}`,
+					})),
+				},
 				{
 					key: "controls",
 					labelKey: "controls",
@@ -235,22 +381,17 @@ export function buildNav(input: NavInput): NavGroup[] {
 					icon: "shield-check",
 				},
 				{
-					key: "synergies",
-					labelKey: "synergies",
-					href: "/synergien",
-					icon: "git-merge",
-				},
-				{
-					key: "relations",
-					labelKey: "relations",
-					href: "/zusammenhaenge",
-					icon: "network",
-				},
-				{
 					key: "evidence",
 					labelKey: "evidence",
 					href: "/nachweise",
 					icon: "file-check",
+				},
+				{
+					key: "synergies",
+					labelKey: "synergies",
+					href: "/synergien",
+					icon: "git-merge",
+					sections: "synergies",
 				},
 				{
 					key: "security",
@@ -364,12 +505,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "managementReview",
 					href: "/managementbewertung",
 					icon: "presentation",
-				},
-				{
-					key: "reports",
-					labelKey: "reports",
-					href: "/berichte",
-					icon: "book-open",
+					sections: "review",
 				},
 				{
 					key: "trustCenter",
@@ -382,24 +518,14 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "nonconformities",
 					href: "/abweichungen",
 					icon: "wrench",
+					sections: "nonconformities",
 				},
 				{
-					key: "testProgramme",
-					labelKey: "testProgramme",
-					href: "/testprogramm",
-					icon: "flask",
-				},
-				{
-					key: "calendar",
-					labelKey: "calendar",
+					key: "planning",
+					labelKey: "planning",
 					href: "/kalender",
 					icon: "calendar",
-				},
-				{
-					key: "roadmap",
-					labelKey: "roadmap",
-					href: "/roadmap",
-					icon: "map",
+					sections: "planning",
 				},
 			],
 		},
@@ -478,45 +604,32 @@ export function buildNav(input: NavInput): NavGroup[] {
 			],
 		});
 
-	groups.push({
-		key: "frameworks",
-		labelKey: "groupFrameworks",
-		items: [
-			...input.frameworks.map((f) => ({
-				key: `fw-${f.slug}`,
-				label: f.name,
-				href: `/rahmenwerke/${f.slug}`,
-				icon: "book-open" as const,
-			})),
-			{
-				key: "baseline",
-				labelKey: "baseline",
-				href: "/baseline",
-				icon: "shield-check",
-			},
-		],
-	});
-
+	// Aktivität steht unter Team; Prüfer:innen sehen kein Team, für sie
+	// bleibt Aktivität ein eigener Eintrag
 	const bottom: NavItem[] = [
-		{ key: "team", labelKey: "team", href: "/team", icon: "users" },
+		isAuditor
+			? {
+					key: "activity",
+					labelKey: "activity",
+					href: "/aktivitaet",
+					icon: "activity",
+				}
+			: {
+					key: "team",
+					labelKey: "team",
+					href: "/team",
+					icon: "users",
+					sections: "team",
+				},
 		{
 			key: "settings",
 			labelKey: "settings",
 			href: "/einstellungen",
 			icon: "settings",
 		},
-		{
-			key: "activity",
-			labelKey: "activity",
-			href: "/aktivitaet",
-			icon: "activity",
-		},
 		HELP_ITEM,
 	];
-	groups.push({
-		key: "bottom",
-		items: isAuditor ? bottom.filter((i) => i.key !== "team") : bottom,
-	});
+	groups.push({ key: "bottom", items: bottom });
 
 	if (isAuditor) {
 		// Prüfer:innen: reduzierte Nav — Steuerung/Register nur lesend relevante Teile.
@@ -534,6 +647,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			"incidents",
 			"products",
 			"audits",
+			"frameworks",
 			"settings",
 			"activity",
 			"help",
@@ -541,12 +655,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 		return groups
 			.map((g) => ({
 				...g,
-				items: g.items.filter(
-					(i) =>
-						allowed.has(i.key) ||
-						i.key.startsWith("fw-") ||
-						i.key === "baseline",
-				),
+				items: g.items.filter((i) => allowed.has(i.key)),
 			}))
 			.filter((g) => g.items.length > 0);
 	}
@@ -561,7 +670,7 @@ export function activeNavKey(
 ): string | null {
 	let best: { key: string; len: number } | null = null;
 	for (const item of groups.flatMap((g) => g.items))
-		for (const href of [item.href, ...(item.match ?? [])]) {
+		for (const href of navItemHrefs(item)) {
 			const hit =
 				pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 			if (hit && (!best || href.length > best.len))
@@ -578,7 +687,7 @@ export function countNavTargets(groups: NavGroup[]): number {
 // kein „Mehr“. Heute und Suche führen direkt zur Seite; Umsetzen, Register und
 // Steuerung öffnen /bereich/<tab> — eine gruppierte Liste ihrer Seiten (wie
 // die iOS-Einstellungen). CASP & Aufsicht, Team und Einstellungen hängen unter
-// Steuerung, Überblick und Rahmenwerke unter Umsetzen.
+// Steuerung, der Überblick unter Umsetzen.
 export type NavTabKey =
 	| "heute"
 	| "umsetzen"
@@ -612,7 +721,7 @@ const TAB_DEFS: (Omit<NavTab, "groups"> & { groupKeys: NavGroupKey[] })[] = [
 		labelKey: "groupImplement",
 		icon: "shield-check",
 		href: "/bereich/umsetzen",
-		groupKeys: ["overview", "implement", "frameworks"],
+		groupKeys: ["overview", "implement"],
 	},
 	{
 		key: "register",

@@ -1,9 +1,10 @@
 import { getTranslations } from "next-intl/server";
 import { LinkRegistration } from "@/components/auth/link-registration";
+import { withMessages } from "@/components/i18n/with-messages";
 
 // Konto aktivieren: /aktivieren#klk_activate_… — erster Passkey für ein
 // Konto, das ein Plattform-Admin angelegt hat. Ohne Passkey kein Zugang.
-export default async function ActivatePage() {
+async function ActivatePage() {
 	const t = await getTranslations("Activate");
 	return (
 		<div className="flex flex-col gap-6">
@@ -14,3 +15,10 @@ export default async function ActivatePage() {
 		</div>
 	);
 }
+
+export default withMessages(ActivatePage, [
+	"Activate",
+	"Auth",
+	"Invitation",
+	"Recover",
+]);

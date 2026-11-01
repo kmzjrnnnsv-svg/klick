@@ -7,7 +7,7 @@ import { setResponsible } from "@/app/actions/responsible";
 import { errorText } from "@/components/ui/error-text";
 import { toast } from "@/components/ui/toast";
 import type { FunctionKey } from "@/db/schema/enums";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 import { OwnerChip } from "./owner-chip";
 import { ResponsibleSelect } from "./responsible-select";
 

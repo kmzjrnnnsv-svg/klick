@@ -1,4 +1,5 @@
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { cache } from "react";
 import { globalDb } from "@/db";
 import {
 	invitation,
@@ -11,7 +12,7 @@ import {
 } from "@/db/auth-schema";
 import { memberAccess, memberRoles, orgRoles } from "@/db/schema";
 import { readOrg } from "@/lib/db/with-org";
-import { membershipExpired } from "./memberships";
+import { isExternal, membershipExpired } from "./memberships";
 import { normalizeRole } from "./session-rules";
 
 // Org-Stammdaten aus den Better-Auth-Tabellen (kein RLS, daher immer explizit
@@ -123,7 +124,10 @@ export async function listOrgMembers(orgId: string) {
 
 // Alle Mitgliedschaften eines Kontos (Org-Umschalter, Auswahlseite,
 // aktive Org beim Sitzungsstart) — mit Ablauf aus member_access.
-export async function listUserMemberships(userId: string) {
+// einmal je Anfrage (Rahmen und Seite); Ablauf nur für externe Zugänge —
+// eigene Mitgliedschaften laufen nicht ab (ADR-018), also keine Abfrage je
+// Org im Rahmen jeder Seite.
+export const listUserMemberships = cache(async (userId: string) => {
 	const rows = await globalDb
 		.select({
 			memberId: member.id,
@@ -140,17 +144,20 @@ export async function listUserMemberships(userId: string) {
 	const now = Date.now();
 	return Promise.all(
 		rows.map(async (r) => {
-			const [a] = await memberAccessFor(r.organizationId, [r.memberId]);
+			const role = normalizeRole(r.role);
+			const [a] = isExternal(role)
+				? await memberAccessFor(r.organizationId, [r.memberId])
+				: [];
 			const accessUntil = a?.accessUntil ?? null;
 			return {
 				...r,
-				role: normalizeRole(r.role),
+				role,
 				accessUntil,
 				expired: membershipExpired({ accessUntil }, now),
 			};
 		}),
 	);
-}
+});
 
 export type UserMembership = Awaited<
 	ReturnType<typeof listUserMemberships>

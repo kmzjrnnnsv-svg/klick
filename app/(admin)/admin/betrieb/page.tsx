@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { RetryJobButton, TestMailButton } from "@/components/admin/ops-actions";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
@@ -29,7 +30,7 @@ const LEVEL_BADGE: Record<
 // Admin > Betrieb (Admin-Portal, Teil 5): Server-Status aus der Statusdatei
 // von klick-health (die App hat kein root), Hintergrundaufgaben (pg-boss) mit
 // „erneut starten“ und Mailversand mit Testmail. Keine Inhalte einer Org.
-export default async function AdminOpsPage() {
+async function AdminOpsPage() {
 	const admin = await requirePlatformAdminPage();
 	const t = await getTranslations("AdminOps");
 	const ta = await getTranslations("Admin");
@@ -235,3 +236,5 @@ export default async function AdminOpsPage() {
 		</div>
 	);
 }
+
+export default withMessages(AdminOpsPage, ["AdminOps", "Common"]);

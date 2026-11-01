@@ -36,6 +36,7 @@ import { ExportLink } from "@/components/entity/export-link";
 import { ResponsibleEditor } from "@/components/entity/responsible-editor";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import { MarkdownView } from "@/components/markdown-view";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -96,7 +97,7 @@ import {
 	documentSignaturesFor,
 } from "@/lib/signatures/document";
 
-export default async function DocumentDetailPage({
+async function DocumentDetailPage({
 	params,
 	searchParams,
 }: {
@@ -1015,3 +1016,21 @@ export default async function DocumentDetailPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(DocumentDetailPage, [
+	"Ai",
+	"AiSettings",
+	"Approvals",
+	"Auth",
+	"Common",
+	"Decisions",
+	"Dlp",
+	"DocumentRetention",
+	"Documents",
+	"Entity",
+	"Evidence",
+	"Functions",
+	"Resolutions",
+	"Settings",
+	"Status",
+]);

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { AccessReview } from "@/components/team/access-review";
 import { InviteForm } from "@/components/team/invite-form";
 import { MemberAccessForm } from "@/components/team/member-access-form";
@@ -31,7 +33,7 @@ import { listControlRows, listTasks } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
 import { listOrgRoles, rolesByMember } from "@/lib/org/roles";
 
-export default async function TeamPage() {
+async function TeamPage() {
 	const ctx = await requireOrgPage();
 	const t = await getTranslations("Team");
 	const [members, invitations] = await Promise.all([
@@ -73,6 +75,8 @@ export default async function TeamPage() {
 
 	return (
 		<>
+			<SectionSwitch group="team" current="/team" ctx={ctx} />
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}
@@ -268,3 +272,5 @@ export default async function TeamPage() {
 		</>
 	);
 }
+
+export default withMessages(TeamPage, ["Auth", "Common", "Roles", "Team"]);

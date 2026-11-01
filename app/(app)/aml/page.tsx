@@ -14,7 +14,7 @@ import {
 import { EmptyState } from "@/components/entity/empty-state";
 import { OwnerChip } from "@/components/entity/owner-chip";
 import { UrlTabs } from "@/components/entity/url-tabs";
-import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -60,7 +60,7 @@ import {
 } from "@/lib/compliance/queries-p4";
 import { decryptMany, fieldAad } from "@/lib/crypto/org-dek";
 import { readOrg } from "@/lib/db/with-org";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -131,11 +131,7 @@ const GWG_OBLIGATIONS = [
 // Monitoring-Regelwerk, Verdachtsmeldungen/STOR, Länder & Korridore, Travel
 // Rule, Schulung & Berichte. Die Fachsysteme (KYC, TM, Analytics, Travel
 // Rule) laufen bei Dienstleistern; hier liegen Regelwerk, Register und Nachweise.
-export default async function AmlPage({
-	searchParams,
-}: {
-	searchParams: Promise<Search>;
-}) {
+async function AmlPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const ctx = await requireOrgPage({ aml: ["read"] });
 	const sp = await searchParams;
 	const tab: Tab = (TABS as readonly string[]).includes(one(sp.tab) ?? "")
@@ -1195,3 +1191,13 @@ export default async function AmlPage({
 		</>
 	);
 }
+
+export default withMessages(AmlPage, [
+	"Aml",
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"Status",
+]);

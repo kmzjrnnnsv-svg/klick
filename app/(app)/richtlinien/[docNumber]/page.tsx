@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AckButton } from "@/components/documents/ack-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { PolicyBody } from "@/components/policies/policy-list";
 import { BackLink } from "@/components/ui/back-link";
@@ -13,7 +14,7 @@ import { policiesFor } from "@/lib/policies/queries";
 
 // Eine Richtlinie in der gültigen Fassung: Text oder Datei, „gilt seit“,
 // Kenntnisnahme. Nur, was der Verteiler der Person erreicht.
-export default async function PolicyPage({
+async function PolicyPage({
 	params,
 }: {
 	params: Promise<{ docNumber: string }>;
@@ -59,3 +60,5 @@ export default async function PolicyPage({
 		</>
 	);
 }
+
+export default withMessages(PolicyPage, ["Common", "Documents"]);

@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { count } from "drizzle-orm";
 import { orgSettings, sites } from "@/db/schema";
 import {
 	type CompanyClassification,

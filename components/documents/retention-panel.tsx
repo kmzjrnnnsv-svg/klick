@@ -15,7 +15,7 @@ import {
 	EXTERNAL_KINDS,
 	type ExternalKind,
 	type ExternalSource,
-} from "@/db/schema/grc";
+} from "@/db/schema/enums";
 
 // Aufbewahrung der Fassungen und Herkunft eines externen Dokuments (AP9.3,
 // ISO 27001 7.5.3). Speichern über updateDocument.

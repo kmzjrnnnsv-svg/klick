@@ -24,7 +24,6 @@ import {
 	FormDialog,
 	NewTrigger,
 	ResponsibleField,
-	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -57,7 +56,7 @@ import {
 	MONITORING_RULE_STATUSES,
 	ORG_STANCES,
 	SUSPICIOUS_KINDS,
-} from "@/lib/validation/casp";
+} from "@/lib/validation/options";
 
 function today(): string {
 	return new Date().toISOString().slice(0, 10);

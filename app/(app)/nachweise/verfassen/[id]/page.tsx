@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { AuthoringEditor } from "@/components/evidence-authoring/editor";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { BackLink } from "@/components/ui/back-link";
 import { evidence } from "@/db/schema";
@@ -18,7 +19,7 @@ import { presetOf } from "@/lib/evidence-authoring/templates";
 import { berlinToday } from "@/lib/evidence-studio/queries";
 
 // Entwurf eines verfassten Nachweises bearbeiten und abschließen
-export default async function AuthoringEditorPage({
+async function AuthoringEditorPage({
 	params,
 }: {
 	params: Promise<{ id: string }>;
@@ -100,3 +101,12 @@ export default async function AuthoringEditorPage({
 		</>
 	);
 }
+
+export default withMessages(AuthoringEditorPage, [
+	"Auth",
+	"Authoring",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+]);

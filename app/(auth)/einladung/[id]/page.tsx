@@ -2,16 +2,13 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { AcceptInvitation } from "@/components/auth/accept-invitation";
+import { withMessages } from "@/components/i18n/with-messages";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionCtx } from "@/lib/auth/guards";
 import { roleLabel } from "@/lib/auth/memberships";
 import { auth } from "@/lib/auth/server";
 
-export default async function InvitationPage({
-	params,
-}: {
-	params: Promise<{ id: string }>;
-}) {
+async function InvitationPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
 	const t = await getTranslations("Invitation");
 	const ctx = await getSessionCtx();
@@ -69,3 +66,5 @@ export default async function InvitationPage({
 		</div>
 	);
 }
+
+export default withMessages(InvitationPage, ["Common", "Invitation"]);

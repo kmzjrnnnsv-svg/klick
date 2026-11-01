@@ -4,7 +4,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { PlanTestForm } from "@/components/testprogramme/plan-test-form";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,7 +41,7 @@ const RESULT_TONE = {
 	fail: "destructive",
 } as const;
 
-export default async function TestProgrammePage({
+async function TestProgrammePage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -110,6 +112,12 @@ export default async function TestProgrammePage({
 
 	return (
 		<>
+			<SectionSwitch
+				group="nonconformities"
+				current="/testprogramm"
+				ctx={ctx}
+			/>
+
 			<PageHeader
 				title={t("title")}
 				lead={t("lead")}
@@ -397,3 +405,13 @@ export default async function TestProgrammePage({
 		</>
 	);
 }
+
+export default withMessages(TestProgrammePage, [
+	"Auth",
+	"Common",
+	"Entity",
+	"Functions",
+	"Organisation",
+	"TestProgramme",
+	"Tests",
+]);

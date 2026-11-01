@@ -8,6 +8,7 @@ import {
 } from "@/components/custody/reconciliation-form";
 import { EmptyState } from "@/components/entity/empty-state";
 import { UrlTabs } from "@/components/entity/url-tabs";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,7 +40,7 @@ const TABS = ["wallets", "abstimmung", "zeremonien"] as const;
 
 // /verwahrung — Wallet-Register, tägliche Abstimmung des Kundenvermögens
 // und Zeremonien (MiCAR Art. 70/75, CCSS).
-export default async function CustodyPage({
+async function CustodyPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ tab?: string }>;
@@ -419,3 +420,13 @@ export default async function CustodyPage({
 		</>
 	);
 }
+
+export default withMessages(CustodyPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Custody",
+	"Entity",
+	"Functions",
+	"Organisation",
+]);

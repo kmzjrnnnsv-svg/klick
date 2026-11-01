@@ -12,6 +12,7 @@ import {
 	SiteTunnelActions,
 	SiteTunnelWizard,
 } from "@/components/admin/site-tunnels";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,11 +72,7 @@ const isoDay = (d: Date | null | undefined) =>
 // Admin > Organisationen > [Org] (Admin-Portal, Teil 2): Betriebsdaten der
 // Organisation als gruppierte Liste. Keine Inhalte (Lockbox): was dort steht,
 // sieht der Betrieb nur über eine Freigabe unter Admin > Zugriffe.
-export default async function AdminOrgPage({
-	params,
-}: {
-	params: Promise<{ id: string }>;
-}) {
+async function AdminOrgPage({ params }: { params: Promise<{ id: string }> }) {
 	const admin = await requirePlatformAdminPage();
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -437,3 +434,12 @@ export default async function AdminOrgPage({
 		</div>
 	);
 }
+
+export default withMessages(AdminOrgPage, [
+	"AdminOrgs",
+	"AdminSites",
+	"Auth",
+	"Common",
+	"Roles",
+	"Team",
+]);

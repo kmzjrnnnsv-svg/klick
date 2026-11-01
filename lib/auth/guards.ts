@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { after } from "next/server";
+import { cache } from "react";
 import { globalDb } from "@/db";
 import { member, session as sessionTable } from "@/db/auth-schema";
 import { auditPlatform } from "@/lib/audit";
@@ -83,7 +84,8 @@ export type SessionCtx = {
 	userAgent: string | null;
 };
 
-export async function getSessionCtx(): Promise<SessionCtx | null> {
+// einmal je Anfrage (Layout und Seite rendern parallel und prüfen beide)
+export const getSessionCtx = cache(async (): Promise<SessionCtx | null> => {
 	const h = await headers();
 	const res = await auth.api.getSession({ headers: h });
 	if (!res) return null;
@@ -99,7 +101,7 @@ export async function getSessionCtx(): Promise<SessionCtx | null> {
 		ip: ipFromHeaders(h),
 		userAgent: h.get("user-agent"),
 	};
-}
+});
 
 function touchSession(ctx: SessionCtx): void {
 	const last = ctx.session.lastActiveAt ?? ctx.session.createdAt;
@@ -160,92 +162,104 @@ export function impersonationDenies(perm: Permission): boolean {
 	);
 }
 
+// Sitzung, Mitgliedschaft, Zugang, Netz und Sperre: einmal je Anfrage
+// (React.cache). Die Rechte prüft requireOrg bei jedem Aufruf.
+const orgBase = cache(
+	async (): Promise<{ ctx: SessionCtx; base: OrgContext }> => {
+		const ctx = await getSessionCtx();
+		if (!ctx) throw new AuthErr("unauthenticated");
+		checkRules(ctx);
+
+		const orgId = ctx.session.activeOrganizationId;
+		if (!orgId) throw new AuthErr("no_org");
+		// Als Person angemeldet (Lockbox, Härtung A3): nur solange die Org die
+		// Freigabe nicht widerrufen hat und sie nicht abgelaufen ist — die
+		// Sitzung selbst würde Better Auth sonst bis zu 12 h verlängern
+		if (
+			ctx.session.impersonatedBy &&
+			!(await impersonationAllowed(
+				ctx.user.id,
+				orgId,
+				ctx.session.impersonatedBy,
+			))
+		) {
+			await endImpersonations(ctx.user.id);
+			throw new AuthErr("unauthenticated");
+		}
+
+		const [row] = await globalDb
+			.select({ id: member.id, role: member.role })
+			.from(member)
+			.where(
+				and(eq(member.organizationId, orgId), eq(member.userId, ctx.user.id)),
+			)
+			.limit(1);
+		if (!row) throw new AuthErr("no_org");
+		// Ablauf, Grants und eigene Rollen im Org-Kontext lesen (member_access,
+		// member_roles und org_roles sind FORCE RLS).
+		const { access, roles } = await memberContextFor(orgId, row.id);
+		const m = { ...row, grants: access?.grants ?? null };
+		if (access?.accessUntil && access.accessUntil.getTime() < Date.now()) {
+			throw new AuthErr("access_expired");
+		}
+
+		const orgRole = normRole(m.role);
+		// IP-Liste der Organisation (Härtung A5); Externe ggf. mit eigener Liste.
+		// Als Person angemeldet aus dem Admin-Netz: die Freigabe der Org gilt.
+		if (
+			!(ctx.session.impersonatedBy && adminNetworkAllows(ctx.ip)) &&
+			!(await orgNetworkAllows(orgId, "app", ctx.ip, {
+				external: isExternal(orgRole),
+			}))
+		)
+			throw new AuthErr("network_denied");
+		// Gesperrt durch den Plattform-Betrieb (Vertrag, Missbrauch): jede Fläche
+		if (await orgSuspended(orgId)) throw new AuthErr("org_suspended");
+		const permissions = effectivePermissions(
+			orgRole,
+			roles.map((r) => r.permissions),
+		);
+		return {
+			ctx,
+			base: {
+				userId: ctx.user.id,
+				email: ctx.user.email,
+				name: ctx.user.name,
+				orgId,
+				orgRole,
+				memberId: m.id,
+				grants: m.grants ?? [],
+				isPlatformAdmin: ctx.user.role === "admin",
+				sessionId: ctx.session.id,
+				ip: ctx.ip,
+				userAgent: ctx.userAgent,
+				stepUpFresh: stepUpFresh(ctx.session),
+				hasTotp: Boolean(ctx.user.twoFactorEnabled),
+				hasPasskey: Boolean(ctx.user.hasPasskey),
+				permissions,
+				customRoles: roles.map((r) => ({ id: r.id, name: r.name })),
+			},
+		};
+	},
+);
+
 export async function requireOrg(
 	perm?: Permission,
 	opts?: OrgGuardOptions,
 ): Promise<OrgContext> {
-	const ctx = await getSessionCtx();
-	if (!ctx) throw new AuthErr("unauthenticated");
-	checkRules(ctx);
-
-	const orgId = ctx.session.activeOrganizationId;
-	if (!orgId) throw new AuthErr("no_org");
-	// Als Person angemeldet (Lockbox, Härtung A3): nur solange die Org die
-	// Freigabe nicht widerrufen hat und sie nicht abgelaufen ist — die
-	// Sitzung selbst würde Better Auth sonst bis zu 12 h verlängern
-	if (
-		ctx.session.impersonatedBy &&
-		!(await impersonationAllowed(
-			ctx.user.id,
-			orgId,
-			ctx.session.impersonatedBy,
-		))
-	) {
-		await endImpersonations(ctx.user.id);
-		throw new AuthErr("unauthenticated");
-	}
-
-	const [row] = await globalDb
-		.select({ id: member.id, role: member.role })
-		.from(member)
-		.where(
-			and(eq(member.organizationId, orgId), eq(member.userId, ctx.user.id)),
-		)
-		.limit(1);
-	if (!row) throw new AuthErr("no_org");
-	// Ablauf, Grants und eigene Rollen im Org-Kontext lesen (member_access,
-	// member_roles und org_roles sind FORCE RLS).
-	const { access, roles } = await memberContextFor(orgId, row.id);
-	const m = { ...row, grants: access?.grants ?? null };
-	if (access?.accessUntil && access.accessUntil.getTime() < Date.now()) {
-		throw new AuthErr("access_expired");
-	}
-
-	const orgRole = normRole(m.role);
-	// IP-Liste der Organisation (Härtung A5); Externe ggf. mit eigener Liste.
-	// Als Person angemeldet aus dem Admin-Netz: die Freigabe der Org gilt.
-	if (
-		!(ctx.session.impersonatedBy && adminNetworkAllows(ctx.ip)) &&
-		!(await orgNetworkAllows(orgId, "app", ctx.ip, {
-			external: isExternal(orgRole),
-		}))
-	)
-		throw new AuthErr("network_denied");
-	// Gesperrt durch den Plattform-Betrieb (Vertrag, Missbrauch): jede Fläche
-	if (await orgSuspended(orgId)) throw new AuthErr("org_suspended");
-	const permissions = effectivePermissions(
-		orgRole,
-		roles.map((r) => r.permissions),
-	);
-	if (perm && !permissionsAllow(permissions, perm))
+	const { ctx, base } = await orgBase();
+	if (perm && !permissionsAllow(base.permissions, perm))
 		throw new AuthErr("forbidden");
 	// Als Person angemeldet: Team und Integrationen nur lesen — ein
 	// Einladungs-Link oder Token wirkte über das Ende der Freigabe hinaus
 	// (Selbstprüfung K3)
 	if (perm && ctx.session.impersonatedBy && impersonationDenies(perm))
 		throw new AuthErr("forbidden");
-	if (!perm && orgRole === "employee" && !opts?.employees)
+	if (!perm && base.orgRole === "employee" && !opts?.employees)
 		throw new AuthErr("forbidden");
 
 	touchSession(ctx);
-	return {
-		userId: ctx.user.id,
-		email: ctx.user.email,
-		name: ctx.user.name,
-		orgId,
-		orgRole,
-		memberId: m.id,
-		grants: m.grants ?? [],
-		isPlatformAdmin: ctx.user.role === "admin",
-		sessionId: ctx.session.id,
-		ip: ctx.ip,
-		userAgent: ctx.userAgent,
-		stepUpFresh: stepUpFresh(ctx.session),
-		hasTotp: Boolean(ctx.user.twoFactorEnabled),
-		hasPasskey: Boolean(ctx.user.hasPasskey),
-		permissions,
-		customRoles: roles.map((r) => ({ id: r.id, name: r.name })),
-	};
+	return { ...base };
 }
 
 // Sensible Aktionen (Freigaben, Exporte, Mitglieder, Einstellungen,

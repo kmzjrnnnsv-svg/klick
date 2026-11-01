@@ -1,15 +1,15 @@
-import { KEY_HOLDER_ROLES } from "@/db/schema/custody";
 import type { EntityKind } from "@/db/schema/enums";
 import {
 	CHANGE_KINDS,
 	CLASSIFICATIONS,
 	CRITICALITY,
+	KEY_HOLDER_ROLES,
 	NC_PRIORITIES,
+	PROVIDER_CATEGORIES,
+	RISK_CATEGORIES,
 	ROLE_FUNCTIONS,
 } from "@/db/schema/enums";
 import type { ApprovalStep } from "@/db/schema/grc";
-import { RISK_CATEGORIES } from "@/db/schema/grc";
-import { PROVIDER_CATEGORIES } from "@/db/schema/registers";
 
 // Auslöser-Katalog des Freigabe-Designers — pure. Jeder Auslöser ist eine
 // Stelle im Code, an der gateApproval/requestApproval aufgerufen wird; der

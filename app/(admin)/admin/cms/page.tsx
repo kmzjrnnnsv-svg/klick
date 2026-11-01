@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CmsEditor } from "@/components/admin/cms-editor";
+import { withMessages } from "@/components/i18n/with-messages";
 import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import { getCmsPageBySlug, listCmsPages } from "@/lib/db/global";
 import { cn } from "@/lib/utils";
 
-export default async function AdminCmsPage({
+async function AdminCmsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ slug?: string }>;
@@ -69,3 +70,5 @@ export default async function AdminCmsPage({
 		</>
 	);
 }
+
+export default withMessages(AdminCmsPage, ["Admin", "Common"]);

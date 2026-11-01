@@ -38,6 +38,8 @@ export function RegisterFilters({
 	const update = useCallback(
 		(key: string, value: string | null) => {
 			const next = new URLSearchParams(params.toString());
+			// andere Filter = andere Treffer: zurück auf die erste Seite
+			next.delete("seite");
 			if (value === null || value === "" || value === "all") next.delete(key);
 			else next.set(key, value);
 			const qs = next.toString();

@@ -10,14 +10,14 @@ export const IMPLEMENT: HelpArticle[] = [
 		area: "implement",
 		title: "Überblick und Prüfungsreife",
 		summary:
-			"Abdeckung je Rahmenwerk, Governance-Lücken, Trend und die Prüfungsreife zu einem Stichtag.",
+			"Abdeckung je Rahmenwerk, die nächsten Schritte, Trend und die Prüfungsreife zu einem Stichtag.",
 		sections: [
 			{
 				id: "abdeckung",
 				heading: "Abdeckung je Rahmenwerk",
 				body: [
 					"Der Überblick zeigt je gewähltem Rahmenwerk, wie viele anwendbare Anforderungen über ihre Controls erfüllt sind. Ein Control zählt voll, wenn es umgesetzt ist, halb, wenn es teilweise umgesetzt ist. Die Zahl wird bei jedem Aufruf neu gerechnet, nie gespeichert.",
-					"Darunter stehen die Governance-Lücken: unbesetzte Pflichtfunktionen, fehlende Pflichtbeschlüsse, offene Pflichten aus dem Programm und unzulässige Funktionskombinationen.",
+					"Daneben steht „Als Nächstes“: höchstens fünf Schritte, geordnet nach Wirkung. Dazu zählen die offene Einrichtung, die Gap-Analyse, überfällige Pflichten und Abweichungen, unbesetzte Pflichtfunktionen, fehlende Pflichtbeschlüsse, unzulässige Funktionskombinationen, der Blocker mit den meisten Punkten bei der Prüfungsreife und die ersten Grundlagen (Team, Risikoappetit, Dokumente, Dienstleister). Dieselbe Liste steht oben auf Heute; was erledigt ist, verschwindet von selbst.",
 				],
 			},
 			{

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CreateOrgDialog } from "@/components/admin/org-actions";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -46,7 +47,7 @@ type Filter = (typeof FILTERS)[number];
 
 // Admin > Organisationen (Admin-Portal, Teil 2): Liste mit Suche und Filter
 // über die URL; Details, Vertrag, Preisgruppe und Sperre auf der Detailseite.
-export default async function AdminOrgsPage({
+async function AdminOrgsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ q?: string; status?: string }>;
@@ -249,3 +250,11 @@ export default async function AdminOrgsPage({
 		</div>
 	);
 }
+
+export default withMessages(AdminOrgsPage, [
+	"AdminOrgs",
+	"Auth",
+	"Common",
+	"Roles",
+	"Team",
+]);

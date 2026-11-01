@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { TermsAccept } from "@/components/auth/terms-accept";
+import { withMessages } from "@/components/i18n/with-messages";
 import { orgSettings } from "@/db/schema";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { readOrg } from "@/lib/db/with-org";
@@ -14,7 +15,7 @@ export const metadata: Metadata = { robots: { index: false } };
 // Klick-Betrieb im Admin-Portal angelegt hat, bestätigt die Inhaber:in hier
 // (sonst geschieht das beim Onboarding). /heute und die Einrichtung leiten
 // Inhaber:innen ohne Bestätigung hierher.
-export default async function TermsGatePage() {
+async function TermsGatePage() {
 	const ctx = await requireOrgPage();
 	if (ctx.orgRole !== "owner") redirect("/heute");
 	const [row] = await readOrg(ctx, (tx) =>
@@ -36,3 +37,9 @@ export default async function TermsGatePage() {
 		</div>
 	);
 }
+
+export default withMessages(TermsGatePage, [
+	"Common",
+	"Onboarding",
+	"TermsGate",
+]);

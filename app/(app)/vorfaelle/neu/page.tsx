@@ -1,4 +1,5 @@
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { IncidentCreateForm } from "@/components/incidents/incident-forms";
 import { PageHeader } from "@/components/page-header";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -7,7 +8,7 @@ import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { listProductOptions } from "@/lib/compliance/queries-products";
 import { readOrg } from "@/lib/db/with-org";
 
-export default async function NewIncidentPage() {
+async function NewIncidentPage() {
 	const ctx = await requireOrgPage({ incident: ["create"] });
 	const t = await getTranslations("Incidents");
 	const tNav = await getTranslations("Nav");
@@ -33,3 +34,9 @@ export default async function NewIncidentPage() {
 		</>
 	);
 }
+
+export default withMessages(NewIncidentPage, [
+	"Approvals",
+	"Common",
+	"Incidents",
+]);

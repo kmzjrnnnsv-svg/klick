@@ -245,6 +245,7 @@ export const kpiMeasurements = pgTable(
 	},
 	(t) => [
 		index("kpi_measurements_objective_idx").on(t.objectiveId),
+		index("kpi_measurements_org_idx").on(t.organizationId),
 		orgPolicy("kpi_measurements"),
 	],
 ).enableRLS();
@@ -324,6 +325,7 @@ export const auditProgrammeItems = pgTable(
 	},
 	(t) => [
 		index("audit_programme_items_programme_idx").on(t.programmeId),
+		index("audit_programme_items_org_idx").on(t.organizationId),
 		orgPolicy("audit_programme_items"),
 	],
 ).enableRLS();
@@ -416,6 +418,7 @@ export const auditFindings = pgTable(
 	},
 	(t) => [
 		index("audit_findings_audit_idx").on(t.auditId),
+		index("audit_findings_org_idx").on(t.organizationId),
 		orgPolicy("audit_findings"),
 	],
 ).enableRLS();
@@ -449,6 +452,7 @@ export const auditRequests = pgTable(
 	},
 	(t) => [
 		index("audit_requests_audit_idx").on(t.auditId),
+		index("audit_requests_org_idx").on(t.organizationId),
 		orgPolicy("audit_requests"),
 	],
 ).enableRLS();

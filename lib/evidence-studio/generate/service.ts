@@ -3,6 +3,7 @@ import { evidence, evidenceSignatures, roleAssignments } from "@/db/schema";
 import type { RoleFunction } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { getOrgSummary } from "@/lib/auth/org";
+import { orgDerived, orgStamp } from "@/lib/cache/org-derived";
 import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
 import { functionKeyOf } from "@/lib/compliance/function-key";
@@ -428,31 +429,67 @@ export async function kindOverview(
 					)
 			).map((r) => r.function as string)
 		: [];
+	// Letzte Fassung je Art und ihre Unterschriften in je einer Abfrage statt
+	// je Art; die Prüfsumme der Register nur neu, wenn sich in der Org etwas
+	// geändert hat (Zwischenspeicher je Org, Kopf der Prüfsummen-Kette).
+	const orgCodes = codes.filter(
+		(c) => EVIDENCE_KIND_BY_CODE.get(c)?.scope === "org",
+	);
+	const latestRows =
+		orgCodes.length > 0
+			? await tx
+					.selectDistinctOn([evidence.kindCode], {
+						kindCode: evidence.kindCode,
+						id: evidence.id,
+						createdAt: evidence.createdAt,
+						validUntil: evidence.validUntil,
+						contentSha256: evidence.contentSha256,
+					})
+					.from(evidence)
+					.where(
+						and(
+							eq(evidence.organizationId, orgId),
+							inArray(evidence.kindCode, orgCodes),
+							currentEvidence(),
+						),
+					)
+					.orderBy(evidence.kindCode, desc(evidence.createdAt))
+			: [];
+	const latestByCode = new Map(latestRows.map((r) => [r.kindCode, r]));
+	const latestIds = latestRows.map((r) => r.id);
+	const sigRows =
+		latestIds.length > 0
+			? await tx
+					.select({
+						evidenceId: evidenceSignatures.evidenceId,
+						signerUserId: evidenceSignatures.signerUserId,
+						name: evidenceSignatures.signerName,
+						function: evidenceSignatures.function,
+						signedAt: evidenceSignatures.signedAt,
+					})
+					.from(evidenceSignatures)
+					.where(
+						and(
+							eq(evidenceSignatures.organizationId, orgId),
+							inArray(evidenceSignatures.evidenceId, latestIds),
+						),
+					)
+			: [];
+	const stamp = await orgStamp(tx, orgId);
 	for (const code of codes) {
 		const kind = EVIDENCE_KIND_BY_CODE.get(code);
 		if (!kind) continue;
 		const generatable = GENERATORS.has(code) && kind.scope === "org";
-		const [latest] =
-			kind.scope === "org"
-				? await tx
-						.select({
-							id: evidence.id,
-							createdAt: evidence.createdAt,
-							validUntil: evidence.validUntil,
-							contentSha256: evidence.contentSha256,
-						})
-						.from(evidence)
-						.where(
-							and(
-								eq(evidence.organizationId, orgId),
-								eq(evidence.kindCode, code),
-								currentEvidence(),
-							),
-						)
-						.orderBy(desc(evidence.createdAt))
-						.limit(1)
-				: [];
-		const current = generatable ? await currentHash(tx, orgId, code) : null;
+		const latest = latestByCode.get(code);
+		const current = generatable
+			? await orgDerived(
+					tx,
+					orgId,
+					`kind-hash:${code}:${today}`,
+					() => currentHash(tx, orgId, code),
+					stamp,
+				)
+			: null;
 		const state: KindOverviewRow["state"] =
 			kind.scope === "per_entity"
 				? "per_entity"
@@ -468,20 +505,7 @@ export async function kindOverview(
 									? "stale"
 									: "current";
 		const sigs = latest
-			? await tx
-					.select({
-						signerUserId: evidenceSignatures.signerUserId,
-						name: evidenceSignatures.signerName,
-						function: evidenceSignatures.function,
-						signedAt: evidenceSignatures.signedAt,
-					})
-					.from(evidenceSignatures)
-					.where(
-						and(
-							eq(evidenceSignatures.organizationId, orgId),
-							eq(evidenceSignatures.evidenceId, latest.id),
-						),
-					)
+			? sigRows.filter((x) => x.evidenceId === latest.id)
 			: [];
 		const signedFns = new Set(sigs.map((x) => x.function));
 		const iSigned = sigs.some((x) => x.signerUserId === me?.userId);

@@ -16,7 +16,6 @@ import {
 	FormDialog,
 	NewTrigger,
 	ResponsibleField,
-	UserSelect,
 } from "@/components/organisation/governance-forms";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

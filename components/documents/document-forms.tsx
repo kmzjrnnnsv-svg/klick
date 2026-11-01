@@ -45,7 +45,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import type { RoleFunction } from "@/db/schema/enums";
-import { DOCUMENT_TYPES } from "@/db/schema/grc";
+import { DOCUMENT_TYPES } from "@/db/schema/enums";
 import { bumpVersion } from "@/lib/documents/numbering";
 
 export type TemplateOption = {

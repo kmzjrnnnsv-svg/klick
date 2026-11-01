@@ -3,6 +3,7 @@ import {
 	EmergencyReportForm,
 	RequestAccessDialog,
 } from "@/components/admin/platform-access-admin";
+import { withMessages } from "@/components/i18n/with-messages";
 import { Badge } from "@/components/ui/badge";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import type { PlatformAccessGrant } from "@/db/schema/platform-access";
@@ -34,7 +35,7 @@ const STATE_VARIANT: Record<GrantState, "success" | "warning" | "muted"> = {
 	revoked: "muted",
 };
 
-export default async function AdminAccessPage() {
+async function AdminAccessPage() {
 	await requirePlatformAdminPage();
 	const t = await getTranslations("AdminLockbox");
 	const tp = await getTranslations("PlatformAccess");
@@ -164,3 +165,10 @@ export default async function AdminAccessPage() {
 		</>
 	);
 }
+
+export default withMessages(AdminAccessPage, [
+	"AdminLockbox",
+	"Auth",
+	"Common",
+	"PlatformAccess",
+]);

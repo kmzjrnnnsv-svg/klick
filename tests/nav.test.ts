@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { CATALOG_FRAMEWORKS } from "@/lib/compliance/catalog";
 import {
 	activeNavKey,
 	activeNavTab,
 	buildNav,
 	countNavTargets,
+	NAV_SECTIONS,
 	type NavGroup,
 	navTabs,
 } from "@/lib/nav";
@@ -109,7 +111,7 @@ describe("buildNav", () => {
 			buildNav({ ...input, role }).flatMap((g) => g.items.map((i) => i.key));
 		expect(keys("consultant")).toEqual(keys("editor"));
 	});
-	it("Heute trägt den Zähler, Rahmenwerke werden als Einträge geführt", () => {
+	it("Heute trägt den Zähler, ein Eintrag für alle Rahmenwerke", () => {
 		const groups = buildNav({
 			frameworks: iso,
 			licenceStage: "0_vorbereitung",
@@ -118,11 +120,57 @@ describe("buildNav", () => {
 			counts: { today: 3 },
 		});
 		expect(groups[0].items[0].count).toBe(3);
-		expect(
-			groups
-				.find((g) => g.key === "frameworks")
-				?.items.some((i) => i.href === "/rahmenwerke/iso27001"),
-		).toBe(true);
+		const items = groups.flatMap((g) => g.items);
+		expect(items.filter((i) => i.href.startsWith("/rahmenwerke"))).toEqual([
+			expect.objectContaining({ key: "frameworks", href: "/rahmenwerke" }),
+		]);
+		expect(activeNavKey(groups, "/rahmenwerke/iso27001")).toBe("frameworks");
+		expect(activeNavKey(groups, "/baseline")).toBe("frameworks");
+	});
+	it("Menü bleibt kurz, auch mit allen Rahmenwerken und Stufe Bank", () => {
+		const groups = buildNav({
+			frameworks: CATALOG_FRAMEWORKS.map((f) => ({
+				slug: f.slug,
+				name: f.name,
+			})),
+			licenceStage: "4_bank",
+			caspServices: ["custody"],
+			role: "owner",
+			walletLinked: true,
+		});
+		expect(countNavTargets(groups)).toBeLessThanOrEqual(36);
+	});
+	it("verwandte Seiten teilen sich einen Eintrag", () => {
+		const input = {
+			frameworks: casp,
+			licenceStage: "2_casp_zag" as const,
+			caspServices: [],
+		};
+		const owner = buildNav({ ...input, role: "owner" });
+		const keys = owner.flatMap((g) => g.items.map((i) => i.key));
+		for (const k of [
+			"relations",
+			"roadmap",
+			"reports",
+			"testProgramme",
+			"activity",
+		])
+			expect(keys).not.toContain(k);
+		expect(activeNavKey(owner, "/zusammenhaenge")).toBe("synergies");
+		expect(activeNavKey(owner, "/roadmap")).toBe("planning");
+		expect(activeNavKey(owner, "/kalender")).toBe("planning");
+		expect(activeNavKey(owner, "/berichte")).toBe("managementReview");
+		expect(activeNavKey(owner, "/testprogramm")).toBe("nonconformities");
+		expect(activeNavKey(owner, "/aktivitaet")).toBe("team");
+		// jede geteilte Seite hängt an genau einem Eintrag
+		const shared = owner
+			.flatMap((g) => g.items)
+			.flatMap((i) => (i.sections ? NAV_SECTIONS[i.sections] : []))
+			.map((sec) => sec.href);
+		expect(new Set(shared).size).toBe(shared.length);
+		// Prüfer:innen: Aktivität bleibt eigener Eintrag (kein Team)
+		const auditor = buildNav({ ...input, role: "auditor" });
+		expect(activeNavKey(auditor, "/aktivitaet")).toBe("activity");
 	});
 });
 
@@ -210,7 +258,7 @@ describe("Tab-Leiste (Apple HIG)", () => {
 			expect.arrayContaining(["aml", "krypto", "team", "settings"]),
 		);
 		expect(keys("umsetzen")).toEqual(
-			expect.arrayContaining(["overview", "controls", "fw-micar"]),
+			expect.arrayContaining(["overview", "controls", "frameworks"]),
 		);
 	});
 

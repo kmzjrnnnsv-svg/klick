@@ -19,7 +19,7 @@ import {
 	routesForArticle,
 } from "@/lib/help/routes";
 import { HELP_AREAS, type HelpArticle } from "@/lib/help/types";
-import { buildNav } from "@/lib/nav";
+import { buildNav, navItemHrefs } from "@/lib/nav";
 
 // Abschnitte, die die Artikelseite selbst anlegt (Anker)
 const RESERVED_IDS = ["rollen", "automatik", "fragen", "normen"];
@@ -57,7 +57,7 @@ function allNavHrefs(): string[] {
 				role,
 				walletLinked,
 			}))
-				for (const i of g.items) hrefs.add(i.href);
+				for (const i of g.items) for (const h of navItemHrefs(i)) hrefs.add(h);
 	return [...hrefs];
 }
 

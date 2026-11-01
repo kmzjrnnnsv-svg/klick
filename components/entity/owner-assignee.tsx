@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import type { FunctionKey } from "@/db/schema/enums";
-import { responsibleValue } from "@/lib/validation/responsible";
+import { responsibleValue } from "@/lib/validation/responsible-ref";
 import {
 	ResponsibleLabel,
 	type ResponsibleOption,

@@ -74,13 +74,13 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				key: "setup",
 				name: "Geführte Einrichtung",
 				summary:
-					"Sieben Schritte, die sofort in Register und Profil speichern und am Ende die Rahmenwerke vorschlagen.",
+					"Sechs Schritte, die sofort in Register und Profil speichern und am Ende die Rahmenwerke vorschlagen.",
 				where: "Einrichtung",
 				trigger: "Eine neue Organisation ist angelegt.",
 				steps: [
 					"Rollen und Rechte: Funktionsträger:innen benennen oder einladen.",
-					"Unternehmen und Größe: Einstufung nach KMU-Grenzen, NIS2 und DORA als Orientierung.",
-					"Standorte, Tätigkeit mit Lizenzstufe und Krypto-Diensten, IT, Dienstleister und Daten.",
+					"Unternehmen, Größe und Standorte: Einstufung nach KMU-Grenzen, NIS2 und DORA als Orientierung.",
+					"Tätigkeit mit Lizenzstufe und Krypto-Diensten, IT, Dienstleister und Daten.",
 					"Rahmenwerk-Vorschlag annehmen oder anpassen.",
 					"Gap-Analyse starten, vorbelegt mit dem, was die Einrichtung schon weiß.",
 				],
@@ -1083,7 +1083,7 @@ export const FEATURE_FAQ: { q: string; a: string }[] = [
 	},
 	{
 		q: "Wie lange dauert der Einstieg?",
-		a: "Die geführte Einrichtung hat sieben Schritte und speichert sofort. Danach steht der Arbeitsvorrat; die Gap-Analyse kannst du kapitelweise beantworten.",
+		a: "Die geführte Einrichtung hat sechs Schritte und speichert sofort. Danach steht der Arbeitsvorrat; die Gap-Analyse kannst du kapitelweise beantworten.",
 	},
 	{
 		q: "Was kostet Klick?",

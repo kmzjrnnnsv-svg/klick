@@ -11,6 +11,7 @@ import {
 	ReviewCell,
 	SubmitButton,
 } from "@/components/assessments/review-controls";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import {
 	CompleteSupplierDialog,
@@ -82,7 +83,7 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 // Geführte Gap-Analyse: 1 Fragen (je Kapitel, mit Upload) → 2 Bewertung →
 // 3 Maßnahmen → 4 Ergebnis. Schritt und Kapitel stehen in der URL.
-export default async function AssessmentPage({
+async function AssessmentPage({
 	params,
 	searchParams,
 }: {
@@ -700,3 +701,12 @@ export default async function AssessmentPage({
 		</>
 	);
 }
+
+export default withMessages(AssessmentPage, [
+	"Assessment",
+	"Common",
+	"Dlp",
+	"Evidence",
+	"Relations",
+	"Suppliers",
+]);

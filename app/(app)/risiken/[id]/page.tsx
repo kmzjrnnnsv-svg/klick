@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { UserChip } from "@/components/entity/user-chip";
 import { WatchButton } from "@/components/entity/watch-button";
+import { withMessages } from "@/components/i18n/with-messages";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { RiskEditForm, TreatmentForm } from "@/components/risks/risk-forms";
 import { Badge } from "@/components/ui/badge";
@@ -59,11 +60,7 @@ import {
 } from "@/lib/history";
 import { orgRiskMethod } from "@/lib/org/queries";
 
-export default async function RiskDetailPage({
-	params,
-}: {
-	params: Promise<{ id: string }>;
-}) {
+async function RiskDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ risk: ["read"] });
@@ -583,3 +580,18 @@ export default async function RiskDetailPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(RiskDetailPage, [
+	"Approvals",
+	"Auth",
+	"Common",
+	"Decisions",
+	"Dlp",
+	"Entity",
+	"Functions",
+	"Resolutions",
+	"Risks",
+	"Settings",
+	"Status",
+	"Tasks",
+]);

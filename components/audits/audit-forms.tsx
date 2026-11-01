@@ -45,7 +45,7 @@ import {
 	AUDIT_TYPES,
 	FINDING_SEVERITIES,
 	FINDING_STATUSES,
-} from "@/lib/validation/governance";
+} from "@/lib/validation/options";
 
 function useRun(setOpen?: (o: boolean) => void) {
 	const tc = useTranslations("Common");

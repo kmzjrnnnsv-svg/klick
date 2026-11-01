@@ -1,13 +1,17 @@
 "use client";
 
-import { startAuthentication } from "@simplewebauthn/browser";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/browser";
 import { KeyRound } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { confirmPasskey, passkeyOptions } from "@/app/actions/security";
 import { Button } from "@/components/ui/button";
 
 type Purpose = "mfa" | "stepup";
+
+// WebAuthn erst laden, wenn bestätigt wird (nicht im Rahmen jeder Seite);
+// die Knöpfe laden vorab, sobald sie erscheinen.
+export const loadWebAuthn = () => import("@simplewebauthn/browser");
 
 // Passkey für die laufende Sitzung bestätigen (zweiter Faktor oder Step-up).
 // „cancelled“ = Browser-Dialog geschlossen bzw. abgelaufen.
@@ -16,8 +20,9 @@ export async function confirmWithPasskey(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
 	const opt = await passkeyOptions(purpose);
 	if (!opt.ok) return opt;
-	let response: Awaited<ReturnType<typeof startAuthentication>>;
+	let response: AuthenticationResponseJSON;
 	try {
+		const { startAuthentication } = await loadWebAuthn();
 		response = await startAuthentication({ optionsJSON: opt.data });
 	} catch (e) {
 		const name = e instanceof Error ? e.name : "";
@@ -45,6 +50,10 @@ export function PasskeyConfirmButton({
 	const t = useTranslations("Auth");
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	// vorab laden, damit der Klick nicht auf den Download wartet
+	useEffect(() => {
+		void loadWebAuthn();
+	}, []);
 
 	async function run() {
 		setBusy(true);

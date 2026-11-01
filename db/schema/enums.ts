@@ -694,3 +694,105 @@ export type AiClassLevel = (typeof AI_CLASS_LEVELS)[number];
 // assist = Klick vergleicht, KI erklärt; full = KI vergleicht auch (Dateien)
 export const AI_MODES = ["assist", "full"] as const;
 export type AiMode = (typeof AI_MODES)[number];
+
+// aus grc.ts: hier, damit Browser-Code die Werte ohne Tabellen-Schema bekommt
+export const DOCUMENT_TYPES = [
+	"policy",
+	"procedure",
+	"concept",
+	"plan",
+	"manual",
+	"template",
+	"record",
+	"report",
+	"contract",
+	"form",
+	// Marketingmitteilung (MiCAR Art. 66): eigene Freigabe marketing.publish
+	"marketing",
+] as const;
+
+// Herkunft eines externen Dokuments (ISO 27001 7.5.3, letzter Absatz):
+// Norm, Gesetz, Vertrag, Herstellerunterlage, Vorgabe einer Behörde
+export const EXTERNAL_KINDS = [
+	"standard",
+	"law",
+	"contract",
+	"manufacturer",
+	"authority",
+	"other",
+] as const;
+
+export type ExternalKind = (typeof EXTERNAL_KINDS)[number];
+
+export type ExternalSource = {
+	kind: ExternalKind;
+	issuer: string;
+	// Ausgabe bzw. Stand, z. B. „ISO/IEC 27001:2022“
+	edition: string;
+	url?: string | null;
+};
+
+export const DOCUMENT_STATUS = [
+	"draft",
+	"in_review",
+	"approved",
+	"published",
+	"retired",
+	"superseded",
+] as const;
+
+export const RISK_CATEGORIES = [
+	"strategic",
+	"operational",
+	"ict_cyber",
+	"compliance_legal",
+	"financial",
+	"third_party",
+	"aml_fraud",
+	"custody_keys",
+	"market_liquidity",
+] as const;
+
+// aus registers.ts: hier, damit Browser-Code die Werte ohne Tabellen-Schema bekommt
+export const PROVIDER_CATEGORIES = [
+	"it_service",
+	"cloud",
+	"facility",
+	"maintenance",
+	"consulting",
+	"subcontractor",
+	"other",
+] as const;
+
+export const PROVIDER_STATUSES = [
+	"active",
+	"onboarding",
+	"paused",
+	"exiting",
+	"terminated",
+	// Aufnahme abgelehnt (Auslöser provider.create)
+	"declined",
+] as const;
+
+// aus custody.ts: hier, damit Browser-Code die Werte ohne Tabellen-Schema bekommt
+export const WALLET_KINDS = ["hot", "warm", "cold"] as const;
+
+export const WALLET_TECHNOLOGIES = [
+	"multisig",
+	"mpc",
+	"single_key",
+	"hsm",
+	"sub_custodian",
+] as const;
+
+export const WALLET_PURPOSES = ["client", "own", "operational"] as const;
+
+export const KEY_HOLDER_ROLES = ["signer", "backup", "recovery"] as const;
+
+export const CEREMONY_KINDS = [
+	"generation",
+	"rotation",
+	"backup_test",
+	"recovery_test",
+	"destruction",
+] as const;

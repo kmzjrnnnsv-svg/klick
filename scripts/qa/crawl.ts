@@ -189,8 +189,17 @@ async function checkPage(page: Page, where: string, action?: string) {
 async function checkOverflow(page: Page, where: string) {
 	const r = await page
 		.evaluate(() => {
-			const vw = document.documentElement.clientWidth;
-			const sw = document.documentElement.scrollWidth;
+			// ab 1024 px scrollt die rechte Spalte (data-scroll-root), nicht das Fenster
+			const root = document.querySelector<HTMLElement>("[data-scroll-root]");
+			const inner =
+				root && getComputedStyle(root).overflowY === "auto" ? root : null;
+			const vw = inner
+				? inner.getBoundingClientRect().right
+				: document.documentElement.clientWidth;
+			const sw = Math.max(
+				document.documentElement.scrollWidth,
+				inner ? inner.getBoundingClientRect().left + inner.scrollWidth : 0,
+			);
 			if (sw <= vw + 1) return null;
 			const els = [...document.querySelectorAll("main *")];
 			const el = els.find((e) => {
@@ -312,10 +321,7 @@ async function setupWizard(page: Page) {
 		page.getByRole("button", { name }).last().click();
 	await next(/^Weiter$/);
 	await page.waitForURL(/\/einrichtung\/unternehmen/);
-	await page.fill("#co-employees", "25");
-	await page.fill("#co-revenueEur", "5000000");
-	await next(/Speichern und weiter/);
-	await page.waitForURL(/\/einrichtung\/standorte/);
+	// Standorte stehen im selben Schritt (S4): erst den Standort, dann weiter
 	await page.fill("#si-name", "Hauptsitz Frankfurt");
 	await page.fill("#si-city", "Frankfurt am Main");
 	await page
@@ -323,7 +329,9 @@ async function setupWizard(page: Page) {
 		.last()
 		.click();
 	await settle(page, 1500);
-	await next(/^Weiter$/);
+	await page.fill("#co-employees", "25");
+	await page.fill("#co-revenueEur", "5000000");
+	await next(/Speichern und weiter/);
 	await page.waitForURL(/\/einrichtung\/taetigkeit/);
 	await page.locator("#ac-sector").click();
 	await page.getByRole("option", { name: /Krypto-Dienstleister/ }).click();

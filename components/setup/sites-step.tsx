@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { addSite, completeSetupStep, deleteSite } from "@/app/actions/setup";
+import { addSite, deleteSite } from "@/app/actions/setup";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -22,7 +22,6 @@ import {
 import { toast } from "@/components/ui/toast";
 import type { SiteKind } from "@/db/schema/registers";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
-import { useStepRunner } from "./step-footer";
 
 const KINDS: readonly SiteKind[] = [
 	"headquarters",
@@ -43,18 +42,16 @@ type Site = {
 	critical: boolean;
 };
 
-// Schritt 3 (D2): Standorte direkt ins Register (sites)
+// Standorte direkt ins Register (sites): im Schritt „Unternehmen“ der
+// Einrichtung und unter Organisation > Standorte
 export function SitesStep({
 	sites,
 	defaultCountry,
-	nextHref,
 	canEdit = true,
 	canRisk = false,
 }: {
 	sites: Site[];
 	defaultCountry: string;
-	// ohne nextHref: eigenständig (Organisation → Standorte), kein „Weiter“
-	nextHref?: string;
 	canEdit?: boolean;
 	// „Als Risiko erfassen“ je Standort (Risiko-Herkunft „Standort“)
 	canRisk?: boolean;
@@ -64,9 +61,6 @@ export function SitesStep({
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
-	const { pending: moving, run } = useStepRunner(
-		nextHref ?? "/organisation?tab=standorte",
-	);
 	const empty = {
 		name: "",
 		kind: (sites.length === 0 ? "headquarters" : "office") as SiteKind,
@@ -233,17 +227,6 @@ export function SitesStep({
 						</Button>
 					</div>
 				</form>
-			)}
-
-			{nextHref && (
-				<div className="flex justify-end">
-					<Button
-						disabled={moving}
-						onClick={() => run(() => completeSetupStep({ step: "standorte" }))}
-					>
-						{t("next")}
-					</Button>
-				</div>
 			)}
 		</div>
 	);

@@ -3,6 +3,7 @@ import {
 	markStepDone,
 	neighbours,
 	SETUP_FLAG,
+	SETUP_STEPS,
 	setupState,
 	shouldRedirectToSetup,
 } from "@/lib/setup/steps";
@@ -21,11 +22,16 @@ describe("setupState", () => {
 	});
 	it("Schritte markieren, Reihenfolge stabil, Rahmenwerke beenden die Pflicht", () => {
 		let f: Record<string, string> = {};
-		f = markStepDone(f, "standorte", now);
+		f = markStepDone(f, "taetigkeit", now);
 		f = markStepDone(f, "rollen", now);
 		f = markStepDone(f, "rollen", now);
-		expect(f[SETUP_FLAG.done]).toBe("rollen,standorte");
+		expect(f[SETUP_FLAG.done]).toBe("rollen,taetigkeit");
 		expect(setupState(f).next).toBe("unternehmen");
+		// früherer Schritt „standorte“ in alten Flags wird übergangen
+		expect(setupState({ [SETUP_FLAG.done]: "rollen,standorte" }).done).toEqual([
+			"rollen",
+		]);
+		expect(SETUP_STEPS).toHaveLength(6);
 		f = markStepDone(f, "rahmenwerke", now);
 		expect(shouldRedirectToSetup(setupState(f))).toBe(false);
 		f = markStepDone(f, "gap-analyse", now);

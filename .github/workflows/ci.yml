@@ -221,6 +221,8 @@ jobs:
           pnpm db:seed
       - name: Build
         run: pnpm build
+      - name: JavaScript-Budget je Seite
+        run: pnpm exec tsx scripts/check-bundle-budget.ts
       - name: Chromium
         run: pnpm exec playwright install --with-deps chromium
       - name: E2E

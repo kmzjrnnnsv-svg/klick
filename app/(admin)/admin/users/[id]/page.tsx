@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { RevokeSessionsButton } from "@/components/admin/revoke-sessions-button";
 import { UserActions } from "@/components/admin/user-actions";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
@@ -27,11 +28,7 @@ import { withPlatform } from "@/lib/db/with-org";
 // Mitgliedschaften, laufende Sitzungen und Auth-Ereignisse aus dem
 // Plattform-Protokoll. Keine Inhalte einer Org (Lockbox): was die Person
 // dort getan hat, steht in der Kette der Org.
-export default async function AdminUserPage({
-	params,
-}: {
-	params: Promise<{ id: string }>;
-}) {
+async function AdminUserPage({ params }: { params: Promise<{ id: string }> }) {
 	const admin = await requirePlatformAdminPage();
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
@@ -301,3 +298,13 @@ export default async function AdminUserPage({
 		</div>
 	);
 }
+
+export default withMessages(AdminUserPage, [
+	"Admin",
+	"AdminAccounts",
+	"AdminUsers",
+	"Auth",
+	"Common",
+	"Roles",
+	"Team",
+]);

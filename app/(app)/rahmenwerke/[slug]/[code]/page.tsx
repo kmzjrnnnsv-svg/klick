@@ -9,6 +9,7 @@ import {
 } from "@/components/entity/entity-layout";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { SheetView } from "@/components/evidence-studio/sheet-view";
+import { withMessages } from "@/components/i18n/with-messages";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ import { CONTROL_STATUS } from "@/lib/entities/control";
 import { kindHashesFor } from "@/lib/evidence-studio/generate/service";
 import { loadSheetData, sheetFor } from "@/lib/evidence-studio/queries";
 
-export default async function RequirementPage({
+async function RequirementPage({
 	params,
 }: {
 	params: Promise<{ slug: string; code: string }>;
@@ -426,3 +427,9 @@ export default async function RequirementPage({
 		</EntityLayout>
 	);
 }
+
+export default withMessages(RequirementPage, [
+	"Common",
+	"EvidenceStudio",
+	"Frameworks",
+]);

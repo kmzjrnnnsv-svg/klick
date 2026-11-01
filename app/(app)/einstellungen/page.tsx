@@ -25,6 +25,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { CustomFrameworkList } from "@/components/custom-frameworks/framework-list";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { AiPanel } from "@/components/settings/ai-panel";
 import { AuditRegimesPanel } from "@/components/settings/audit-regimes-panel";
@@ -43,6 +44,7 @@ import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
+import { SettingsSearch } from "@/components/settings/settings-search";
 import { SignaturePolicyPanel } from "@/components/settings/signature-policy-panel";
 import { SiteTunnelsSection } from "@/components/settings/site-tunnels-section";
 import { SsoPanel } from "@/components/settings/sso-panel";
@@ -215,13 +217,15 @@ const SECTION_ICON: Record<SettingsSectionKey, React.ReactNode> = {
 const GROUP_LABEL = {
 	account: "groupAccount",
 	org: "groupOrg",
+	security: "groupSecurity",
+	connections: "groupConnections",
 	methods: "groupMethods",
 } as const;
 
 // Einstellungen nach Apple HIG (iOS-Einstellungen): gruppierte Liste der
 // Bereiche; am Handy erst die Liste, dann der Bereich mit Rückweg, ab Desktop
 // Liste links und Bereich rechts. Geladen wird nur, was der Bereich braucht.
-export default async function SettingsPage({
+async function SettingsPage({
 	searchParams,
 }: {
 	searchParams: Promise<{ tab?: string }>;
@@ -268,27 +272,47 @@ export default async function SettingsPage({
 						chosen && "hidden lg:block",
 					)}
 				>
-					<ListGroup>
-						{settingsGroups(visible).map((g) => (
-							<ListSection key={g.group} title={t(GROUP_LABEL[g.group])}>
-								{g.keys.map((k) => (
-									<ListRow
-										key={k}
-										icon={SECTION_ICON[k]}
-										title={t(SECTION_LABEL[k])}
-										href={`/einstellungen?tab=${k}`}
-										current={chosen && k === section}
-										// Ohne Wahl zeigt der Desktop den Standardbereich
-										className={cn(
-											!chosen &&
-												k === section &&
-												"lg:bg-primary/12 lg:font-semibold",
-										)}
-									/>
-								))}
-							</ListSection>
-						))}
-					</ListGroup>
+					<SettingsSearch
+						items={visible.map((k) => ({
+							key: k,
+							title: t(SECTION_LABEL[k]),
+							hint: t(`hint_${k}`),
+							href: `/einstellungen?tab=${k}`,
+							icon: SECTION_ICON[k],
+						}))}
+						labels={{
+							placeholder: t("searchPlaceholder"),
+							results: t("searchResults"),
+							empty: t("searchEmpty"),
+						}}
+					>
+						<ListGroup>
+							{settingsGroups(visible).map((g) => (
+								<ListSection key={g.group} title={t(GROUP_LABEL[g.group])}>
+									{g.keys.map((k) => (
+										<ListRow
+											key={k}
+											icon={SECTION_ICON[k]}
+											title={t(SECTION_LABEL[k])}
+											// Satz, was der Bereich regelt; in der Seitenleiste am
+											// Desktop steht er über dem Bereich
+											subtitle={
+												<span className="lg:hidden">{t(`hint_${k}`)}</span>
+											}
+											href={`/einstellungen?tab=${k}`}
+											current={chosen && k === section}
+											// Ohne Wahl zeigt der Desktop den Standardbereich
+											className={cn(
+												!chosen &&
+													k === section &&
+													"lg:bg-primary/12 lg:font-semibold",
+											)}
+										/>
+									))}
+								</ListSection>
+							))}
+						</ListGroup>
+					</SettingsSearch>
 				</ContainedScroll>
 				<section
 					aria-labelledby="einstellungen-bereich"
@@ -303,6 +327,9 @@ export default async function SettingsPage({
 					>
 						{sectionTitle}
 					</h2>
+					<p className="-mt-4 text-callout text-muted-foreground">
+						{t(`hint_${section}`)}
+					</p>
 					{panel}
 				</section>
 			</div>
@@ -1157,3 +1184,37 @@ async function renderSection(
 function callbackBase(): string {
 	return (process.env.BETTER_AUTH_URL ?? "").replace(/\/+$/, "");
 }
+
+export default withMessages(SettingsPage, [
+	"AiSettings",
+	"Approvals",
+	"AuditRegimes",
+	"Auth",
+	"Common",
+	"CustomFrameworks",
+	"Documents",
+	"Entity",
+	"Frameworks",
+	"Functions",
+	"Integrations",
+	"Ledger",
+	"NetworkSettings",
+	"NotificationPrefs",
+	"Onboarding",
+	"Organisation",
+	"Permissions",
+	"PlatformAccess",
+	"PolicyPortal",
+	"RiskMethod",
+	"Roles",
+	"SecurityChanges",
+	"Settings",
+	"Setup",
+	"SignaturePolicy",
+	"SiteTunnels",
+	"SsoSetup",
+	"SupplierMethod",
+	"Teams",
+	"WalletLink",
+	"Workflows",
+]);

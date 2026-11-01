@@ -10,6 +10,7 @@ import { ExportLink } from "@/components/entity/export-link";
 import { type Column, RegisterPage } from "@/components/entity/register-page";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { UserChip } from "@/components/entity/user-chip";
+import { withMessages } from "@/components/i18n/with-messages";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { DOCUMENT_STATUS, DOCUMENT_TYPES } from "@/db/schema/grc";
@@ -22,12 +23,13 @@ import { fmtDate } from "@/lib/compliance/page-data";
 import { listDocuments } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
 import { DOCUMENT_STATUS_MACHINE } from "@/lib/entities/document";
+import { PAGE_SIZE, pageParam, pageSlice } from "@/lib/paging";
 
 type Row = Awaited<ReturnType<typeof listDocuments>>[number];
 type Search = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export default async function DocumentsPage({
+async function DocumentsPage({
 	searchParams,
 }: {
 	searchParams: Promise<Search>;
@@ -84,6 +86,8 @@ export default async function DocumentsPage({
 					r.nextReviewAt < today &&
 					r.current !== null),
 		);
+	// Liste seitenweise zeichnen (Zähler über alle Treffer)
+	const paged = pageSlice(filtered, pageParam(sp.seite));
 
 	const columns: Column<Row>[] = [
 		{
@@ -220,7 +224,14 @@ export default async function DocumentsPage({
 				{ key: "overdue", label: te("chipOverdue") },
 			]}
 			columns={columns}
-			rows={filtered}
+			rows={paged.rows}
+			paging={{
+				page: paged.page,
+				total: paged.total,
+				pageSize: PAGE_SIZE,
+				path: "/dokumente",
+				query: sp,
+			}}
 			rowHref={(r) => `/dokumente/${encodeURIComponent(r.docNumber)}`}
 			empty={
 				<EmptyState
@@ -241,3 +252,15 @@ export default async function DocumentsPage({
 		/>
 	);
 }
+
+export default withMessages(DocumentsPage, [
+	"Ai",
+	"AiSettings",
+	"Auth",
+	"Common",
+	"Dlp",
+	"Documents",
+	"Entity",
+	"Evidence",
+	"Functions",
+]);

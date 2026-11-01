@@ -198,6 +198,19 @@ function measureContrast(): Finding[] {
 // Läuft im Browser: seitlicher Überlauf mit den breitesten Verursachern
 function measureOverflow(): Finding[] {
 	const doc = document.documentElement;
+	// ab 1024 px scrollt die rechte Spalte (data-scroll-root), nicht das Fenster
+	const root = document.querySelector<HTMLElement>("[data-scroll-root]");
+	if (
+		root &&
+		getComputedStyle(root).overflowY === "auto" &&
+		root.scrollWidth > root.clientWidth + 1
+	)
+		return [
+			{
+				kind: "overflow",
+				detail: `Scrollbereich ${root.scrollWidth} > ${root.clientWidth}`,
+			},
+		];
 	if (doc.scrollWidth <= doc.clientWidth + 1) return [];
 	const wide = [...document.querySelectorAll<HTMLElement>("body *")]
 		.filter((e) => e.getBoundingClientRect().right > doc.clientWidth + 1)

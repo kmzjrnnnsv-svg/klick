@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { WorkflowEditor } from "@/components/settings/workflows/workflow-editor";
 import { BackLink } from "@/components/ui/back-link";
@@ -24,7 +25,7 @@ import { listOrgRoles } from "@/lib/org/roles";
 
 // Freigabe-Designer: Ablauf bearbeiten bzw. neue Variante (?ausloeser=…).
 // Nur Inhaber:innen; Speichern mit Step-up (app/actions/workflows.ts).
-export default async function WorkflowEditorPage({
+async function WorkflowEditorPage({
 	params,
 	searchParams,
 }: {
@@ -136,3 +137,10 @@ export default async function WorkflowEditorPage({
 		</>
 	);
 }
+
+export default withMessages(WorkflowEditorPage, [
+	"Auth",
+	"Common",
+	"Dnd",
+	"Workflows",
+]);

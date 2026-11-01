@@ -844,7 +844,7 @@ async function notifyNewDevice(session: {
 		subject: "Neue Anmeldung bei Klick",
 		eyebrow: "Sicherheit",
 		title: "Neue Anmeldung von einem unbekannten Gerät",
-		body: `Hallo ${u.name || ""},\n\nam ${when} hat sich jemand mit deinem Konto angemeldet.\nIP: ${session.ipAddress ?? "unbekannt"}\nGerät: ${(session.userAgent ?? "unbekannt").slice(0, 120)}\n\nWarst das nicht du? Melde dich unter Einstellungen > Sicherheit überall ab und sprich mit deiner Organisation.`,
+		body: `Hallo ${u.name || ""},\n\nam ${when} hat sich jemand mit deinem Konto angemeldet.\nIP: ${session.ipAddress ?? "unbekannt"}\nGerät: ${(session.userAgent ?? "unbekannt").slice(0, 120)}\n\nWarst das nicht du? Melde dich unter Einstellungen > Anmeldung & Passkeys überall ab und sprich mit deiner Organisation.`,
 		cta: { label: "Sitzungen prüfen", url: `${baseURL}/einstellungen` },
 	});
 	await sendTransactionalMail({ to: u.email, ...mail });

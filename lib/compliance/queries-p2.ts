@@ -1,4 +1,12 @@
-import { and, asc, desc, eq, inArray, isNotNull } from "drizzle-orm";
+import {
+	and,
+	asc,
+	desc,
+	eq,
+	getTableColumns,
+	inArray,
+	isNotNull,
+} from "drizzle-orm";
 import {
 	assets,
 	auditLog,
@@ -124,14 +132,21 @@ export async function listLossEvents(tx: OrgTx, orgId: string) {
 }
 
 // ── Dokumente ──────────────────────────────────────────────────────────────
+// Spalten der Dokumentliste: ohne den Text der Arbeitskopie (der wächst mit
+// jedem Dokument und steht nur auf der Detailseite)
+const { bodyMarkdown: _body, ...DOCUMENT_LIST_COLUMNS } =
+	getTableColumns(documents);
+
 export async function listDocuments(tx: OrgTx, orgId: string) {
 	const rows = await tx
-		.select()
+		.select(DOCUMENT_LIST_COLUMNS)
 		.from(documents)
 		.where(eq(documents.organizationId, orgId))
 		.orderBy(asc(documents.docNumber));
 	// gültige Fassung je Dokument (läuft eine neue Fassung, gilt die alte)
-	const current = await currentVersionsByDocument(tx, orgId);
+	const current = await currentVersionsByDocument(tx, orgId, new Date(), {
+		withBody: false,
+	});
 	return withNames(
 		tx,
 		rows.map((r) => {

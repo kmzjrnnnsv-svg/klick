@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import type { ResponsibleOption } from "@/lib/compliance/function-holders";
-import { FUNCTION_REF } from "@/lib/validation/responsible";
+import { FUNCTION_REF } from "@/lib/validation/responsible-ref";
 
 // Bulk-Aktionen im Register: Auswahl je Zeile (Spalte mit interactive: true,
 // also außerhalb des Zeilen-Links), schwebende Leiste mit Status/Zuweisung. Jede ID wird serverseitig
