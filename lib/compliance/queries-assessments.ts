@@ -18,9 +18,10 @@ export async function listAssessments(
 	const rows = await tx
 		.select({
 			...columns,
-			total: sql<number>`json_array_length(${assessments.questions})::int`,
+			total: sql<number>`jsonb_array_length(${assessments.questions})::int`,
+			// Spalte ausdrücklich mit Tabelle: im Unterselect hieße "id" sonst aa.id
 			answered: sql<number>`(select count(*)::int from assessment_answers aa
-				where aa.organization_id = ${orgId} and aa.assessment_id = ${assessments.id}
+				where aa.organization_id = ${orgId} and aa.assessment_id = "assessments"."id"
 				  and (aa.answer is not null or aa.reviewer_answer is not null))`,
 		})
 		.from(assessments)

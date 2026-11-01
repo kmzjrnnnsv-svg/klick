@@ -53,11 +53,7 @@ import { TASK_STATUS } from "@/lib/entities/task";
 import { termsAccepted } from "@/lib/legal/terms";
 import { listNotifications } from "@/lib/notifications/query";
 import { safeInternalPath } from "@/lib/safe-path";
-import {
-	setupState,
-	shouldRedirectToSetup,
-	stepHref,
-} from "@/lib/setup/steps";
+import { setupState, shouldRedirectToSetup, stepHref } from "@/lib/setup/steps";
 import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —

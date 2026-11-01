@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "@/db";
 import { audit } from "@/lib/audit";
 import { clearOrgDerived } from "@/lib/cache/org-derived";
+import { listAssessments } from "@/lib/compliance/queries-assessments";
 import {
 	countOpenTasks,
 	implementedWithoutEvidenceCount,
@@ -57,6 +58,24 @@ d("Als Nächstes (Postgres)", () => {
 		expect(
 			await inOrg((tx) => implementedWithoutEvidenceCount(tx, orgId)),
 		).toBe(0);
+	});
+
+	it("Gap-Analysen: Fragen und Antworten gezählt, ohne Schnappschuss", async () => {
+		await inOrg(async (tx) => {
+			const [a] = await tx.execute<{ id: string }>(sql`
+				insert into assessments (organization_id, code, kind, template_code, title, questions)
+				values (${orgId}, 'GA-1', 'self', 'catalog', 'Gap 2026',
+				  ${JSON.stringify([{ code: "q1" }, { code: "q2" }, { code: "q3" }])}::jsonb)
+				returning id`);
+			await tx.execute(sql`
+				insert into assessment_answers (organization_id, assessment_id, question_code, answer)
+				values (${orgId}, ${a?.id}, 'q1', 'yes'), (${orgId}, ${a?.id}, 'q2', null)`);
+		});
+		const rows = await inOrg((tx) => listAssessments(tx, orgId, "self"));
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.total).toBe(3);
+		expect(rows[0]?.answered).toBe(1);
+		expect("questions" in (rows[0] ?? {})).toBe(false);
 	});
 
 	it("neuer Dienstleister ändert den Stand beim nächsten Aufruf", async () => {
