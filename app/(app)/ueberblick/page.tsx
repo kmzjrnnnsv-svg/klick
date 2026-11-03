@@ -288,7 +288,7 @@ export default async function OverviewPage() {
 								{withoutOwner.length}
 							</span>
 							<Link
-								href="/controls?unowned=1"
+								href="/controls?owner=ohne"
 								className="text-primary text-footnote hover:underline"
 							>
 								{t("toControls")}

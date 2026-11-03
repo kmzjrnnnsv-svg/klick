@@ -1,7 +1,7 @@
 {
 	"Meta": {
 		"title": "both.money",
-		"description": "Ziel: ein Zahlungsweg zwischen geprüften Parteien. Heute eine Wallet für eigene Bestände, mit Freigabe per Sicherheitsschlüssel und Nachweis in Klick."
+		"description": "Eine Wallet für Unternehmen: Geld bewegt sich nur in festen Grenzen, mit Freigabe per Sicherheitsschlüssel und Nachweis in Klick. Geplant: ein Bot für Gold und US-Dollar. Ziel: ein Zahlungsweg zwischen geprüften Parteien."
 	},
 	"Home": {
 		"lead": "Die Wallet für Unternehmen. Bestände auf eigenen Knoten, Auszahlungen nur mit Sicherheitsschlüssel, Compliance-Daten automatisch in Klick.",

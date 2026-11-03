@@ -18,6 +18,7 @@ import {
 	TODAY,
 	WHY_OWN,
 } from "@wallet/lib/roadmap";
+import { TRADING, TRADING_STEPS } from "@wallet/lib/trading";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import s from "./landing.module.css";
@@ -25,8 +26,8 @@ import { PublicHeader } from "./public-header";
 import { ScrollPath } from "./scroll-path";
 
 // Öffentlicher Fahrplan (/roadmap) für Investor:innen und Entwickler:innen:
-// Ziel mit Stufen bis zur Bank, Stand heute, nächste Schritte, Phasen,
-// Infrastruktur mit Hardware.
+// Ziel mit Stufen bis zur Bank, Stand heute, nächste Schritte, der Bot für
+// Gold und US-Dollar (lib/trading.ts), Phasen, Infrastruktur mit Hardware.
 // Druckbar (Kopf und Rücksprung fallen weg).
 const section = "mx-auto w-full max-w-6xl px-4 py-14 sm:py-20";
 const heading =
@@ -205,6 +206,45 @@ export function Roadmap() {
 								>
 									<span
 										className="pt-4 font-bold text-title-1 tabular-nums sm:text-4xl"
+										aria-hidden
+									>
+										{i + 1}
+									</span>
+									<ItemCard item={item} />
+								</li>
+							))}
+						</ol>
+					</div>
+				</section>
+
+				<section
+					aria-labelledby="handeln"
+					className="bg-primary-fill text-white"
+				>
+					<div className={section}>
+						<p className="inline-flex items-center gap-1.5 rounded-full bg-white/16 px-3 py-1 font-medium text-footnote before:size-1.5 before:rounded-full before:bg-white before:content-['']">
+							{TRADING.status}
+						</p>
+						<h2 id="handeln" className={`${heading} mt-5`}>
+							{TRADING.title}
+						</h2>
+						<p className="mt-4 max-w-3xl text-pretty font-medium text-title-3 leading-relaxed">
+							{TRADING.lead} {TRADING.pairs}
+						</p>
+						<p className="mt-3 max-w-3xl text-pretty leading-relaxed">
+							{TRADING.tokens} {TRADING.safety}
+						</p>
+						<p className="mt-3 max-w-3xl text-pretty leading-relaxed">
+							{TRADING.risk} {TRADING.customers}
+						</p>
+						<ol className="mt-10 grid grid-cols-1 gap-4 text-foreground md:grid-cols-2">
+							{TRADING_STEPS.map((item, i) => (
+								<li
+									key={item.key}
+									className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3"
+								>
+									<span
+										className="pt-4 font-bold text-title-2 text-white tabular-nums"
 										aria-hidden
 									>
 										{i + 1}
