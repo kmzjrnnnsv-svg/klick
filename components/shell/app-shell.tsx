@@ -14,6 +14,7 @@ import type { BellItem } from "./notification-bell";
 import { NotificationBell } from "./notification-bell";
 import { OrgSwitcher, type SwitcherOrg } from "./org-switcher";
 import { SidebarNav } from "./sidebar-nav";
+import { SidebarSearch } from "./sidebar-search";
 import { TabBar } from "./tab-bar";
 import { UserMenu } from "./user-menu";
 
@@ -53,6 +54,9 @@ export async function AppShell({
 					>
 						{t("productName")}
 					</Link>
+				</div>
+				<div className="shrink-0 px-5 pb-2">
+					<SidebarSearch />
 				</div>
 				<ContainedScroll className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-4">
 					<div className="mb-3 px-2">

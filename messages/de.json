@@ -109,7 +109,8 @@
 		"frameworks": "Rahmenwerke",
 		"planning": "Planung",
 		"sectionSwitch": "Seiten in diesem Bereich",
-		"analytics": "Auswertung"
+		"analytics": "Auswertung",
+		"searchField": "Suchen …"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",
