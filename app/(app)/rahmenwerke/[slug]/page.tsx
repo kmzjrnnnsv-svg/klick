@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { Timeline, type TimelineItem } from "@/components/charts/timeline";
 import { CoverageBar } from "@/components/entity/coverage-bar";
+import { SummaryCard } from "@/components/entity/summary-card";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { FrameworkEvidence } from "@/components/evidence-studio/framework-evidence";
 import { SoaTab } from "@/components/frameworks/soa-tab";
@@ -10,9 +12,12 @@ import { PageHeader } from "@/components/page-header";
 import { ReadinessPanel } from "@/components/readiness/readiness-panel";
 import { FrameworkProfileCard } from "@/components/relations/framework-profile";
 import { Badge } from "@/components/ui/badge";
+import { Ring } from "@/components/ui/ring";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { addDays } from "@/lib/charts/timeline";
+import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { evidenceKindsForFrameworks } from "@/lib/compliance/catalog/evidence-kinds";
 import { SECTION_SIMPLE } from "@/lib/compliance/catalog/framework-profiles";
@@ -24,6 +29,8 @@ import {
 	shortFrameworkName,
 } from "@/lib/compliance/page-data";
 import { listEvidenceWithControls } from "@/lib/compliance/queries";
+import { loadAuditRegimeContext } from "@/lib/compliance/queries-audit-regimes";
+import { loadOrgStatus } from "@/lib/compliance/queries-next-steps";
 import { listDocuments } from "@/lib/compliance/queries-p2";
 import { listAudits } from "@/lib/compliance/queries-p3";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
@@ -210,6 +217,76 @@ async function FrameworkPage({
 			name: shortFrameworkName(slug, catalog),
 		};
 	})();
+	// Stand und Audit-Zeitleiste oben: Teilwerte aus der zwischengespeicherten
+	// Prüfungsreife, Termine aus Register und Turnus (12 Monate)
+	const ta = await getTranslations("Audits");
+	const controlCount =
+		controlsByFramework({
+			catalog,
+			frameworks: [slug],
+			applicability: new Map(
+				[...cov.applicabilityDetail].map(([k, d]) => [k, d.applicable]),
+			),
+		}).get(slug)?.size ?? 0;
+	const overview = await readOrg(toOrgCtx(ctx), async (tx) => {
+		const today = berlinToday();
+		const end = addDays(today, 365);
+		const [regimes, audits, status] = await Promise.all([
+			loadAuditRegimeContext(tx, ctx.orgId),
+			listAudits(tx, ctx.orgId),
+			loadOrgStatus(tx, ctx.orgId),
+		]);
+		const cycles = cycleDates(
+			[slug],
+			regimes.settings,
+			today,
+			regimes.registered,
+			12,
+		);
+		const timeline: TimelineItem[] = [
+			...cycles.planned
+				.filter((p) => p.date <= end)
+				.map((p) => ({
+					key: `cycle-${p.kind}-${p.date}`,
+					date: p.date,
+					label: p.label,
+					detail: t("timelineCycle"),
+					tone: "chart-2" as const,
+				})),
+			...audits
+				.filter(
+					(a) =>
+						a.frameworkIds.includes(slug) &&
+						(a.status === "planned" || a.status === "in_progress"),
+				)
+				.flatMap((a) => {
+					const raw = a.performedAt ?? a.plannedAt;
+					const running = a.status === "in_progress";
+					if (!raw && !running) return [];
+					const date =
+						running && (!raw || raw < today) ? today : (raw ?? today);
+					if (date > end || date < today) return [];
+					return [
+						{
+							key: a.id,
+							date,
+							label: a.title,
+							detail: `${ta(`type_${a.type}`)} · ${ta(`status_${a.status}`)}`,
+							tone: running ? ("success" as const) : ("primary" as const),
+							href: `/audits/${a.id}`,
+						},
+					];
+				}),
+		];
+		return {
+			today,
+			end,
+			timeline,
+			missingAnchors: cycles.missing.length > 0,
+			dims:
+				status.readiness.find((r) => r.framework === slug)?.dimensions ?? null,
+		};
+	});
 	return (
 		<>
 			<PageHeader
@@ -237,26 +314,69 @@ async function FrameworkPage({
 				}
 			/>
 			{bucket && (
-				<div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto]">
-					<CoverageBar bucket={bucket} labels={labels} />
-					<div className="flex gap-4 text-subhead">
-						<div>
-							<p className="font-medium text-footnote text-muted-foreground">
-								{t("coverage")}
-							</p>
-							<p className="font-bold text-title-2">
+				<div className="mb-6 grid grid-cols-1 gap-3 lg:grid-cols-2">
+					<SummaryCard title={t("standTitle")}>
+						<div className="flex items-baseline gap-2">
+							<span className="font-semibold text-large-title tabular-nums">
 								{pct(bucket.coveragePct)}
-							</p>
+							</span>
+							<span className="text-footnote text-muted-foreground">
+								{t("standLine", { controls: controlCount })}
+							</span>
 						</div>
-						<div>
-							<p className="font-medium text-footnote text-muted-foreground">
-								{t("progress")}
-							</p>
-							<p className="font-bold text-title-2">
-								{pct(bucket.progressPct)}
-							</p>
+						<div className="mt-2">
+							<CoverageBar bucket={bucket} labels={labels} />
 						</div>
-					</div>
+						<dl className="mt-4 grid grid-cols-3 gap-3">
+							{(
+								[
+									["tests", overview.dims?.tests ?? null],
+									["documents", overview.dims?.documents ?? null],
+									["evidence", overview.dims?.evidence ?? null],
+								] as const
+							).map(([key, value]) => (
+								<div key={key} className="flex flex-col gap-1">
+									<dt className="text-footnote text-muted-foreground">
+										{t(`dim_${key}`)}
+									</dt>
+									<dd className="flex items-center gap-2 font-semibold text-headline tabular-nums">
+										<Ring
+											value={value ?? 0}
+											size={24}
+											stroke={14}
+											tone={value === 100 ? "success" : "primary"}
+											label={t(`dim_${key}`)}
+										/>
+										{value === null ? "–" : `${Math.round(value)} %`}
+									</dd>
+								</div>
+							))}
+						</dl>
+						<p className="mt-3 text-footnote text-muted-foreground">
+							{t("progressLine", {
+								pct: pct(bucket.progressPct).replace(" ", "\u00a0"),
+							})}
+						</p>
+					</SummaryCard>
+					<SummaryCard title={t("timelineTitle")}>
+						<Timeline
+							start={overview.today}
+							end={overview.end}
+							today={overview.today}
+							items={overview.timeline}
+							label={t("timelineTitle")}
+							todayLabel={t("today")}
+							empty={t("timelineEmpty")}
+						/>
+						{overview.missingAnchors && (
+							<Link
+								href="/einstellungen?tab=audits"
+								className="hit-area mt-3 inline-block text-footnote text-primary underline-offset-4 hover:underline"
+							>
+								{t("timelineSetDates")}
+							</Link>
+						)}
+					</SummaryCard>
 				</div>
 			)}
 			{sharedWithOthers && (

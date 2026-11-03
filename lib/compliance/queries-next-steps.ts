@@ -30,6 +30,8 @@ export type ReadinessSummary = {
 	framework: string;
 	score: number | null;
 	verdict: ReadinessResult["verdict"];
+	// Teilwerte für die Rahmenwerk-Seite (Tests, Dokumente, Nachweise)
+	dimensions: ReadinessResult["dimensions"];
 };
 
 export async function loadOrgNextStepFacts(
@@ -114,6 +116,7 @@ export async function loadOrgStatus(
 				framework: r.framework,
 				score: r.score,
 				verdict: r.verdict,
+				dimensions: r.dimensions,
 			})),
 		};
 	});
