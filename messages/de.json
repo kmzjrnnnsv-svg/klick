@@ -1746,7 +1746,9 @@
 		"resumeHint": "Du schreibst gerade eigenen Text. Deine Antworten im Baukasten sind gespeichert.",
 		"resume": "Zurück zum Baukasten",
 		"resumeTitle": "Zurück zum Baukasten?",
-		"resumeLead": "Der Text entsteht neu aus deinen Antworten. Änderungen im eigenen Text gehen dabei verloren."
+		"resumeLead": "Der Text entsteht neu aus deinen Antworten. Änderungen im eigenen Text gehen dabei verloren.",
+		"previewSection": "So steht dieser Abschnitt in der Richtlinie:",
+		"showAll": "Ganze Richtlinie anzeigen"
 	},
 	"Policies": {
 		"title": "Richtlinien",

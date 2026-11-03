@@ -36,6 +36,7 @@ import {
 	answerText,
 	exampleText,
 	policyCompletion,
+	type RenderedSection,
 	type RenderPart,
 	renderSections,
 	visibleQuestions,
@@ -189,7 +190,7 @@ export function PolicyBuilderPanel({
 						: t("savedAuto");
 
 	return (
-		<div className="flex flex-col gap-4">
+		<div className="@container flex flex-col gap-4">
 			{toCustom.node}
 			<div className="flex flex-wrap items-center justify-between gap-3">
 				<p className="text-subhead">
@@ -231,28 +232,28 @@ export function PolicyBuilderPanel({
 				)}
 			</div>
 
-			<div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+			<div className="grid grid-cols-1 gap-4 @4xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
 				<div className="flex min-w-0 flex-col gap-4">
 					<nav aria-label={t("sections")}>
-						<ol className="flex flex-col gap-0.5">
+						<ol className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 @4xl:mx-0 @4xl:flex-col @4xl:gap-0.5 @4xl:overflow-visible @4xl:px-0 @4xl:pb-0">
 							{builder.sections.map((s, i) => {
 								const c = completion.bySection[i];
 								const done = c && c.total > 0 && c.answered === c.total;
 								return (
-									<li key={s.id}>
+									<li key={s.id} className="shrink-0 @4xl:shrink">
 										<button
 											type="button"
 											onClick={() => go(i)}
 											aria-current={i === index ? "step" : undefined}
 											className={cn(
-												"flex min-h-(--control-h) w-full items-center gap-2 rounded-lg px-3 text-left text-subhead hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+												"flex min-h-(--control-h) w-full items-center gap-2 rounded-lg px-3 text-left text-subhead hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring @max-4xl:bg-card",
 												i === index && "bg-muted font-medium",
 											)}
 										>
 											<span className="w-5 shrink-0 text-muted-foreground tabular-nums">
 												{i + 1}.
 											</span>
-											<span className="min-w-0 flex-1 truncate">
+											<span className="sr-only @4xl:not-sr-only @4xl:min-w-0 @4xl:flex-1 @4xl:truncate">
 												{s.heading}
 											</span>
 											{done ? (
@@ -307,6 +308,14 @@ export function PolicyBuilderPanel({
 										/>
 									))
 							)}
+							{sections[index] && (
+								<div className="rounded-xl bg-muted/50 p-3 @4xl:hidden">
+									<p className="mb-1 text-footnote text-muted-foreground">
+										{t("previewSection")}
+									</p>
+									<SectionText section={sections[index]} />
+								</div>
+							)}
 							<div className="flex items-center justify-between gap-2 pt-1">
 								<Button
 									type="button"
@@ -329,53 +338,95 @@ export function PolicyBuilderPanel({
 
 				<ContainedScroll
 					aria-label={t("preview")}
-					className="min-w-0 rounded-2xl bg-card p-4 lg:max-h-[min(75vh,52rem)] lg:overflow-y-auto"
+					className="hidden min-w-0 rounded-2xl bg-card p-4 @4xl:block @4xl:max-h-[min(75vh,52rem)] @4xl:overflow-y-auto"
 				>
-					<h3 className="mb-1 font-semibold text-title-3">{title}</h3>
-					<p className="mb-4 text-footnote text-muted-foreground">
-						{t("previewLead")}
-					</p>
-					{sections.map((s, i) => (
-						<div
-							key={s.id}
-							id={`${uid}-${s.id}`}
-							className={cn(
-								"scroll-mt-4 border-l-2 py-1 pl-3",
-								i === index ? "border-primary" : "border-transparent",
-							)}
-						>
-							<h4 className="mt-2 mb-1 font-semibold text-subhead">
-								{s.number}. {s.heading}
-							</h4>
-							{s.blocks.map((b, j) =>
-								b.kind === "p" ? (
-									<p
-										// biome-ignore lint/suspicious/noArrayIndexKey: feste Reihenfolge
-										key={j}
-										className="mb-2 text-subhead text-pretty"
-									>
-										<Parts parts={b.parts} />
-									</p>
-								) : (
-									<ul
-										// biome-ignore lint/suspicious/noArrayIndexKey: feste Reihenfolge
-										key={j}
-										className="mb-2 list-disc pl-5 text-subhead"
-									>
-										{b.items.map((it, k) => (
-											// biome-ignore lint/suspicious/noArrayIndexKey: feste Reihenfolge
-											<li key={k} className="text-pretty">
-												<Parts parts={it} />
-											</li>
-										))}
-									</ul>
-								),
-							)}
-						</div>
-					))}
+					<FullPreview
+						title={title}
+						lead={t("previewLead")}
+						sections={sections}
+						current={index}
+						idPrefix={uid}
+					/>
 				</ContainedScroll>
 			</div>
+			<details className="group rounded-2xl bg-card @4xl:hidden">
+				<summary className="flex min-h-(--control-h) cursor-pointer items-center px-4 text-primary text-subhead">
+					{t("showAll")}
+				</summary>
+				<div className="px-4 pb-4">
+					<FullPreview
+						title={title}
+						lead={t("previewLead")}
+						sections={sections}
+						current={index}
+					/>
+				</div>
+			</details>
 		</div>
+	);
+}
+
+function SectionText({ section }: { section: RenderedSection }) {
+	return section.blocks.map((b, j) =>
+		b.kind === "p" ? (
+			<p
+				// biome-ignore lint/suspicious/noArrayIndexKey: feste Reihenfolge
+				key={j}
+				className="mb-2 text-pretty text-subhead last:mb-0"
+			>
+				<Parts parts={b.parts} />
+			</p>
+		) : (
+			<ul
+				// biome-ignore lint/suspicious/noArrayIndexKey: feste Reihenfolge
+				key={j}
+				className="mb-2 list-disc pl-5 text-subhead last:mb-0"
+			>
+				{b.items.map((it, k) => (
+					// biome-ignore lint/suspicious/noArrayIndexKey: feste Reihenfolge
+					<li key={k} className="text-pretty">
+						<Parts parts={it} />
+					</li>
+				))}
+			</ul>
+		),
+	);
+}
+
+function FullPreview({
+	title,
+	lead,
+	sections,
+	current,
+	idPrefix,
+}: {
+	title: string;
+	lead: string;
+	sections: RenderedSection[];
+	current: number;
+	// nur in der Spalte: Ziel für das Mitscrollen beim Abschnittswechsel
+	idPrefix?: string;
+}) {
+	return (
+		<>
+			<h3 className="mb-1 font-semibold text-title-3">{title}</h3>
+			<p className="mb-4 text-footnote text-muted-foreground">{lead}</p>
+			{sections.map((s, i) => (
+				<div
+					key={s.id}
+					id={idPrefix ? `${idPrefix}-${s.id}` : undefined}
+					className={cn(
+						"scroll-mt-4 border-l-2 py-1 pl-3",
+						i === current ? "border-primary" : "border-transparent",
+					)}
+				>
+					<h4 className="mt-2 mb-1 font-semibold text-subhead">
+						{s.number}. {s.heading}
+					</h4>
+					<SectionText section={s} />
+				</div>
+			))}
+		</>
 	);
 }
 
@@ -385,7 +436,7 @@ function Parts({ parts }: { parts: readonly RenderPart[] }) {
 			<mark
 				// biome-ignore lint/suspicious/noArrayIndexKey: feste Reihenfolge
 				key={i}
-				className="rounded bg-warning/25 px-0.5 text-foreground"
+				className="rounded bg-mark px-0.5 text-foreground"
 			>
 				{p.text}
 			</mark>

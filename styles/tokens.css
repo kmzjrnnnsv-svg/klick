@@ -42,6 +42,8 @@
 	--destructive-fill: #d70015;
 	--success: #1e7b34;
 	--warning: #c93400;
+	/* Textmarker (offene Lücken im Richtlinien-Baukasten), Gelb wie Notizen */
+	--mark: rgb(255 204 0 / 0.42);
 
 	/* Bedienebene (Kopf-, Seiten-, Tab-Leiste) */
 	--bar: rgb(255 255 255 / 0.72);
@@ -107,6 +109,7 @@
 		--destructive-fill: #d70015;
 		--success: #30d158;
 		--warning: #ffb340;
+		--mark: rgb(255 214 10 / 0.3);
 
 		--bar: rgb(28 28 30 / 0.72);
 		--bar-solid: #1c1c1e;
@@ -171,6 +174,7 @@
 	--color-ring: var(--ring);
 	--color-success: var(--success);
 	--color-warning: var(--warning);
+	--color-mark: var(--mark);
 	--color-bar: var(--bar);
 	--color-segment: var(--segment);
 	--color-chart-1: var(--chart-1);
