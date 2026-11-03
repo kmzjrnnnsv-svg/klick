@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "teams_integrations_tenant_uq" ON "teams_integrations" USING btree (lower("tenant_id")) WHERE "teams_integrations"."status" <> 'pending_consent';

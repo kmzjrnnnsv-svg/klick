@@ -233,6 +233,44 @@ export function createGraphClient(
 				: { ok: false, error: "user_not_found" };
 		},
 
+		// Hat der Tenant ein eigenes Konto (kein Gast) mit dieser Adresse?
+		// Grundlage der Bindung Tenant ↔ Org bei der Freigabe: Gäste aus
+		// anderen Firmen zählen nicht. Gäste erkennt Graph am Anmeldenamen
+		// („…#EXT#@…“), der zum Basisprofil gehört (User.ReadBasic.All).
+		async tenantMember(
+			tenantId: string,
+			email: string,
+		): Promise<GraphResult<boolean>> {
+			type U = {
+				id?: string;
+				userPrincipalName?: string | null;
+				userType?: string | null;
+			};
+			const member = (u: U | null | undefined) =>
+				Boolean(u?.id) &&
+				u?.userType !== "Guest" &&
+				!(u?.userPrincipalName ?? "").toUpperCase().includes("#EXT#");
+			const select = "$select=id,userPrincipalName";
+			const direct = await call(
+				tenantId,
+				"GET",
+				`/users/${encodeURIComponent(email)}?${select}`,
+			);
+			if (!direct.ok) return direct;
+			if (direct.value.status === 200)
+				return { ok: true, value: member(parse<U>(direct.value.body)) };
+			const q = encodeURIComponent(`mail eq '${odataQuote(email)}'`);
+			const list = await call(
+				tenantId,
+				"GET",
+				`/users?$filter=${q}&${select}&$top=2`,
+			);
+			if (!list.ok) return list;
+			if (list.value.status !== 200) return { ok: true, value: false };
+			const v = parse<{ value?: U[] }>(list.value.body)?.value;
+			return { ok: true, value: v?.length === 1 && member(v[0]) };
+		},
+
 		async findCatalogApp(tenantId: string): Promise<GraphResult<string>> {
 			const q = encodeURIComponent(
 				`externalId eq '${odataQuote(config.appId)}'`,

@@ -21,8 +21,10 @@ import { openConsentState } from "@/lib/teams/consent";
 import type { GraphClient, GraphError, GraphResult } from "@/lib/teams/graph";
 import {
 	completeConsent,
+	consentContext,
 	deliverTeams,
 	prepareConsent,
+	tenantBound,
 } from "@/lib/teams/service";
 
 // Integrationstest (DATABASE_URL_TEST): Zustellung in Microsoft Teams (T5)
@@ -337,52 +339,73 @@ d("Benachrichtigungen in Teams (Postgres)", () => {
 		expect(seenUsers).toHaveLength(0);
 	});
 
-	it("Freigabe nur mit passendem Einmalwert und Tenant, nur einmal", async () => {
-		const prep = await inOrg(orgs.B, (tx) =>
-			prepareConsent(tx, {
-				orgId: orgs.B,
-				userId: users.owner ?? "",
-				tenantId: TENANT,
-				secret: SECRET,
-				now,
-			}),
-		);
-		const opened = openConsentState(prep.state, SECRET, now.getTime());
-		expect(opened?.orgId).toBe(orgs.B);
-		const complete = (nonce: string, tenantId: string | null) =>
+	it("Freigabe nur mit passendem Einmalwert, Tenant und Bindung, nur einmal", async () => {
+		const TENANT_B = "0c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e4f";
+		const prepare = async (tenantId: string) => {
+			const prep = await inOrg(orgs.B, (tx) =>
+				prepareConsent(tx, {
+					orgId: orgs.B,
+					userId: users.owner ?? "",
+					tenantId,
+					secret: SECRET,
+					now,
+				}),
+			);
+			const opened = openConsentState(prep.state, SECRET, now.getTime());
+			expect(opened?.orgId).toBe(orgs.B);
+			return opened?.nonce ?? "";
+		};
+		const complete = (nonce: string, tenantId: string | null, bound = true) =>
 			inOrg(orgs.B, (tx) =>
 				completeConsent(tx, {
 					orgId: orgs.B,
 					nonce,
 					tenantId,
 					granted: true,
+					bound,
 					error: null,
 					now,
 				}),
 			);
+		const rowB = async () =>
+			(
+				await inOrg(orgs.B, (tx) =>
+					tx
+						.select()
+						.from(teamsIntegrations)
+						.where(eq(teamsIntegrations.organizationId, orgs.B)),
+				)
+			)[0];
+
+		// Tenant von Org A: gehört schon einer anderen Org
+		let nonce = await prepare(TENANT);
 		expect((await complete("falsch", TENANT)).result).toBe("invalid");
 		expect(
-			(
-				await complete(
-					opened?.nonce ?? "",
-					"11111111-2222-4333-8444-555555555555",
-				)
-			).result,
+			(await complete(nonce, "11111111-2222-4333-8444-555555555555")).result,
 		).toBe("invalid");
-		expect(
-			(await complete(opened?.nonce ?? "", TENANT.toUpperCase())).result,
-		).toBe("active");
-		expect((await complete(opened?.nonce ?? "", TENANT)).result).toBe(
-			"invalid",
-		);
-		const [row] = await inOrg(orgs.B, (tx) =>
-			tx
-				.select()
-				.from(teamsIntegrations)
-				.where(eq(teamsIntegrations.organizationId, orgs.B)),
-		);
+		const taken = await complete(nonce, TENANT.toUpperCase());
+		expect(taken.result).toBe("taken");
+		expect(taken.audit[0]?.action).toBe("teams.consent_taken");
+		expect((await rowB())?.status).toBe("pending_consent");
+		expect((await rowB())?.lastError).toBe("tenant_taken");
+		// Einmalwert ist verbraucht
+		expect((await complete(nonce, TENANT)).result).toBe("invalid");
+
+		// eigener Tenant, aber ohne Bindung (gefälschtes admin_consent=True)
+		nonce = await prepare(TENANT_B);
+		const unbound = await complete(nonce, TENANT_B, false);
+		expect(unbound.result).toBe("unbound");
+		expect((await rowB())?.status).toBe("pending_consent");
+		expect((await rowB())?.lastError).toBe("tenant_unbound");
+
+		// mit Bindung: wirksam, Zustellung bleibt aus
+		nonce = await prepare(TENANT_B);
+		expect((await complete(nonce, TENANT_B)).result).toBe("active");
+		expect((await complete(nonce, TENANT_B)).result).toBe("invalid");
+		const row = await rowB();
 		expect(row?.status).toBe("active");
 		expect(row?.enabled).toBe(false);
+		expect(row?.lastError).toBeNull();
 		// Inhaber:innen erfahren es
 		const told = await inOrg(orgs.B, (tx) =>
 			tx
@@ -396,5 +419,42 @@ d("Benachrichtigungen in Teams (Postgres)", () => {
 				),
 		);
 		expect(told.some((n) => n.title.includes("Teams"))).toBe(true);
+	});
+
+	it("Bindung: Inhaber:in muss im Tenant ein eigenes Konto haben, kein Gast", async () => {
+		const ctx = await inOrg(orgs.B, (tx) => consentContext(tx, orgs.B));
+		expect(ctx.ownerEmails).toEqual([`owner-${stamp}@firma.de`]);
+		const asked: string[] = [];
+		const graph = (answer: GraphResult<boolean>) => ({
+			async tenantMember(_t: string, email: string) {
+				asked.push(email);
+				return answer;
+			},
+		});
+		expect(
+			await tenantBound(
+				graph({ ok: true, value: true }),
+				TENANT,
+				ctx.ownerEmails,
+			),
+		).toBe(true);
+		expect(
+			await tenantBound(
+				graph({ ok: true, value: false }),
+				TENANT,
+				ctx.ownerEmails,
+			),
+		).toBe(false);
+		expect(
+			await tenantBound(
+				graph({ ok: false, error: "consent_missing" }),
+				TENANT,
+				ctx.ownerEmails,
+			),
+		).toBe(false);
+		expect(
+			await tenantBound(graph({ ok: true, value: true }), TENANT, []),
+		).toBe(false);
+		expect(asked.every((e) => e === ctx.ownerEmails[0])).toBe(true);
 	});
 });

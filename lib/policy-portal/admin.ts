@@ -8,8 +8,8 @@ import {
 	policyReaderAcknowledgements,
 	policyReaders,
 } from "@/db/schema";
+import { isUniqueViolation } from "@/lib/db/errors";
 import type { OrgTx } from "@/lib/db/with-org";
-import { isUniqueViolation } from "@/lib/trust/service";
 import { portalSlugValid } from "./rules";
 
 // Richtlinien-Portal aus Sicht der Org (Einstellungen > Richtlinien-Portal).

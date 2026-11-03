@@ -7502,10 +7502,14 @@
 		"error_throttled": "Microsoft bremst gerade. Versuch es in ein paar Minuten noch einmal.",
 		"error_not_configured": "Teams ist auf diesem Klick-Server noch nicht eingerichtet.",
 		"error_not_consented": "Teams ist für eure Organisation noch nicht freigegeben.",
+		"error_tenant_unbound": "Die Freigabe passt nicht zu eurer Organisation: Im Tenant fehlt ein eigenes Konto (kein Gast) mit der E-Mail einer Inhaber:in. Prüft den Tenant und erstellt einen neuen Freigabe-Link.",
+		"error_tenant_taken": "Dieser Tenant ist schon mit einer anderen Organisation in Klick verbunden. Wendet euch an den Klick-Betrieb.",
 		"resultTitle": "Freigabe für Microsoft Teams",
 		"resultOk": "Danke, Klick ist in eurem Tenant freigegeben. Die Inhaber:in eurer Organisation schaltet die Zustellung in Klick unter Einstellungen > Integrationen ein.",
 		"resultDenied": "Die Freigabe wurde nicht erteilt. Ohne Freigabe kommen Hinweise weiter per Mail.",
-		"resultInvalid": "Der Freigabe-Link ist abgelaufen oder ungültig. Bitte lass in Klick einen neuen Link erstellen."
+		"resultInvalid": "Der Freigabe-Link ist abgelaufen oder ungültig. Bitte lass in Klick einen neuen Link erstellen.",
+		"resultUnbound": "Die Freigabe wurde erteilt, gilt aber noch nicht: Im Tenant fehlt ein eigenes Konto mit der E-Mail einer Inhaber:in der Organisation in Klick. Bitte prüft den Tenant und lasst einen neuen Link erstellen.",
+		"resultTaken": "Dieser Tenant ist schon mit einer anderen Organisation in Klick verbunden. Die Freigabe wurde nicht übernommen."
 	},
 	"NotificationPrefs": {
 		"leadMail": "Hinweise kommen per Mail: dringende sofort, alles andere gebündelt in der Tages-Mail um 7 Uhr.",

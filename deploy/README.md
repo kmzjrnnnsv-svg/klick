@@ -605,6 +605,10 @@ frei. Ohne die Schritte hier ist Teams aus und alles läuft wie bisher per Mail.
    Tenant-ID eintragen, Freigabe-Link an eine Person mit Rolle „Globaler Administrator“ bzw.
    „Privilegierter Rollenadministrator“ schicken, nach der Freigabe einschalten und „Testhinweis an
    mich“.
+   Wirksam wird die Freigabe erst mit der **Bindung**: eine Inhaber:in der Org muss im Tenant ein
+   eigenes Konto (kein Gast) mit derselben E-Mail wie in Klick haben, und der Tenant darf zu keiner
+   anderen Org gehören (Index `teams_integrations_tenant_uq`, Migration 0068). Sonst zeigt die Seite
+   „Freigabe passt nicht“ bzw. „schon verbunden“.
 
 - **Ausgehend nötig:** https zu `login.microsoftonline.com` und `graph.microsoft.com` (die App prüft
   Host, IP und Zertifikat selbst und folgt keiner Weiterleitung).
@@ -613,7 +617,8 @@ frei. Ohne die Schritte hier ist Teams aus und alles läuft wie bisher per Mail.
 - **Prüfen:** `psql klick -c "select organization_id, status, enabled, last_error, last_error_at from
   teams_integrations"`; `last_error` = `consent_missing` (Freigabe fehlt oder wurde entzogen, Status
   „error“), `app_not_in_catalog` (Paket nicht hochgeladen), `user_not_found` (Adresse in Klick ≠ Konto
-  im Tenant, steht dann in `teams_users`), `throttled` (Microsoft drosselt, nächster Lauf versucht es
+  im Tenant, steht dann in `teams_users`), `tenant_unbound` (keine Inhaber:in mit eigenem Konto im
+  Tenant), `tenant_taken` (Tenant gehört schon einer anderen Org), `throttled` (Microsoft drosselt, nächster Lauf versucht es
   wieder). Nach drei Fehlversuchen je Benachrichtigung geht sie per Mail.
 - **Sofort abschalten:** je Org unter Einstellungen > Integrationen ausschalten oder entfernen; für alle
   den Drop-in entfernen und Klick neu starten.

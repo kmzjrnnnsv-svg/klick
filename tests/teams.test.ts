@@ -135,6 +135,11 @@ function fakeMicrosoft(
 			u.pathname === "/v1.0/users/ana@firma.de"
 		)
 			return ok(200, { id: "aad-ana" });
+		if (u.pathname === "/v1.0/users/gast%40firma.de")
+			return ok(200, {
+				id: "aad-gast",
+				userPrincipalName: "gast_firma.de#EXT#@kunde.onmicrosoft.com",
+			});
 		if (
 			u.pathname.startsWith("/v1.0/users/") &&
 			req.method === "GET" &&
@@ -146,6 +151,18 @@ function fakeMicrosoft(
 			u.searchParams.get("$filter") === "mail eq 'bo@firma.de'"
 		)
 			return ok(200, { value: [{ id: "aad-bo" }] });
+		if (
+			u.pathname === "/v1.0/users" &&
+			u.searchParams.get("$filter") === "mail eq 'extern@andere.de'"
+		)
+			return ok(200, {
+				value: [
+					{
+						id: "aad-ext",
+						userPrincipalName: "extern_andere.de#EXT#@kunde.onmicrosoft.com",
+					},
+				],
+			});
 		if (u.pathname === "/v1.0/users") return ok(200, { value: [] });
 		if (u.pathname === "/v1.0/appCatalogs/teamsApps")
 			return ok(200, { value: [{ id: "cat-1" }] });
@@ -208,6 +225,45 @@ describe("Graph-Client", () => {
 				})
 			).ok,
 		).toBe(true);
+	});
+
+	it("Mitglied im Tenant: eigenes Konto ja, Gast und Unbekannte nein", async () => {
+		const m = fakeMicrosoft();
+		const c = createGraphClient(SECRET_CONFIG, m.transport);
+		expect(await c.tenantMember(TENANT_A, "ana@firma.de")).toEqual({
+			ok: true,
+			value: true,
+		});
+		expect(await c.tenantMember(TENANT_A, "bo@firma.de")).toEqual({
+			ok: true,
+			value: true,
+		});
+		expect(await c.tenantMember(TENANT_A, "gast@firma.de")).toEqual({
+			ok: true,
+			value: false,
+		});
+		expect(await c.tenantMember(TENANT_A, "extern@andere.de")).toEqual({
+			ok: true,
+			value: false,
+		});
+		expect(await c.tenantMember(TENANT_A, "nie@firma.de")).toEqual({
+			ok: true,
+			value: false,
+		});
+		// nur lesend
+		expect(
+			m.calls
+				.filter((x) => x.url.startsWith("https://graph.microsoft.com"))
+				.every((x) => x.method === "GET"),
+		).toBe(true);
+		const missing = createGraphClient(
+			SECRET_CONFIG,
+			fakeMicrosoft({ consentMissing: [TENANT_B] }).transport,
+		);
+		expect(await missing.tenantMember(TENANT_B, "ana@firma.de")).toEqual({
+			ok: false,
+			error: "consent_missing",
+		});
 	});
 
 	it("fehlende Freigabe und Drosselung als eigene Codes, Token nie in Fehlern", async () => {

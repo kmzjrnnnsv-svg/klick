@@ -7,6 +7,7 @@ import {
 	teamsUsers,
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
+import { isUniqueViolation } from "@/lib/db/errors";
 import type { OrgRunner, OrgTx } from "@/lib/db/with-org";
 import {
 	channelsFor,
@@ -102,8 +103,64 @@ export async function prepareConsent(
 	};
 }
 
+export type ConsentResult =
+	| "active"
+	| "denied"
+	| "invalid"
+	| "unbound"
+	| "taken";
+
 // Rückruf von Microsoft: nur mit passendem Einmalwert, vor Ablauf und für
-// den gemerkten Tenant
+// den gemerkten Tenant (pure)
+export function consentCallbackValid(
+	row: Pick<
+		TeamsIntegration,
+		"consentNonceHash" | "consentExpiresAt" | "tenantId"
+	> | null,
+	input: { nonce: string; tenantId: string | null; now: Date },
+): boolean {
+	return Boolean(
+		row?.consentNonceHash &&
+			row.consentNonceHash === nonceHash(input.nonce) &&
+			row.consentExpiresAt &&
+			row.consentExpiresAt >= input.now &&
+			(input.tenantId === null ||
+				input.tenantId.toLowerCase() === row.tenantId.toLowerCase()),
+	);
+}
+
+// Für den Rückruf vorab (lesend): Verbindung und E-Mails der Inhaber:innen
+export async function consentContext(
+	tx: OrgTx,
+	orgId: string,
+): Promise<{ row: TeamsIntegration | null; ownerEmails: string[] }> {
+	const row = await teamsIntegrationOf(tx, orgId);
+	const owners = await tx
+		.select({ email: user.email })
+		.from(member)
+		.innerJoin(user, eq(user.id, member.userId))
+		.where(and(eq(member.organizationId, orgId), eq(member.role, "owner")));
+	return { row, ownerEmails: owners.map((o) => o.email) };
+}
+
+// Bindung Tenant ↔ Org (Netz, ohne Transaktion): „admin_consent=True“ steht
+// nur in der Adresse und lässt sich fälschen. Gilt nur, wenn eine Inhaber:in
+// der Org im Tenant ein eigenes Konto hat (kein Gast) — sonst könnte eine
+// Org den Tenant einer anderen Firma eintragen, die Klick schon freigab.
+export async function tenantBound(
+	client: Pick<GraphClient, "tenantMember">,
+	tenantId: string,
+	ownerEmails: readonly string[],
+): Promise<boolean> {
+	for (const email of ownerEmails.slice(0, 20)) {
+		const r = await client.tenantMember(tenantId, email);
+		if (r.ok && r.value) return true;
+	}
+	return false;
+}
+
+// Rückruf abschließen. `bound` kommt aus tenantBound; ein Tenant gehört nur
+// einer Org (Index teams_integrations_tenant_uq), sonst „taken“.
 export async function completeConsent(
 	tx: OrgTx,
 	input: {
@@ -111,62 +168,107 @@ export async function completeConsent(
 		nonce: string;
 		tenantId: string | null;
 		granted: boolean;
+		bound: boolean;
 		error: string | null;
 		now: Date;
 	},
-): Promise<{ result: "active" | "denied" | "invalid"; audit: AuditInput[] }> {
+): Promise<{ result: ConsentResult; audit: AuditInput[] }> {
 	const row = await teamsIntegrationOf(tx, input.orgId);
-	if (
-		!row?.consentNonceHash ||
-		row.consentNonceHash !== nonceHash(input.nonce) ||
-		!row.consentExpiresAt ||
-		row.consentExpiresAt < input.now ||
-		(input.tenantId !== null &&
-			input.tenantId.toLowerCase() !== row.tenantId.toLowerCase())
-	)
+	if (!row || !consentCallbackValid(row, input))
 		return { result: "invalid", audit: [] };
 	const granted = input.granted && !input.error;
-	await tx
-		.update(teamsIntegrations)
-		.set({
-			consentNonceHash: null,
-			consentExpiresAt: null,
-			updatedAt: input.now,
-			...(granted
-				? { status: "active" as const, consentedAt: input.now, lastError: null }
-				: {
-						lastError: (input.error ?? "denied").slice(0, 120),
-						lastErrorAt: input.now,
-					}),
-		})
-		.where(eq(teamsIntegrations.id, row.id));
-	if (granted) {
-		const owners = await tx
-			.select({ id: member.userId })
-			.from(member)
-			.where(
-				and(eq(member.organizationId, input.orgId), eq(member.role, "owner")),
-			);
-		await notify(tx, {
-			orgId: input.orgId,
-			recipients: owners.map((o) => o.id),
-			actorUserId: null,
-			kind: "system",
-			title: "Microsoft Teams ist freigegeben",
-			body: "Schalte die Zustellung unter Einstellungen > Integrationen ein.",
-			link: "/einstellungen?tab=integrationen",
-		});
+	const target = `organization:${input.orgId}`;
+	const fail = async (lastError: string) =>
+		tx
+			.update(teamsIntegrations)
+			.set({
+				consentNonceHash: null,
+				consentExpiresAt: null,
+				updatedAt: input.now,
+				lastError: lastError.slice(0, 120),
+				lastErrorAt: input.now,
+			})
+			.where(eq(teamsIntegrations.id, row.id));
+	if (!granted) {
+		await fail(input.error ?? "denied");
+		return {
+			result: "denied",
+			audit: [
+				{
+					action: "teams.consent_denied",
+					target,
+					before: { status: row.status },
+					after: { error: (input.error ?? "denied").slice(0, 120) },
+				},
+			],
+		};
 	}
+	if (!input.bound) {
+		await fail("tenant_unbound");
+		return {
+			result: "unbound",
+			audit: [
+				{
+					action: "teams.consent_unbound",
+					target,
+					before: { status: row.status },
+					after: { tenantId: row.tenantId },
+				},
+			],
+		};
+	}
+	try {
+		await tx.transaction((sp) =>
+			sp
+				.update(teamsIntegrations)
+				.set({
+					consentNonceHash: null,
+					consentExpiresAt: null,
+					updatedAt: input.now,
+					status: "active",
+					consentedAt: input.now,
+					lastError: null,
+				})
+				.where(eq(teamsIntegrations.id, row.id)),
+		);
+	} catch (e) {
+		if (!isUniqueViolation(e)) throw e;
+		await fail("tenant_taken");
+		return {
+			result: "taken",
+			audit: [
+				{
+					action: "teams.consent_taken",
+					target,
+					before: { status: row.status },
+					after: { tenantId: row.tenantId },
+				},
+			],
+		};
+	}
+	const owners = await tx
+		.select({ id: member.userId })
+		.from(member)
+		.where(
+			and(eq(member.organizationId, input.orgId), eq(member.role, "owner")),
+		);
+	await notify(tx, {
+		orgId: input.orgId,
+		recipients: owners.map((o) => o.id),
+		actorUserId: null,
+		kind: "system",
+		title: "Microsoft Teams ist freigegeben",
+		body: "Schalte die Zustellung unter Einstellungen > Integrationen ein.",
+		link: "/einstellungen?tab=integrationen",
+	});
 	return {
-		result: granted ? "active" : "denied",
+		result: "active",
 		audit: [
 			{
-				action: granted ? "teams.consented" : "teams.consent_denied",
-				target: `organization:${input.orgId}`,
+				action: "teams.consented",
+				target,
 				before: { status: row.status },
-				after: granted
-					? { status: "active", tenantId: row.tenantId }
-					: { error: (input.error ?? "denied").slice(0, 120) },
+				after: { status: "active", tenantId: row.tenantId },
 			},
 		],
 	};
