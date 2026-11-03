@@ -68,19 +68,27 @@ export const IMPLEMENT: HelpArticle[] = [
 		area: "implement",
 		title: "Geführte Gap-Analyse",
 		summary:
-			"Eine Frage je Control, Belege hochladen, bewerten, Ergebnis übernehmen und Maßnahmen planen.",
+			"Eine Frage auf einmal in Alltagssprache, zuerst ein Kurz-Check mit den wichtigsten Fragen, dann das Ergebnis mit Maßnahmen.",
 		sections: [
 			{
 				id: "ablauf",
 				heading: "So läuft die Gap-Analyse",
 				steps: [
-					"Starte unter Gap-Analyse eine neue Analyse. Klick stellt aus deinen Rahmenwerken eine Frage je Control zusammen, gegliedert nach Bereichen.",
-					"Beantworte jede Frage mit Ja, Teilweise, Nein oder Nicht anwendbar und schreib kurz dazu, wie es bei dir gelöst ist.",
-					"Lade Belege direkt an der Frage hoch. Sie werden als Nachweis am Control gespeichert und zählen später für alle Rahmenwerke.",
-					"Lass die Antworten bewerten. Die Bewertung zählt vor der Selbsteinschätzung; ein „Ja“ ohne Beleg gilt als nicht belegt und zählt halb.",
-					"Tipp auf „Ergebnis übernehmen“. Klick zeigt dir vorher, welche Controls ihren Status ändern; erst dann wird übernommen.",
-					"Lass Maßnahmen vorschlagen. Klick ordnet die Lücken nach Hebel (wie viele Anforderungen ein Control trägt) und legt Aufgaben an.",
+					"Starte unter Gap-Analyse eine neue Analyse. Wähle den Kurz-Check mit den 30 wichtigsten Fragen (etwa 20 Minuten) oder alle Fragen. Die wichtigsten sind die Maßnahmen, die in deinen Rahmenwerken die meisten Anforderungen tragen.",
+					"Klick zeigt dir eine Frage auf einmal, in Alltagssprache. Antworte mit Ja, Teilweise, Nein oder Weiß ich nicht. Am Rechner gehen auch die Tasten 1 bis 4.",
+					"Danach fragt Klick nur, was zur Antwort passt: Bei Ja einen Nachweis, bei Teilweise oder Nein, was noch fehlt, bei Weiß ich nicht, an wen die Frage gehen soll. Alles ist freiwillig; mit Weiter kommst du zur nächsten offenen Frage.",
+					"Unter „Mehr zu dieser Frage“ stehen Prüffragen, Zusammenhänge mit deinen Rahmenwerken, vorhandene Nachweise und „Nicht relevant“ mit Begründung.",
+					"Fertig mit dem Kurz-Check? Erweitere die Analyse jederzeit auf alle Fragen. Deine Antworten bleiben.",
+					"Im Ergebnis siehst du die Punktzahl und wie sich die Abdeckung je Rahmenwerk ändert. Tipp auf „Ergebnis übernehmen“; Klick zeigt dir vorher, welche Controls ihren Status ändern.",
+					"Darunter legst du die Maßnahmen an. Klick ordnet sie nach Hebel; was du bei „Was fehlt noch?“ geschrieben hast, steht in der Aufgabe.",
 					"Exportier den Bericht für die Geschäftsleitung.",
+				],
+			},
+			{
+				id: "liste",
+				heading: "Lieber als Liste?",
+				body: [
+					"Mit „Als Liste“ siehst du alle Fragen eines Bereichs untereinander, etwa zum Durchsehen oder um viele Belege auf einmal hochzuladen. Prüfer:innen sehen die Antworten im Ergebnis unter „Antworten im Einzelnen“ und bewerten sie dort. Ein „Ja“ ohne Beleg gilt als nicht belegt und zählt halb.",
 				],
 			},
 			{
