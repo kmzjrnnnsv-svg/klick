@@ -2,9 +2,13 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { comments, watchers } from "@/db/schema";
+import { auditRequests, comments, watchers } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
+import {
+	auditorMayComment,
+	requestCounterparts,
+} from "@/lib/compliance/audit-workspace";
 import { listMembersForPicker, listWatcherIds } from "@/lib/compliance/queries";
 import { mutateOrg } from "@/lib/db/with-org";
 import { resolveMentions } from "@/lib/mentions";
@@ -23,6 +27,9 @@ async function addCommentImpl(
 	const parsed = addCommentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
+	// Prüfer:innen kommentieren nur am Audit, an Anfragen und Findings
+	if (!auditorMayComment(c.orgRole, d.entityType))
+		return { ok: false, error: "forbidden" };
 	const safeLink = safeInternalPath(link);
 
 	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
@@ -47,6 +54,26 @@ async function addCommentImpl(
 			d.entityType,
 			d.entityId,
 		);
+		// Anfrage im Audit: die Gegenseite (Prüfer:in bzw. Bearbeitende)
+		// erfährt jeden Kommentar, auch ohne zu beobachten
+		if (d.entityType === "audit_request") {
+			const [r] = await tx
+				.select({
+					requestedByUserId: auditRequests.requestedByUserId,
+					assigneeUserId: auditRequests.assigneeUserId,
+				})
+				.from(auditRequests)
+				.where(
+					and(
+						eq(auditRequests.organizationId, c.orgId),
+						eq(auditRequests.id, d.entityId),
+					),
+				)
+				.limit(1);
+			if (r)
+				for (const u of requestCounterparts(r, c.userId))
+					if (!watcherIds.includes(u)) watcherIds.push(u);
+		}
 
 		await tx
 			.insert(watchers)
