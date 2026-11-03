@@ -806,6 +806,8 @@ async function startSetupGapAnalysisImpl(
 			{
 				frameworks: parsed.data.frameworks,
 				title: "Gap-Analyse aus der Einrichtung",
+				// zuerst die wichtigsten Fragen, erweitern geht in der Gap-Analyse
+				scope: "short",
 			},
 		);
 		if (!created) return { result: null, audit: [] };

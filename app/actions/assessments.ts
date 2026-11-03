@@ -21,7 +21,10 @@ import {
 	CATALOG_TEMPLATE,
 	catalogQuestions,
 } from "@/lib/assessments/catalog-template";
-import { insertSelfAssessment } from "@/lib/assessments/create-service";
+import {
+	extendSelfAssessment,
+	insertSelfAssessment,
+} from "@/lib/assessments/create-service";
 import {
 	type NaConfirmation,
 	naAllowed,
@@ -59,6 +62,7 @@ import {
 	createAssessmentSchema,
 	createMeasuresSchema,
 	delegateQuestionSchema,
+	extendAssessmentSchema,
 	linkAnswerEvidenceSchema,
 	reviewAnswerSchema,
 } from "@/lib/validation/assessments";
@@ -771,6 +775,23 @@ async function createMeasuresImpl(
 				),
 			);
 		const openKeys = new Set(open.map((o) => `${o.entityId}:${o.title}`));
+		// „Was fehlt?“ aus der Antwort geht in die Beschreibung der Maßnahme
+		const notes = new Map(
+			(
+				await tx
+					.select({
+						code: assessmentAnswers.questionCode,
+						comment: assessmentAnswers.comment,
+					})
+					.from(assessmentAnswers)
+					.where(
+						and(
+							eq(assessmentAnswers.organizationId, c.orgId),
+							eq(assessmentAnswers.assessmentId, a.id),
+						),
+					)
+			).flatMap((r) => (r.comment ? [[r.code, r.comment] as const] : [])),
+		);
 		let created = 0;
 		for (const item of d.items) {
 			const impl = impls.get(item.controlCode);
@@ -790,6 +811,9 @@ async function createMeasuresImpl(
 				title,
 				description: [
 					`Aus Gap-Analyse ${a.code}.`,
+					notes.get(item.controlCode)
+						? `Was fehlt: ${notes.get(item.controlCode)}`
+						: null,
 					rec ? `Empfehlung: ${rec}` : null,
 					meta.evidenceHints?.length
 						? `Nachweise: ${meta.evidenceHints.join(", ")}`
@@ -947,6 +971,37 @@ async function cancelAssessmentImpl(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
+// Kurz-Check auf alle Fragen erweitern (Antworten bleiben)
+async function extendAssessmentImpl(
+	input: unknown,
+): Promise<ActionResult<{ added: number }>> {
+	const c = await requireOrg({ assessment: ["create"] });
+	const parsed = extendAssessmentSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const out = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const a = await loadAssessment(tx, c.orgId, parsed.data.assessmentId);
+		if (
+			!a ||
+			a.kind !== "self" ||
+			a.status === "completed" ||
+			a.status === "cancelled"
+		)
+			return { result: null, audit: [] };
+		const r = await extendSelfAssessment(tx, c.orgId, {
+			id: a.id,
+			frameworks: a.frameworks,
+			asOf: a.asOf,
+			questions: a.questions,
+		});
+		return r
+			? { result: r.added, audit: r.audit }
+			: { result: null, audit: [] };
+	});
+	if (out === null) return { ok: false, error: "notFound" };
+	revalidatePath(PATH);
+	return { ok: true, data: { added: out } };
+}
+
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
 export const createAssessment = safeAction(
@@ -954,6 +1009,10 @@ export const createAssessment = safeAction(
 	createAssessmentImpl,
 );
 export const answerQuestion = safeAction("answerQuestion", answerQuestionImpl);
+export const extendAssessment = safeAction(
+	"extendAssessment",
+	extendAssessmentImpl,
+);
 export const uploadAnswerEvidence = safeAction(
 	"uploadAnswerEvidence",
 	uploadAnswerEvidenceImpl,

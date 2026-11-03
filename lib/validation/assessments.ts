@@ -11,7 +11,11 @@ export const createAssessmentSchema = z.object({
 	asOf: isoDate.nullable().optional(),
 	// nur Controls, die eine frühere Gap-Analyse noch nicht abgefragt hat
 	onlyNew: z.boolean().optional(),
+	// Kurz-Check (die wichtigsten Fragen) oder alle; ohne Angabe alle
+	scope: z.enum(["short", "all"]).optional(),
 });
+
+export const extendAssessmentSchema = z.object({ assessmentId: uuid });
 
 export const answerQuestionSchema = z
 	.object({
