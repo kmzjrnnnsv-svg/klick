@@ -426,7 +426,7 @@ export async function naRequestDetails(
 			reason,
 			current:
 				ans?.answer === "na" && naVersionRef(a.id, r.code, reason) === r.ref,
-			link: `/gap-analyse/${a.id}?schritt=fragen&kapitel=${encodeURIComponent(q.sectionCode)}#q-${r.code}`,
+			link: `/gap-analyse/${a.id}?schritt=fragen&ansicht=fokus&frage=${encodeURIComponent(r.code)}&kapitel=${encodeURIComponent(q.sectionCode)}#q-${r.code}`,
 			excludes: impact.excludable.map((x) => x.label),
 			keeps: impact.kept.map((x) => x.label),
 		});

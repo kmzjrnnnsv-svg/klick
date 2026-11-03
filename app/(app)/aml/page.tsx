@@ -548,7 +548,7 @@ async function AmlPage({ searchParams }: { searchParams: Promise<Search> }) {
 								))}
 							</ul>
 							<Link
-								href="/kalender?tab=legal"
+								href="/kalender?tab=rechtsaenderungen"
 								className="mt-2 inline-block text-primary text-footnote hover:underline"
 							>
 								{t("toCalendar")}

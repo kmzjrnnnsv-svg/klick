@@ -16,6 +16,7 @@ import {
 	HELP_FALLBACK,
 	HELP_ROUTES,
 	helpSlugForPath,
+	helpTarget,
 	routesForArticle,
 } from "@/lib/help/routes";
 import { HELP_AREAS, type HelpArticle } from "@/lib/help/types";
@@ -161,6 +162,19 @@ describe("Hilfe für Mitarbeitende", () => {
 		// Querverweise der Mitarbeitenden-Artikel bleiben nicht alle sichtbar —
 		// die Seite filtert sie; der Einstieg muss aber erreichbar sein
 		expect(mine.map((a) => a.slug)).toContain(HELP_FALLBACK);
+	});
+
+	it("„Hilfe zu dieser Seite“ führt nie auf einen gesperrten Artikel", () => {
+		const allowed = articlesFor("employee").map((a) => a.slug);
+		expect(allowed).toContain(HELP_FALLBACK);
+		for (const [prefix] of HELP_ROUTES) {
+			const slug = helpTarget(prefix, allowed);
+			expect(allowed, prefix).toContain(slug);
+		}
+		expect(helpTarget("/einstellungen", allowed)).toBe(HELP_FALLBACK);
+		expect(helpTarget("/richtlinien/RL-01", allowed)).toBe("richtlinien");
+		// ohne Liste (alle anderen Rollen) wie bisher
+		expect(helpTarget("/einstellungen")).toBe("einstellungen");
 	});
 
 	it("Hilfe steht für jede Rolle in der Navigation", () => {

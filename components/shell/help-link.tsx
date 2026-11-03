@@ -5,16 +5,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { helpSlugForPath } from "@/lib/help/routes";
+import { helpTarget } from "@/lib/help/routes";
 
 // „Hilfe zu dieser Seite“ oben rechts: öffnet den Artikel zur aktuellen Seite
 // (Zuordnung in lib/help/routes.ts), im Wiki selbst das Inhaltsverzeichnis.
-export function HelpLink() {
+// `allowed` = Artikel, die die Person sehen darf (Mitarbeitende); ein anderer
+// Artikel führt dann auf „Erste Schritte“ statt auf eine leere Seite.
+export function HelpLink({ allowed }: { allowed?: readonly string[] }) {
 	const t = useTranslations("Help");
 	const pathname = usePathname() ?? "/";
 	const href = pathname.startsWith("/hilfe")
 		? "/hilfe"
-		: `/hilfe/${helpSlugForPath(pathname)}`;
+		: `/hilfe/${helpTarget(pathname, allowed)}`;
 	return (
 		<Button variant="ghost" size="icon" asChild>
 			<Link href={href} aria-label={t("pageHelp")} title={t("pageHelp")}>

@@ -67,6 +67,16 @@ export function helpSlugForPath(pathname: string): string {
 	return best?.slug ?? HELP_FALLBACK;
 }
 
+// Ziel des Knopfs „Hilfe zu dieser Seite“: ist `allowed` gesetzt (Artikel,
+// die die Person sehen darf, z. B. Mitarbeitende), sonst „Erste Schritte“.
+export function helpTarget(
+	pathname: string,
+	allowed?: readonly string[],
+): string {
+	const slug = helpSlugForPath(pathname);
+	return !allowed || allowed.includes(slug) ? slug : HELP_FALLBACK;
+}
+
 // Seiten eines Artikels (für „Zur Seite“ auf der Artikelseite)
 export function routesForArticle(slug: string): string[] {
 	return HELP_ROUTES.filter(

@@ -374,6 +374,7 @@ async function ControlDetailPage({
 			)}
 
 			<Section
+				id="nachweise"
 				title={t("evidence")}
 				actions={
 					canEdit ? (

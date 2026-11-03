@@ -402,7 +402,8 @@ async function delegateQuestionImpl(input: unknown): Promise<ActionResult> {
 		const a = await loadAssessment(tx, c.orgId, d.assessmentId);
 		const q = a?.questions.find((x) => x.code === d.questionCode);
 		if (!a || !q) return { result: false, audit: [] };
-		const link = `${PATH}/${a.id}?schritt=fragen&kapitel=${q.sectionCode}#q-${q.code}`;
+		// Fokus-Ansicht liest `frage`, die Liste (ohne Recht zu antworten) `kapitel` und den Anker
+		const link = `${PATH}/${a.id}?schritt=fragen&ansicht=fokus&frage=${encodeURIComponent(q.code)}&kapitel=${encodeURIComponent(q.sectionCode)}#q-${q.code}`;
 		const [task] = await tx
 			.insert(tasks)
 			.values({

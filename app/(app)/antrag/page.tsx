@@ -18,6 +18,7 @@ import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { TEMPLATE_BY_CODE } from "@/lib/compliance/catalog/document-templates";
 import { MICAR_APPLICATION } from "@/lib/compliance/catalog/micar-application";
 import { ZAG_APPLICATION } from "@/lib/compliance/catalog/zag-application";
+import { activeFrameworkSlugs } from "@/lib/compliance/initialize-org";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { readOrg } from "@/lib/db/with-org";
 
@@ -49,9 +50,19 @@ export default async function ApplicationPage({
 	const tf = await getTranslations("Functions");
 	const canEdit = allows(ctx, { organisation: ["update"] });
 
-	const { facts, services, state } = await readOrg(toOrgCtx(ctx), (tx) =>
-		loadApplicationFacts(tx, ctx.orgId),
+	const [{ facts, services, state }, frameworkSlugs] = await readOrg(
+		toOrgCtx(ctx),
+		(tx) =>
+			Promise.all([
+				loadApplicationFacts(tx, ctx.orgId),
+				activeFrameworkSlugs(tx, ctx.orgId),
+			]),
 	);
+	// Rahmenwerk-Seiten gibt es nur für gewählte Rahmenwerke (sonst 404)
+	const moduleHref = (route: string): string | null => {
+		const m = /^\/rahmenwerke\/([^/?#]+)/.exec(route);
+		return m?.[1] && !frameworkSlugs.includes(m[1]) ? null : route;
+	};
 
 	const items = tab === "zag" ? ZAG_APPLICATION : MICAR_APPLICATION;
 	const result = evaluateApplication(items, facts, services);
@@ -169,12 +180,14 @@ export default async function ApplicationPage({
 								<Badge variant={TONE[r.status]}>
 									{t(`status_${r.status}`)}
 								</Badge>
-								<Link
-									href={r.item.route}
-									className="text-primary text-footnote hover:underline"
-								>
-									{t("openModule")}
-								</Link>
+								{moduleHref(r.item.route) && (
+									<Link
+										href={r.item.route}
+										className="text-primary text-footnote hover:underline"
+									>
+										{t("openModule")}
+									</Link>
+								)}
 							</div>
 						</div>
 						{r.status !== "not_applicable" && (
