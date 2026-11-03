@@ -1,10 +1,12 @@
 import * as landing from "@wallet/lib/landing";
 import * as roadmap from "@wallet/lib/roadmap";
+import * as trading from "@wallet/lib/trading";
 import { describe, expect, it } from "vitest";
 
-// Öffentliche Seiten (Startseite abgemeldet, Fahrplan): Texte für
+// Öffentliche Seiten (Startseite abgemeldet, Fahrplan, Bot): Texte für
 // Investor:innen und Entwickler:innen. Du-Form, keine Geviertstriche, keine
-// Versprechen, die eine Zulassung behaupten, und keine internen Angaben.
+// Versprechen, die eine Zulassung oder einen Gewinn behaupten, und keine
+// internen Angaben. Die Startseite in kurzen Sätzen.
 
 function texts(v: unknown): string[] {
 	if (typeof v === "string") return [v];
@@ -13,7 +15,10 @@ function texts(v: unknown): string[] {
 	return [];
 }
 
-const all = [...texts(landing), ...texts(roadmap)];
+const all = [...texts(landing), ...texts(roadmap), ...texts(trading)];
+
+const sentences = (s: string) => s.split(/(?<=[.!?])\s+/).filter(Boolean);
+const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
 describe("öffentliche Seiten", () => {
 	it("haben Texte", () => {
@@ -51,6 +56,7 @@ describe("öffentliche Seiten", () => {
 			...roadmap.TODAY,
 			...roadmap.NEXT,
 			...roadmap.PHASES,
+			...trading.TRADING_STEPS,
 		]) {
 			expect(item.anchors.length, item.key).toBeGreaterThan(0);
 		}
@@ -63,7 +69,11 @@ describe("öffentliche Seiten", () => {
 	});
 
 	it("zeigen den Zahlungsweg als Ziel, nicht als Angebot", () => {
-		expect(landing.HERO.goal).toMatch(/Ziel/);
+		expect(landing.GOAL.badge).toMatch(/Ziel/);
+		expect(landing.GOAL.lead).toMatch(/erst mit Erlaubnis/);
+		const goalRow = landing.STAND.rows.find((r) => r.key === "ziel");
+		expect(goalRow?.label).toMatch(/Ziel/);
+		expect(goalRow?.label).toMatch(/Erlaubnis/);
 		expect(landing.HERO.today).toMatch(/^Heute/);
 		expect(roadmap.GOAL.note).toMatch(/Erlaubnis/);
 		const [first, ...rest] = roadmap.STAGES;
@@ -71,6 +81,66 @@ describe("öffentliche Seiten", () => {
 		for (const stage of rest) {
 			expect(stage.status, stage.key).toBe("locked");
 			expect(stage.requires, stage.key).toMatch(/Erlaubnis/);
+		}
+	});
+
+	// Bot (geplant): nie als laufend, nie als Angebot an Kund:innen, nie mit
+	// Gewinnversprechen; der Hinweis auf Verluste steht immer dabei
+	describe("Automatisch handeln", () => {
+		it("ist geplant und zuerst nur für eigene Bestände", () => {
+			expect(trading.TRADING.status).toMatch(/geplant/);
+			expect(trading.TRADING.status).toMatch(/eigene Bestände/);
+			const row = landing.STAND.rows.find((r) => r.key === "geplant");
+			expect(row?.tone).toBe("planned");
+			for (const step of trading.TRADING_STEPS) {
+				expect(step.status, step.key).not.toBe("live");
+			}
+		});
+
+		it("bleibt für Kund:innen gesperrt bis zur Erlaubnis", () => {
+			const last = trading.TRADING_STEPS.at(-1);
+			expect(last?.status).toBe("locked");
+			expect(last?.requires).toMatch(/Erlaubnis/);
+			expect(trading.TRADING.customers).toMatch(/gesperrt/);
+			expect(trading.TRADING.customers).toMatch(/Erlaubnis/);
+		});
+
+		it("nennt das Risiko und verspricht keinen Gewinn", () => {
+			expect(trading.TRADING.risk).toMatch(/verlieren/);
+			const promise =
+				/rendite|passives einkommen|risikolos|ohne risiko|verdoppel|(sicher|hoh|garantiert)\w*\s+gewinn/i;
+			expect(all.filter((t) => promise.test(t))).toEqual([]);
+		});
+
+		it("kann nie auszahlen, nur tauschen", () => {
+			expect(trading.TRADING.never.items[0]).toMatch(/dieselbe Wallet/);
+		});
+	});
+
+	// Wunsch 03.11.: einfach zu verstehen. Startseite und Bot in kurzen Sätzen,
+	// jedes Fachwort der Seite steht unter „Begriffe kurz erklärt“.
+	it("schreibt die Startseite in kurzen Sätzen", () => {
+		const long = [...texts(landing), ...texts(trading.TRADING)]
+			.flatMap(sentences)
+			.filter((s) => words(s) > 24);
+		expect(long).toEqual([]);
+	});
+
+	it("erklärt die Fachwörter der Startseite", () => {
+		const terms = landing.TERMS.items.map((t) => t.term).join(" ");
+		for (const word of [
+			"Wallet",
+			"Knoten",
+			"Signer",
+			"Sicherheitsschlüssel",
+			"Token",
+			"Testnetz",
+			"KYC",
+			"KYB",
+			"Travel Rule",
+			"Klick",
+		]) {
+			expect(terms, word).toContain(word);
 		}
 	});
 
@@ -86,6 +156,7 @@ describe("öffentliche Seiten", () => {
 			...roadmap.TODAY,
 			...roadmap.NEXT,
 			...roadmap.PHASES,
+			...trading.TRADING_STEPS,
 		].map((i) => i.key);
 		expect(new Set(keys).size).toBe(keys.length);
 	});

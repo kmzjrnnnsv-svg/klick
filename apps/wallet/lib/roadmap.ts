@@ -31,9 +31,9 @@ export type RoadmapItem = {
 
 export const INTRO = {
 	title: "Fahrplan",
-	lead: "Wohin both.money will, was heute läuft, was als Nächstes kommt und welche Infrastruktur dafür nötig ist. Zu jedem Schritt steht, auf welche Pflicht er einzahlt.",
+	lead: "Wohin both.money will, was heute läuft, was als Nächstes kommt, wie der Bot für Gold und US-Dollar entsteht und welche Infrastruktur dafür nötig ist. Zu jedem Schritt steht, auf welche Pflicht er einzahlt.",
 	status:
-		"Stand Oktober 2026. Testphase im Bitcoin-Testnetz Signet, kein echtes Geld.",
+		"Stand November 2026. Testphase im Bitcoin-Testnetz Signet, kein echtes Geld.",
 	note: "Diese Seite beschreibt Pläne, keine Zusagen und keine Termine. Keine Rechtsberatung: Ob eine Maßnahme reicht, entscheiden Prüfer:in und Aufsicht.",
 } as const;
 
@@ -312,7 +312,7 @@ export const PHASES: readonly RoadmapItem[] = [
 	{
 		key: "phase-5",
 		title: "Phase 5 · Tausch über dezentrale Börsen",
-		text: "Tausch zwischen Kryptowerten direkt aus der Wallet, mit denselben Freigaben und Grenzen wie bei Auszahlungen. Für eigene Bestände; für Kund:innen nur mit Erlaubnis.",
+		text: "Tausch zwischen Kryptowerten direkt aus der Wallet, mit denselben Freigaben und Grenzen wie bei Auszahlungen. Darauf baut der Bot auf (siehe Automatisch handeln). Für eigene Bestände; für Kund:innen nur mit Erlaubnis.",
 		status: "planned",
 		anchors: [
 			{
@@ -504,6 +504,7 @@ export const SECTIONS = [
 	{ id: "ziel", label: "Ziel" },
 	{ id: "heute", label: "Heute" },
 	{ id: "als-naechstes", label: "Als Nächstes" },
+	{ id: "handeln", label: "Automatisch handeln" },
 	{ id: "phasen", label: "Phasen" },
 	{ id: "infrastruktur", label: "Infrastruktur" },
 ] as const;

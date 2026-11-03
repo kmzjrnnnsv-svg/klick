@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 		? { title: "Wallet" }
 		: {
 				title: {
-					absolute: "both.money · Geld weitergeben, beide Seiten geprüft",
+					absolute: "both.money · Geld bewegt sich nur nach Regeln",
 				},
 			};
 }

@@ -1,66 +1,115 @@
 // Öffentliche Startseite von both.money (abgemeldet unter „/“): alle Texte an
-// einer Stelle, Du-Form, keine Geviertstriche (Test public-pages). Oben das
-// Ziel (Zahlungsweg zwischen geprüften Parteien), klar als Ziel markiert; der
-// Rest zeigt, was both.money heute tut. Kundengeld, Prüfung beider Seiten,
-// Euro und Travel Rule sind „folgt“ bzw. „gesperrt“, die Stufen stehen im
-// Fahrplan (lib/roadmap.ts). Rechtliche Einordnung vor der Bewerbung prüfen.
+// einer Stelle, Du-Form, keine Geviertstriche, kurze Sätze (Test
+// public-pages). Oben, was both.money ist, und der Stand in drei Zeilen
+// (heute, geplant, Ziel); dann wie es funktioniert, der Bot (lib/trading.ts),
+// was heute läuft und das Ziel. Zahlungsweg und Kundengeld sind klar als Ziel
+// bzw. „gesperrt“ markiert, die Stufen stehen im Fahrplan (lib/roadmap.ts).
+// Rechtliche Einordnung vor der Bewerbung prüfen.
 
 export const HERO = {
-	goal: "Ziel · braucht Erlaubnis",
 	// Zeilen von Hand umbrochen
-	lines: ["Geld weitergeben,", "beide Seiten geprüft"],
-	lead: "both.money soll Geld in Euro und in Kryptowerten annehmen, getrennt verwahren und an der anderen Stelle auszahlen, sobald der Eingang bestätigt ist. Absender und Empfänger sind vorher geprüft, als Person oder als Unternehmen, nach einem Standard, der überall gleich gilt.",
+	lines: ["Geld bewegt sich", "nur nach Regeln"],
+	lead: "both.money ist eine Wallet für Unternehmen. Sie bewahrt Kryptowerte auf, bewegt sie nur in festen Grenzen und belegt jeden Schritt.",
 	action: "Anmelden",
 	today:
-		"Heute ist both.money eine Wallet für eigene Bestände im Bitcoin-Testnetz Signet: kein echtes Geld, kein Kundengeld, Zugang nur per Einladung.",
-	backend: "Einblick ins Backend",
+		"Heute läuft both.money im Test: Bitcoin-Testnetz, kein echtes Geld, Zugang nur per Einladung.",
 } as const;
 
-// So soll eine Zahlung laufen; je Schritt, was davon heute schon läuft
-export type FlowStep = {
+// Der Stand in drei Zeilen, rechts neben dem Titel
+export type StandRow = {
 	key: string;
+	label: string;
+	tone: "live" | "planned" | "goal";
 	title: string;
 	text: string;
-	today: string;
-	live: boolean;
+	href: string;
 };
 
-export const FLOW = {
-	title: "So soll eine Zahlung laufen",
-	lead: "Vier Schritte, bei jeder Zahlung gleich. Darunter steht, was davon heute schon läuft.",
-	steps: [
+export const STAND = {
+	title: "Wo both.money steht",
+	rows: [
 		{
-			key: "pruefen",
-			title: "Beide Seiten geprüft",
-			text: "Bevor Geld fließt, kennt both.money Absender und Empfänger: Personen mit Identitätsprüfung (KYC), Unternehmen mit Registerauszug, wirtschaftlich Berechtigten und Geschäftszweck (KYB).",
-			today: "folgt mit Erlaubnis",
-			live: false,
+			key: "heute",
+			label: "Heute",
+			tone: "live",
+			title: "Wallet für eigene Bestände",
+			text: "Empfangen, aufbewahren und senden mit Sicherheitsschlüssel. Im Testnetz, ohne echtes Geld.",
+			href: "#so-gehts",
 		},
 		{
-			key: "eingang",
-			title: "Geld kommt an",
-			text: "Euro auf ein Treuhandkonto, Kryptowerte auf eine Wallet über eigene Knoten. Jeder Eingang wird gegen Sanktionslisten und den angegebenen Zweck geprüft.",
-			today: "Sanktionsprüfung je Krypto-Eingang läuft",
-			live: true,
+			key: "geplant",
+			label: "Geplant",
+			tone: "planned",
+			title: "Automatisch handeln",
+			text: "Ein Bot tauscht Gold gegen US-Dollar, nur in Grenzen, die du setzt.",
+			href: "#handeln",
 		},
 		{
-			key: "verwahren",
-			title: "Verwahrt, bis es bestätigt ist",
-			text: "Das Geld liegt getrennt vom Geld des Betreibers, bis der Eingang endgültig bestätigt ist, und wird täglich abgestimmt.",
-			today: "Tagesabschluss mit Blockhöhe läuft",
-			live: true,
+			key: "ziel",
+			label: "Ziel · braucht Erlaubnis",
+			tone: "goal",
+			title: "Zahlungsweg",
+			text: "Geld annehmen und an geprüfte Empfänger weitergeben. Erst mit Erlaubnis der Aufsicht.",
+			href: "#ziel",
 		},
-		{
-			key: "auszahlen",
-			title: "Ausgezahlt an der anderen Stelle",
-			text: "Erst dann geht der Betrag an den geprüften Empfänger, freigegeben per Sicherheitsschlüssel und mit den Angaben zu Absender und Empfänger (Travel Rule). Jeder Schritt landet als Nachweis in Klick.",
-			today: "Freigabe per Sicherheitsschlüssel bereit, Travel Rule folgt",
-			live: false,
-		},
-	] satisfies FlowStep[],
+	] satisfies StandRow[],
 } as const;
 
-export const EVENTS_TITLE = "Was heute schon passiert bei …";
+// So funktioniert both.money: drei Sätze mit einem Bild aus dem Alltag
+export type Pillar = { key: string; title: string; text: string; like: string };
+
+export const PILLARS = {
+	title: "So funktioniert both.money",
+	lead: "Drei Dinge machen den Unterschied. Jedes steht in einem Satz, darunter ein Bild aus dem Alltag.",
+	items: [
+		{
+			key: "tresor",
+			title: "Ein eigener Tresor",
+			text: "both.money liest die Blockchain über eigene Rechner, die Knoten, und hält die Schlüssel selbst. Kein fremder Anbieter steht dazwischen.",
+			like: "Wie ein Tresor im eigenen Haus statt eines Schließfachs bei einer fremden Firma.",
+		},
+		{
+			key: "grenzen",
+			title: "Nichts geht ohne Freigabe",
+			text: "Jede Auszahlung braucht die Freigabe mit einem Sicherheitsschlüssel. Ein eigenes Programm, der Signer, prüft die Grenzen und unterschreibt erst dann.",
+			like: "Wie eine Kasse mit Tageslimit: Mehr als vereinbart geht nicht raus, egal wer fragt.",
+		},
+		{
+			key: "belegt",
+			title: "Jeder Schritt belegt",
+			text: "Eingänge, Auszahlungen und Tagesbestände gehen automatisch an Klick, eine App für Compliance. Dort werden sie zu Nachweisen für Prüfer:innen.",
+			like: "Wie ein Kassenbuch, das sich selbst schreibt und das niemand heimlich ändern kann.",
+		},
+	] satisfies Pillar[],
+} as const;
+
+// Eine Auszahlung, Schritt für Schritt (Ruf und Antwort)
+export const PAYOUT = {
+	title: "Eine Auszahlung, Schritt für Schritt",
+	lead: "So läuft es heute im Testnetz. Je Schritt steht oben, was du tust, und darunter, was both.money daraufhin tut.",
+	steps: [
+		{
+			say: "Du legst die Auszahlung an.",
+			answer:
+				"both.money prüft Ziel und Bestand. Dann hält es fest, was passieren soll. Unterschrieben ist damit noch nichts.",
+		},
+		{
+			say: "Du bestätigst mit dem Sicherheitsschlüssel.",
+			answer:
+				"Eine eigene Seite zeigt dir Betrag und Ziel noch einmal. Erst nach deiner Bestätigung prüft der Signer die Grenzen und unterschreibt.",
+		},
+		{
+			say: "Alles steht in Klick.",
+			answer:
+				"Auszahlung und Bewegung kommen mit eigener Kennung und Prüfsumme an. Klick nimmt jedes Ereignis genau einmal an.",
+		},
+	],
+} as const;
+
+export const EVENTS_INTRO = {
+	title: "Was passiert, wenn …",
+	lead: "Wähle ein Ereignis. Du siehst, was both.money dann tut und was davon in Klick ankommt.",
+} as const;
 
 // Das Live-Element: ein Ereignis wählen, beide Seiten lesen
 export type LandingEvent = {
@@ -73,150 +122,100 @@ export type LandingEvent = {
 export const EVENTS: readonly LandingEvent[] = [
 	{
 		key: "eingang",
-		label: "Eingang",
+		label: "Geld kommt an",
 		wallet:
-			"Der eigene Knoten meldet die Transaktion. Vor der Gutschrift prüft both.money jeden direkten Absender gegen die OFAC-Liste.",
+			"Der eigene Knoten meldet die Zahlung. Bevor sie zählt, prüft both.money den Absender gegen die Sanktionsliste der USA (OFAC).",
 		klick:
-			"Eine Bewegung unter „Krypto“: Konto, Betrag, Transaktion und das Ergebnis der Sanktionsprüfung.",
+			"Eine Bewegung mit Konto, Betrag und dem Ergebnis der Prüfung, unter „Krypto“.",
 	},
 	{
 		key: "treffer",
-		label: "Sanktionstreffer",
+		label: "Absender steht auf der Liste",
 		wallet:
-			"Der Betrag bleibt eingefroren. Alle mit Zugriff auf die Wallet bekommen sofort eine Sicherheitsmeldung.",
+			"Der Betrag bleibt eingefroren. Alle mit Zugriff auf die Wallet bekommen sofort eine Meldung.",
 		klick:
-			"Ein Verdachtsfall zur Prüfung, ohne Personendaten, und eine Aufgabe für die verantwortliche Person.",
+			"Ein Verdachtsfall zur Prüfung, ohne Namen, und eine Aufgabe für die zuständige Person.",
 	},
 	{
 		key: "auszahlung",
-		label: "Auszahlung",
+		label: "Geld geht raus",
 		wallet:
-			"Ziel, Betrag und Gebührendeckel stehen in der Absicht. Erst nach der Freigabe mit Sicherheitsschlüssel signiert der Signer.",
+			"Ziel, Betrag und höchste Gebühr stehen fest. Erst nach der Freigabe mit Sicherheitsschlüssel unterschreibt der Signer.",
 		klick:
-			"Die Auszahlung mit Freigaben, danach die Bewegung mit Blockhöhe, sobald sie bestätigt ist.",
+			"Die Auszahlung mit ihren Freigaben, danach die Bewegung, sobald die Blockchain sie bestätigt.",
 	},
 	{
 		key: "tagesabschluss",
-		label: "Tagesabschluss",
+		label: "Ein Tag endet",
 		wallet:
-			"Um 00:10 Uhr hält both.money den Bestand je Konto fest, mit Blockhöhe und Hash des eigenen Knotens.",
+			"Um 00:10 Uhr hält both.money den Bestand je Konto fest, mit der Nummer des letzten Blocks.",
 		klick:
-			"Der Bestand für die tägliche Abstimmung unter „Verwahrung“, vorbelegt mit Blockhöhe und Hash.",
+			"Der Bestand für die tägliche Abstimmung unter „Verwahrung“, schon ausgefüllt.",
 	},
 	{
 		key: "unbekannt",
-		label: "Ausgabe ohne Auszahlung",
+		label: "Geld geht ohne Auftrag raus",
 		wallet:
-			"Geld verlässt ein Hot-Konto, ohne dass es eine Auszahlung dazu gibt: Sicherheitsmeldung, der Signer wird eingefroren.",
+			"Das darf nie passieren. both.money schlägt sofort Alarm und friert den Signer ein.",
 		klick:
 			"Ein Vorfall, den du einstufst und bei Bedarf meldest. Er schließt nie von allein.",
 	},
 	{
 		key: "stopp",
-		label: "Alles stoppen",
+		label: "Du drückst „Alles stoppen“",
 		wallet:
-			"Ein Klick friert den Signer ein. Wieder auftauen geht nur am Terminal des Servers.",
-		klick: "Eine Aufgabe mit hoher Priorität: Grund klären, dann entscheiden.",
+			"Der Signer unterschreibt nichts mehr. Wieder starten geht nur direkt am Server.",
+		klick: "Eine dringende Aufgabe: Grund klären, dann entscheiden.",
 	},
 ];
 
-// Eine Auszahlung, Schritt für Schritt (Ruf und Antwort)
-export const PAYOUT = {
-	title: "Eine Auszahlung, wie sie heute läuft",
-	steps: [
-		{
-			say: "Zuerst legst du die Auszahlung an.",
-			answer:
-				"both.money prüft Ziel und verfügbaren Bestand und legt eine Absicht an. Unterschrieben ist damit noch nichts.",
-		},
-		{
-			say: "Dann bestätigst du mit dem Sicherheitsschlüssel.",
-			answer:
-				"Die Seite approve.both.money liest den Text der Absicht selbst. Der Signer zählt die Freigabe, prüft Grenzen und Gebühr und signiert genau diese Absicht.",
-		},
-		{
-			say: "Zum Schluss steht alles in Klick.",
-			answer:
-				"Auszahlung und Bewegung kommen mit eigener Kennung und Prüfsumme an. Klick nimmt jedes Ereignis genau einmal an.",
-		},
-	],
-} as const;
-
-// Einblick: Systemzustand als Tafel mit Randnotizen (Beispielwerte)
-export type BackendPart = {
+// Das Ziel: so soll eine Zahlung laufen; je Schritt, was davon heute läuft
+export type FlowStep = {
 	key: string;
-	label: string;
-	value: string;
-	state: string;
-	note: { title: string; text: string };
+	title: string;
+	text: string;
+	today: string;
+	live: boolean;
 };
 
-export const BACKEND = {
-	title: "Einblick ins Backend",
-	caption:
-		"Beispielansicht mit Werten aus dem Testnetz. So sieht der Zustand aus, den both.money laufend prüft.",
-	parts: [
+export const GOAL = {
+	badge: "Ziel · braucht Erlaubnis",
+	title: "Das Ziel: ein Zahlungsweg",
+	lead: "both.money soll Geld annehmen, getrennt aufbewahren und an einer anderen Stelle auszahlen. Absender und Empfänger sind vorher geprüft. Das darf both.money erst mit Erlaubnis.",
+	steps: [
 		{
-			key: "knoten",
-			label: "Knoten",
-			value: "Bitcoin Signet",
-			state: "synchron",
-			note: {
-				title: "Eigene Knoten",
-				text: "Die Knoten laufen auf einem eigenen Server und antworten nur über einen verschlüsselten Tunnel. Keine Explorer, keine fremden Schnittstellen.",
-			},
+			key: "pruefen",
+			title: "Beide Seiten geprüft",
+			text: "Bevor Geld fließt, kennt both.money Absender und Empfänger: Personen mit Ausweisprüfung, Unternehmen mit Registerauszug und den Menschen dahinter.",
+			today: "folgt mit Erlaubnis",
+			live: false,
 		},
 		{
-			key: "sanktionen",
-			label: "Sanktionsliste",
-			value: "OFAC, 660 Adressen",
-			state: "täglich neu",
-			note: {
-				title: "Prüfung vor der Gutschrift",
-				text: "Jeder neue Eingang wird gegen die Liste geprüft, bevor er zählt. Ein Treffer bleibt eingefroren.",
-			},
+			key: "eingang",
+			title: "Geld kommt an",
+			text: "Euro auf ein Treuhandkonto, Kryptowerte in die Wallet. Jeder Eingang wird gegen Sanktionslisten geprüft.",
+			today: "Prüfung je Krypto-Eingang läuft",
+			live: true,
 		},
 		{
-			key: "signer",
-			label: "Signer",
-			value: "Journal Nr. 128",
-			state: "nicht eingefroren",
-			note: {
-				title: "Signer ohne Netz",
-				text: "Ein eigener Prozess hält die Hot-Schlüssel, führt ein Journal mit Hash-Kette und signiert nur, was die Richtlinie erlaubt.",
-			},
+			key: "verwahren",
+			title: "Getrennt aufbewahrt",
+			text: "Das Geld liegt getrennt vom Geld des Betreibers, bis der Eingang sicher bestätigt ist. Jeden Tag wird nachgezählt.",
+			today: "Tagesabschluss läuft",
+			live: true,
 		},
 		{
-			key: "freigabe",
-			label: "Sicherheitsschlüssel",
-			value: "Solo, 2 Schlüssel",
-			state: "Richtlinie gesetzt",
-			note: {
-				title: "Freigabe außerhalb der App",
-				text: "Bestätigt wird auf approve.both.money. Die Seite zeigt den Text selbst an, gezählt werden nur Sicherheitsschlüssel.",
-			},
+			key: "auszahlen",
+			title: "Ausgezahlt beim Empfänger",
+			text: "Erst dann geht der Betrag an den geprüften Empfänger, mit den Angaben zu Absender und Empfänger. Jeder Schritt landet als Nachweis in Klick.",
+			today: "Freigabe bereit, Angaben folgen",
+			live: false,
 		},
-		{
-			key: "protokoll",
-			label: "Protokoll",
-			value: "Kette geprüft",
-			state: "täglich",
-			note: {
-				title: "Protokoll mit Hash-Kette",
-				text: "Jede Änderung steht im Protokoll, verkettet je Organisation. Sensible Felder sind mit einem Schlüssel je Organisation verschlüsselt.",
-			},
-		},
-		{
-			key: "export",
-			label: "Compliance-Export",
-			value: "Klick",
-			state: "nichts offen",
-			note: {
-				title: "Export an Klick",
-				text: "Bewegungen, Tagesbestände, Zeremonien und Auffälligkeiten gehen mit Kennung und Prüfsumme an deine Organisation in Klick.",
-			},
-		},
-	] satisfies BackendPart[],
+	] satisfies FlowStep[],
+	stagesTitle: "Der Weg dahin",
+	stagesText:
+		"Vier Stufen, jede ab der zweiten nur mit Erlaubnis. Im Fahrplan steht jeder Schritt mit der Pflicht, auf die er einzahlt.",
+	action: "Zum Fahrplan",
 } as const;
 
 // Wofür both.money Nachweise liefert (zweiendige Zeilen je Rahmenwerk)
@@ -225,17 +224,17 @@ export type ComplianceGroup = { title: string; rows: ComplianceRow[] };
 
 export const COMPLIANCE = {
 	title: "Wofür es Nachweise liefert",
-	lead: "both.money ist auf diese Pflichten ausgelegt und liefert die Nachweise dafür nach Klick. Ob sie reichen, entscheiden Prüfer:in und Aufsicht.",
+	lead: "Unternehmen mit Kryptowerten müssen vieles belegen. both.money liefert die Nachweise dafür an Klick. Ob sie reichen, entscheiden Prüfer:in und Aufsicht.",
 	groups: [
 		{
 			title: "Zahlungsweg, beide Seiten",
 			rows: [
 				{
-					name: "KYC und KYB von Absender und Empfänger",
+					name: "Absender und Empfänger prüfen (KYC, KYB)",
 					value: "folgt mit Erlaubnis",
 				},
 				{
-					name: "Kundengeld getrennt verwahren",
+					name: "Kundengeld getrennt aufbewahren",
 					value: "gesperrt bis zur Erlaubnis",
 				},
 				{
@@ -248,9 +247,9 @@ export const COMPLIANCE = {
 		{
 			title: "MiCAR, Verwahrung",
 			rows: [
-				{ name: "Tägliche Abstimmung", value: "Bestand mit Blockhöhe" },
+				{ name: "Tägliche Abstimmung", value: "Bestand mit Blocknummer" },
 				{
-					name: "Eigene Werte und Kundenwerte trennen",
+					name: "Eigenes Geld und Kundengeld trennen",
 					value: "Zweck je Konto",
 				},
 				{
@@ -258,8 +257,8 @@ export const COMPLIANCE = {
 					value: "gesperrt bis zur Erlaubnis",
 				},
 				{
-					name: "Register der Positionen je Kund:in",
-					value: "folgt mit Erlaubnis",
+					name: "Bot für das Geld von Kund:innen",
+					value: "gesperrt bis zur Erlaubnis",
 				},
 			],
 		},
@@ -274,9 +273,9 @@ export const COMPLIANCE = {
 			],
 		},
 		{
-			title: "DORA, IKT-Risiko",
+			title: "DORA, IT-Sicherheit",
 			rows: [
-				{ name: "Protokollierung", value: "Hash-Kette je Organisation" },
+				{ name: "Protokoll", value: "verkettet je Organisation" },
 				{ name: "Vorfälle erkennen", value: "Vorfall in Klick" },
 				{ name: "Zugriff", value: "Passkey, 15 Minuten entsperrt" },
 				{ name: "Abhängigkeit von Dritten", value: "eigene Knoten" },
@@ -288,13 +287,58 @@ export const COMPLIANCE = {
 				{ name: "Schlüssel erzeugen", value: "Zeremonie mit Wortprüfung" },
 				{
 					name: "Auszahlungen freigeben",
-					value: "Quorum aus Sicherheitsschlüsseln",
+					value: "nur mit Sicherheitsschlüsseln",
 				},
-				{ name: "Sicherung", value: "Journal täglich gesichert" },
+				{ name: "Sicherung", value: "täglich" },
 				{ name: "Notfall", value: "Alles stoppen" },
 			],
 		},
 	] satisfies ComplianceGroup[],
+} as const;
+
+// Begriffe kurz erklärt: jedes Fachwort der Seite in ein, zwei Sätzen
+export type Term = { term: string; text: string };
+
+export const TERMS = {
+	title: "Begriffe kurz erklärt",
+	items: [
+		{
+			term: "Wallet",
+			text: "Ein Programm, das Kryptowerte verwaltet. Genau genommen verwaltet es die Schlüssel, mit denen sich Kryptowerte bewegen lassen.",
+		},
+		{
+			term: "Knoten",
+			text: "Ein Rechner, der eine Kopie der Blockchain führt und jede neue Zahlung nachprüft. Er hält keine Schlüssel.",
+		},
+		{
+			term: "Signer",
+			text: "Ein eigenes Programm ohne Internet, das die Schlüssel hält. Es unterschreibt nur, was die Regeln erlauben.",
+		},
+		{
+			term: "Sicherheitsschlüssel",
+			text: "Ein kleines Gerät für den USB-Anschluss oder zum Auflegen. Ohne das Gerät in der Hand gibt es keine Freigabe.",
+		},
+		{
+			term: "Token",
+			text: "Ein Wert auf der Blockchain, der für etwas anderes steht, etwa für einen US-Dollar oder eine Menge Gold.",
+		},
+		{
+			term: "Testnetz",
+			text: "Eine Blockchain zum Üben. Die Werte darin haben keinen Geldwert.",
+		},
+		{
+			term: "KYC und KYB",
+			text: "Die Prüfung, wer jemand ist: bei Personen mit Ausweis, bei Unternehmen mit Registerauszug und den Menschen dahinter.",
+		},
+		{
+			term: "Travel Rule",
+			text: "Die Pflicht, bei jeder Überweisung von Kryptowerten Angaben zu Absender und Empfänger mitzuschicken.",
+		},
+		{
+			term: "Klick",
+			text: "Eine App für Compliance. Sie sammelt die Nachweise aus both.money und macht daraus Aufgaben, Vorfälle und Berichte.",
+		},
+	] satisfies Term[],
 } as const;
 
 export const FAQ = {
@@ -302,50 +346,57 @@ export const FAQ = {
 	items: [
 		{
 			q: "Ist both.money schon ein Zahlungsdienstleister?",
-			a: "Nein. Heute ist both.money eine Wallet für die eigenen Bestände der Betreiber-Organisation, im Testnetz. Geld für andere annehmen, verwahren und weiterleiten braucht Erlaubnisse als Zahlungsinstitut und als Anbieter von Krypto-Dienstleistungen; die Sperre dafür ist eingebaut und bleibt zu, bis eine Erlaubnis eingetragen ist.",
+			a: "Nein. Heute ist both.money eine Wallet für die eigenen Bestände, im Testnetz. Geld für andere annehmen und weiterleiten braucht Erlaubnisse. Die Sperre dafür ist eingebaut und bleibt zu, bis eine Erlaubnis vorliegt.",
+		},
+		{
+			q: "Handelt der Bot schon?",
+			a: "Nein, er ist geplant. Zuerst kommen der Ethereum-Knoten und der Tausch über dezentrale Börsen. Dann läuft der Bot im Testnetz, danach im echten Netz mit kleinen Grenzen.",
+		},
+		{
+			q: "Kann der Bot mein Geld verwalten?",
+			a: "Noch nicht. Für das Geld anderer zu handeln ist Portfolioverwaltung und braucht eine Erlaubnis. Bis dahin handelt der Bot nur mit den eigenen Beständen von both.money.",
+		},
+		{
+			q: "Kann der Bot Geld abziehen?",
+			a: "Nein. Er kann nur tauschen. Der Signer unterschreibt einen Tausch nur, wenn das Ergebnis in dieselbe Wallet zurückfließt.",
+		},
+		{
+			q: "Warum zuerst Gold gegen US-Dollar?",
+			a: "Für beides gibt es Token mit klarer Deckung und einen Goldpreis aus unabhängiger Quelle. So lässt sich jeder Tausch gegen einen Kurs prüfen. Weitere Paare kommen dazu, wenn das für sie genauso gilt.",
 		},
 		{
 			q: "Warum werden beide Seiten geprüft?",
-			a: "Bei einer Überweisung kennt meist jede Bank nur ihre eigene Seite. both.money soll Absender und Empfänger selbst prüfen. So lässt sich bei jeder Zahlung belegen, wer sie geschickt hat, wer sie bekommt und wofür, und Geld an Unbekannte oder gelistete Personen geht gar nicht erst hinaus.",
+			a: "Bei einer Überweisung kennt meist jede Bank nur ihre eigene Seite. both.money soll Absender und Empfänger selbst prüfen. So lässt sich bei jeder Zahlung belegen, wer sie geschickt hat, wer sie bekommt und wofür.",
 		},
 		{
 			q: "Wie soll das in anderen Ländern gehen?",
-			a: "Über Korridore: je Land eine eigene Einheit mit Erlaubnis oder ein Partner mit Erlaubnis vor Ort, der nach demselben Standard prüft. Welche Länder zuerst kommen, hängt an den Erlaubnissen; Termine gibt es dafür nicht.",
-		},
-		{
-			q: "Wird both.money eine Bank?",
-			a: "Das ist die letzte Stufe im Fahrplan: eigene Konten für Kundengeld statt Treuhandkonto bei einer Partnerbank. Dafür braucht es eine Erlaubnis als Kreditinstitut; vorher kommen die Stufen als Zahlungsinstitut und Krypto-Dienstleister.",
+			a: "Je Land über eine eigene Einheit mit Erlaubnis oder einen Partner mit Erlaubnis vor Ort. Beide prüfen nach demselben Standard. Welche Länder zuerst kommen, hängt an den Erlaubnissen.",
 		},
 		{
 			q: "Läuft das schon mit echtem Geld?",
-			a: "Noch nicht. Gerade läuft das Bitcoin-Testnetz Signet, Ethereum Sepolia folgt mit dem nächsten Knoten-Server. Beides sind Testnetze ohne Geldwert. Das echte Netz bleibt gesperrt, bis die Abnahme im Testnetz abgeschlossen ist.",
+			a: "Noch nicht. Gerade läuft das Bitcoin-Testnetz, das Ethereum-Testnetz folgt mit dem nächsten Server. Das echte Netz bleibt gesperrt, bis der Test abgeschlossen ist.",
+		},
+		{
+			q: "Wer kann Geld bewegen?",
+			a: "Niemand allein über die Website. Jede Auszahlung braucht die Freigabe mit Sicherheitsschlüssel. Der Signer prüft dabei Ziel, Grenzen je Auszahlung und Tag und die Gebühr.",
 		},
 		{
 			q: "Wie bekommst du Zugang?",
 			a: "Nur per Einladung. Jemand aus deiner Organisation lädt dich ein, du legst einen Passkey an. Eine offene Registrierung gibt es nicht.",
 		},
 		{
-			q: "Was sieht Klick von der Wallet?",
-			a: "Ein- und Ausgänge, Tagesbestände, den Stand der Schlüssel-Zeremonie und Auffälligkeiten. Nie Kontoschlüssel und nie Schlüsselmaterial.",
-		},
-		{
-			q: "Wer kann Geld bewegen?",
-			a: "Niemand allein über die Website. Jede Auszahlung braucht die Freigabe mit Sicherheitsschlüssel; der Signer prüft Wartezeit des Ziels, Grenzen je Auszahlung und Tag und den Gebührendeckel.",
-		},
-		{
 			q: "Wo laufen die Server?",
-			a: "Bei Hetzner in Deutschland. Die Knoten stehen auf einem eigenen Server und sind nur über einen verschlüsselten Tunnel erreichbar. Welche Hardware als Nächstes dazukommt, steht im Fahrplan.",
+			a: "Bei Hetzner in Deutschland. Die Knoten stehen auf einem eigenen Server und sind nur über einen verschlüsselten Tunnel erreichbar.",
 		},
 		{
 			q: "Ersetzt das eine Prüfung?",
-			a: "Nein. both.money hält Regeln technisch ein und liefert Nachweise. Ob das für deine Pflichten reicht, entscheiden Prüfer:in und Aufsicht. Diese Seite ist keine Rechtsberatung.",
+			a: "Nein. both.money hält Regeln technisch ein und liefert Nachweise. Ob das reicht, entscheiden Prüfer:in und Aufsicht. Diese Seite ist keine Rechtsberatung.",
 		},
 	],
 } as const;
 
-export const ROADMAP_TEASER = {
-	title: "Der Weg dahin",
-	text: "Vier Stufen: zuerst die Wallet für eigene Bestände, dann mit Erlaubnis Zahlungsinstitut und Krypto-Dienstleister, danach Korridore in weitere Länder, am Ende die Bank. Im Fahrplan steht jeder Schritt mit der Pflicht, auf die er einzahlt, und der Hardware, die er braucht.",
+export const MORE = {
+	text: "Mehr Technik, die Hardware der Knoten und alle Schritte stehen im Fahrplan.",
 	action: "Zum Fahrplan",
 } as const;
 
