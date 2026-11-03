@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { CoverageBar } from "@/components/entity/coverage-bar";
 import { Sparkline } from "@/components/entity/sparkline";
 import { PageHeader } from "@/components/page-header";
+import { SectionSwitch } from "@/components/shell/section-switch";
 import { NextStepsList } from "@/components/today/next-steps";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -125,6 +126,7 @@ export default async function OverviewPage() {
 
 	return (
 		<>
+			<SectionSwitch group="overview" current="/ueberblick" ctx={ctx} />
 			<PageHeader title={t("title")} />
 			<div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
 				<Card className="lg:col-span-2">

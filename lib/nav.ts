@@ -12,6 +12,7 @@ import type { OrgRole, Resource } from "@/lib/auth/permissions";
 // bleiben; die Rahmenwerke stehen gesammelt unter /rahmenwerke.
 
 export type NavLabelKey =
+	| "analytics"
 	| "today"
 	| "overview"
 	| "gapAnalysis"
@@ -141,6 +142,7 @@ export type NavSection = {
 };
 
 export type NavSectionGroup =
+	| "overview"
 	| "frameworks"
 	| "synergies"
 	| "planning"
@@ -149,6 +151,20 @@ export type NavSectionGroup =
 	| "team";
 
 export const NAV_SECTIONS: Record<NavSectionGroup, NavSection[]> = {
+	overview: [
+		{
+			key: "overview",
+			labelKey: "overview",
+			href: "/ueberblick",
+			icon: "gauge",
+		},
+		{
+			key: "analytics",
+			labelKey: "analytics",
+			href: "/auswertung",
+			icon: "activity",
+		},
+	],
 	frameworks: [
 		{
 			key: "frameworks",
@@ -348,6 +364,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 					labelKey: "overview",
 					href: "/ueberblick",
 					icon: "gauge",
+					sections: "overview",
 				},
 			],
 		},

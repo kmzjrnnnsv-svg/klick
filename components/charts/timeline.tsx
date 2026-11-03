@@ -1,20 +1,17 @@
 import Link from "next/link";
-import { monthTicks, timelinePosition } from "@/lib/charts/timeline";
+import {
+	monthTicks,
+	type TimelineItem,
+	timelinePosition,
+} from "@/lib/charts/timeline";
 import { cn } from "@/lib/utils";
-import { TONE_DOT, type Tone } from "../ui/ring";
+import { TONE_DOT } from "../ui/ring";
 
 // Zeitleiste (SVG-frei, serverseitig): oben die Achse mit Monaten, „Heute“
 // und Punkten je Termin (ab 640 px), darunter immer dieselben Termine als
 // Liste — die Liste ist die Alternative zur Grafik und am Handy die Ansicht.
 
-export type TimelineItem = {
-	key: string;
-	date: string;
-	label: string;
-	detail?: string;
-	tone: Tone;
-	href?: string;
-};
+export type { TimelineItem };
 
 const MONTH = new Intl.DateTimeFormat("de-DE", {
 	month: "short",

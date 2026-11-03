@@ -571,6 +571,8 @@ export const NOTIFICATION_KINDS = [
 	"platform_access",
 	// Vier-Augen: Sicherheitsänderung beantragt, entschieden, gewirkt
 	"security_change",
+	// Erinnerung an offene Punkte durch Inhaber:in (/team)
+	"reminder",
 	"digest",
 	"system",
 ] as const;

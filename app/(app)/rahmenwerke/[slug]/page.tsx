@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { Timeline, type TimelineItem } from "@/components/charts/timeline";
+import { Timeline } from "@/components/charts/timeline";
 import { CoverageBar } from "@/components/entity/coverage-bar";
 import { SummaryCard } from "@/components/entity/summary-card";
 import { UrlTabs } from "@/components/entity/url-tabs";
@@ -16,8 +16,6 @@ import { Ring } from "@/components/ui/ring";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
-import { addDays } from "@/lib/charts/timeline";
-import { cycleDates } from "@/lib/compliance/audit-follow-up";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { evidenceKindsForFrameworks } from "@/lib/compliance/catalog/evidence-kinds";
 import { SECTION_SIMPLE } from "@/lib/compliance/catalog/framework-profiles";
@@ -35,6 +33,7 @@ import { listDocuments } from "@/lib/compliance/queries-p2";
 import { listAudits } from "@/lib/compliance/queries-p3";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { parseStichtag, stichtagOptions } from "@/lib/compliance/readiness";
+import { auditTimeline } from "@/lib/compliance/report";
 import { readOrg } from "@/lib/db/with-org";
 import { kindOverview } from "@/lib/evidence-studio/generate/service";
 import {
@@ -230,59 +229,28 @@ async function FrameworkPage({
 		}).get(slug)?.size ?? 0;
 	const overview = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const today = berlinToday();
-		const end = addDays(today, 365);
 		const [regimes, audits, status] = await Promise.all([
 			loadAuditRegimeContext(tx, ctx.orgId),
 			listAudits(tx, ctx.orgId),
 			loadOrgStatus(tx, ctx.orgId),
 		]);
-		const cycles = cycleDates(
-			[slug],
-			regimes.settings,
+		const timeline = auditTimeline({
+			frameworks: [slug],
+			settings: regimes.settings,
+			registered: regimes.registered,
+			audits,
 			today,
-			regimes.registered,
-			12,
-		);
-		const timeline: TimelineItem[] = [
-			...cycles.planned
-				.filter((p) => p.date <= end)
-				.map((p) => ({
-					key: `cycle-${p.kind}-${p.date}`,
-					date: p.date,
-					label: p.label,
-					detail: t("timelineCycle"),
-					tone: "chart-2" as const,
-				})),
-			...audits
-				.filter(
-					(a) =>
-						a.frameworkIds.includes(slug) &&
-						(a.status === "planned" || a.status === "in_progress"),
-				)
-				.flatMap((a) => {
-					const raw = a.performedAt ?? a.plannedAt;
-					const running = a.status === "in_progress";
-					if (!raw && !running) return [];
-					const date =
-						running && (!raw || raw < today) ? today : (raw ?? today);
-					if (date > end || date < today) return [];
-					return [
-						{
-							key: a.id,
-							date,
-							label: a.title,
-							detail: `${ta(`type_${a.type}`)} · ${ta(`status_${a.status}`)}`,
-							tone: running ? ("success" as const) : ("primary" as const),
-							href: `/audits/${a.id}`,
-						},
-					];
-				}),
-		];
+			labels: {
+				cycle: (label) => ({ label, detail: t("timelineCycle") }),
+				audit: (a) =>
+					`${ta(`type_${a.type}` as "type_internal")} · ${ta(`status_${a.status}` as "status_planned")}`,
+			},
+		});
 		return {
 			today,
-			end,
-			timeline,
-			missingAnchors: cycles.missing.length > 0,
+			end: timeline.end,
+			timeline: timeline.items,
+			missingAnchors: timeline.missing,
 			dims:
 				status.readiness.find((r) => r.framework === slug)?.dimensions ?? null,
 		};

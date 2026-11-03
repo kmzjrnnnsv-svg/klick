@@ -8,6 +8,7 @@ export const HELP_ROUTES: readonly (readonly [string, string])[] = [
 	["/heute/freigaben", "freigaben"],
 	["/heute/verantwortung", "organisation"],
 	["/ueberblick", "ueberblick"],
+	["/auswertung", "ueberblick"],
 	["/gap-analyse", "gap-analyse"],
 	["/controls", "controls"],
 	["/synergien", "controls"],

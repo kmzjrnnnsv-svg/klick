@@ -13,6 +13,14 @@ export const IMPLEMENT: HelpArticle[] = [
 			"Abdeckung je Rahmenwerk, die nächsten Schritte, Trend und die Prüfungsreife zu einem Stichtag.",
 		sections: [
 			{
+				id: "auswertung",
+				heading: "Auswertung",
+				body: [
+					"Über den Umschalter oben kommst du vom Überblick zur Auswertung. Dort siehst du die Abdeckung über die Zeit (30 Tage, 90 Tage oder 12 Monate, für alle oder ein Rahmenwerk), die kommenden Audits aus Register und Turnus, die offenen Punkte je Person (überfällig, in den nächsten 14 Tagen fällig, im Plan, ohne Frist) und die Tests nach Bereich. Jede Grafik gibt es auch als Tabelle.",
+				],
+			},
+
+			{
 				id: "abdeckung",
 				heading: "Abdeckung je Rahmenwerk",
 				body: [
