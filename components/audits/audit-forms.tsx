@@ -673,18 +673,29 @@ export function AuditRequestForm({
 	auditId,
 	members,
 	controlOptions,
+	initialOpen = false,
+	initialControl,
+	initialTitle,
 }: {
 	auditId: string;
 	members: MemberOption[];
 	controlOptions: { code: string; title: string }[];
+	// Rückfrage aus dem Prüfpfad (?neu=1&control=…&titel=…)
+	initialOpen?: boolean;
+	initialControl?: string;
+	initialTitle?: string;
 }) {
 	const t = useTranslations("Audits");
-	const [open, setOpen] = useState(false);
-	const [title, setTitle] = useState("");
+	const [open, setOpen] = useState(initialOpen);
+	const [title, setTitle] = useState(initialTitle?.slice(0, 200) ?? "");
 	const [description, setDescription] = useState("");
 	const [assignee, setAssignee] = useState<string | null>(null);
 	const [dueAt, setDueAt] = useState("");
-	const [control, setControl] = useState("none");
+	const [control, setControl] = useState(
+		initialControl && controlOptions.some((c) => c.code === initialControl)
+			? initialControl
+			: "none",
+	);
 	const { pending, run } = useRun(setOpen);
 	return (
 		<FormDialog

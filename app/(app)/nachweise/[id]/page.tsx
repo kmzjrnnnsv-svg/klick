@@ -25,6 +25,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
+import { auditorMayComment } from "@/lib/compliance/audit-workspace";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
 import { ownRoleIdOf } from "@/lib/compliance/function-key";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
@@ -630,7 +631,10 @@ async function EvidenceDetailPage({
 					</p>
 					<AiEvidenceCheck
 						evidenceId={row.id}
-						canComment={allows(ctx, { comment: ["create"] })}
+						canComment={
+							allows(ctx, { comment: ["create"] }) &&
+							auditorMayComment(ctx.orgRole, "evidence")
+						}
 					/>
 				</section>
 			)}

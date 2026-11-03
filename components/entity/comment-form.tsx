@@ -1,16 +1,14 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
-import { useState, useTransition } from "react";
-import { addComment } from "@/app/actions/comments";
-import { Button } from "@/components/ui/button";
-import { errorText } from "@/components/ui/error-text";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/toast";
 import type { EntityKind } from "@/db/schema/enums";
+import { requireOrgPage } from "@/lib/auth/gates";
+import { allows } from "@/lib/auth/permissions";
+import { auditorMayComment } from "@/lib/compliance/audit-workspace";
+import { CommentFormClient } from "./comment-form-client";
 
-export function CommentForm({
+// Kommentarfeld mit derselben Prüfung wie die Action (`addComment`): ohne
+// Recht oder als Prüfer:in außerhalb von Audit, Anfrage und Finding gibt es
+// kein Feld statt eines Fehlers beim Absenden. Die Zugangsprüfung läuft je
+// Anfrage nur einmal (React.cache in den Guards).
+export async function CommentForm({
 	entityType,
 	entityId,
 	link,
@@ -19,53 +17,17 @@ export function CommentForm({
 	entityId: string;
 	link: string;
 }) {
-	const t = useTranslations("Entity");
-	const tc = useTranslations("Common");
-	const router = useRouter();
-	const [body, setBody] = useState("");
-	const [pending, start] = useTransition();
-
+	const ctx = await requireOrgPage(undefined, { employees: true });
+	if (
+		!allows(ctx, { comment: ["create"] }) ||
+		!auditorMayComment(ctx.orgRole, entityType)
+	)
+		return null;
 	return (
-		<form
-			className="flex flex-col gap-2"
-			onSubmit={(e) => {
-				e.preventDefault();
-				if (body.trim().length === 0) return;
-				start(async () => {
-					const res = await addComment(
-						{ entityType, entityId, bodyMarkdown: body },
-						link,
-					);
-					if (!res.ok) {
-						toast.error(errorText(tc, res));
-						return;
-					}
-					setBody("");
-					if (res.data.mentioned > 0)
-						toast.success(t("mentioned", { n: res.data.mentioned }));
-					router.refresh();
-				});
-			}}
-		>
-			<Textarea
-				value={body}
-				onChange={(e) => setBody(e.target.value)}
-				rows={3}
-				placeholder={t("commentPlaceholder")}
-				aria-label={t("comment")}
-			/>
-			<div className="flex items-center justify-between gap-2">
-				<span className="text-muted-foreground text-footnote">
-					{t("mentionHint")}
-				</span>
-				<Button
-					type="submit"
-					size="sm"
-					disabled={pending || body.trim().length === 0}
-				>
-					{t("comment")}
-				</Button>
-			</div>
-		</form>
+		<CommentFormClient
+			entityType={entityType}
+			entityId={entityId}
+			link={link}
+		/>
 	);
 }

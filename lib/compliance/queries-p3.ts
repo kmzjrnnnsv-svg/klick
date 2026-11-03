@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import {
 	approvalRequests,
 	assets,
@@ -7,6 +7,7 @@ import {
 	auditProgrammes,
 	auditRequests,
 	audits,
+	comments,
 	communications,
 	complaints,
 	conflictsOfInterest,
@@ -594,6 +595,19 @@ export async function listAuditProgrammes(tx: OrgTx, orgId: string) {
 	}));
 }
 
+/** Für den Einstieg von Prüfer:innen: nur Kennung, Stand und Prüfende */
+export async function listAuditAssignments(tx: OrgTx, orgId: string) {
+	return tx
+		.select({
+			id: audits.id,
+			status: audits.status,
+			auditorMemberIds: audits.auditorMemberIds,
+			auditorUserId: audits.auditorUserId,
+		})
+		.from(audits)
+		.where(eq(audits.organizationId, orgId));
+}
+
 export async function listAudits(tx: OrgTx, orgId: string) {
 	const rows = await tx
 		.select()
@@ -699,6 +713,67 @@ export async function getAudit(tx: OrgTx, orgId: string, auditId: string) {
 		})),
 		names,
 	};
+}
+
+/** Eine Anfrage im Audit mit Control/Anforderung und dem Titel des Audits */
+export async function getAuditRequest(
+	tx: OrgTx,
+	orgId: string,
+	auditId: string,
+	requestId: string,
+) {
+	const [row] = await tx
+		.select({
+			q: auditRequests,
+			controlCode: controls.code,
+			requirementCode: requirements.code,
+			auditTitle: audits.title,
+			auditStatus: audits.status,
+		})
+		.from(auditRequests)
+		.innerJoin(audits, eq(audits.id, auditRequests.auditId))
+		.leftJoin(controls, eq(controls.id, auditRequests.controlId))
+		.leftJoin(requirements, eq(requirements.id, auditRequests.requirementId))
+		.where(
+			and(
+				eq(auditRequests.organizationId, orgId),
+				eq(auditRequests.auditId, auditId),
+				eq(auditRequests.id, requestId),
+			),
+		)
+		.limit(1);
+	if (!row) return null;
+	return {
+		...row.q,
+		controlCode: row.controlCode,
+		requirementCode: row.requirementCode,
+		auditTitle: row.auditTitle,
+		auditStatus: row.auditStatus,
+	};
+}
+
+/** Kommentare je Anfrage eines Audits (Zähler für die Liste) */
+export async function requestCommentCounts(
+	tx: OrgTx,
+	orgId: string,
+	requestIds: readonly string[],
+): Promise<Map<string, number>> {
+	if (requestIds.length === 0) return new Map();
+	const rows = await tx
+		.select({
+			id: comments.entityId,
+			n: sql<number>`count(*)::int`,
+		})
+		.from(comments)
+		.where(
+			and(
+				eq(comments.organizationId, orgId),
+				eq(comments.entityType, "audit_request"),
+				inArray(comments.entityId, [...requestIds]),
+			),
+		)
+		.groupBy(comments.entityId);
+	return new Map(rows.map((r) => [r.id, r.n]));
 }
 
 export async function listAllFindings(tx: OrgTx, orgId: string) {

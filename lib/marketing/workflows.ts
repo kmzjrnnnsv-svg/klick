@@ -111,6 +111,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				where: "Team",
 				trigger: "Jemand soll mitarbeiten oder prüfen.",
 				steps: [
+					"Team zeigt zuerst, wer überfällige oder bald fällige Punkte hat; „Erinnern“ schickt der Person einen Hinweis, höchstens einmal am Tag.",
 					"Einladen als Link zum Kopieren, Mail optional.",
 					"Grundrolle wählen: Inhaber:in, Bearbeiter:in, Lesend, Mitarbeitende, Prüfer:in oder Berater:in.",
 					"Eigene Rollen wie Einkauf oder Recht ergänzen; ihre Rechte kommen zur Grundrolle hinzu.",
@@ -268,6 +269,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger: "Neues Dokument, Vorlage oder Import.",
 				steps: [
 					`Entwurf schreiben oder Datei hochladen; ${DOCUMENT_TEMPLATES.length} Vorlagen stehen bereit.`,
+					"Für zehn häufige Richtlinien gibt es den Baukasten: kurze Fragen je Abschnitt, rechts die Richtlinie live, Lücken gelb markiert, automatisch gespeichert.",
 					"Zur Prüfung geben und freigeben lassen (Vier-Augen-Prinzip).",
 					"Veröffentlichen: der Verteiler bekommt die Kenntnisnahme auf „Heute“.",
 					"Nach dem Prüfzyklus erinnert Klick an die Überarbeitung.",
@@ -713,8 +715,10 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger: "Geplantes internes oder externes Audit.",
 				steps: [
 					"Programm planen; Klick prüft, ob alle Bereiche abgedeckt sind.",
-					"Im Cockpit dem Prüfpfad folgen: von der Anforderung über das Control zum Nachweis.",
-					"Anfragen der Prüfer:innen werden Aufgaben; Feststellungen werden Abweichungen mit den Fristen des jeweiligen Rahmenwerks (Haupt- und Nebenabweichung).",
+					"Die Übersicht des Audits zeigt Prüfzeitraum, Termin und fällige Anfragen auf einer Zeitleiste, dazu den Stand der Anfragen, offene Findings und die Prüfungsreife.",
+					"Im Prüfpfad von der Anforderung über das Control zum Nachweis; eine Rückfrage legt die Anfrage mit dem Control schon an.",
+					"Prüfer:innen landen nach der Anmeldung direkt in ihrem Audit. Jede Anfrage hat eine eigene Seite mit Antwort, Nachweisen und Kommentaren; die Gegenseite erfährt jeden Kommentar.",
+					"Anfragen werden Aufgaben; Feststellungen werden Abweichungen mit den Fristen des jeweiligen Rahmenwerks (Haupt- und Nebenabweichung).",
 				],
 				result: "Prüfungspaket als ZIP mit Prüfsummen.",
 			},

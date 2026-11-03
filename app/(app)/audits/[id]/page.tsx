@@ -12,7 +12,10 @@ import {
 	FindingToNcButton,
 	RespondRequestForm,
 } from "@/components/audits/audit-forms";
+import { Timeline } from "@/components/charts/timeline";
 import { ExportLink } from "@/components/entity/export-link";
+import { RegisterFilters } from "@/components/entity/register-filters";
+import { SummaryCard, SummaryGrid } from "@/components/entity/summary-card";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
@@ -24,6 +27,7 @@ import {
 } from "@/components/readiness/readiness-panel";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Donut, Ring } from "@/components/ui/ring";
 import {
 	Table,
 	TableBody,
@@ -37,6 +41,16 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { maskSecret } from "@/lib/auth/visibility";
 import { independenceIssues } from "@/lib/compliance/audit-programme";
+import {
+	auditPhases,
+	matchesRequest,
+	REQUEST_VIEWS,
+	type RequestView,
+	requestCounts,
+	requestOverdue,
+	requestViewOf,
+	viewCount,
+} from "@/lib/compliance/audit-workspace";
 import {
 	CONTROL_BY_CODE,
 	CONTROLS,
@@ -60,11 +74,13 @@ import {
 	getAudit,
 	listAuditProgrammes,
 	listProcesses,
+	requestCommentCounts,
 } from "@/lib/compliance/queries-p3";
 import { loadReadiness } from "@/lib/compliance/queries-readiness";
 import { newRiskHref } from "@/lib/compliance/risk-sources";
 import { readOrg } from "@/lib/db/with-org";
 import { NONCONFORMITY_STATUS } from "@/lib/entities/nonconformity";
+import { berlinToday } from "@/lib/evidence-studio/queries";
 import { listOrgFrameworks } from "@/lib/org/queries";
 import { cn } from "@/lib/utils";
 import { responsibleValue } from "@/lib/validation/responsible-ref";
@@ -111,7 +127,7 @@ async function AuditCockpitPage({
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const sp = await searchParams;
-	const tab = one(sp.tab) ?? "pruefpfad";
+	const tab = one(sp.tab) ?? "uebersicht";
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const t = await getTranslations("Audits");
 	const tNav = await getTranslations("Nav");
@@ -138,6 +154,7 @@ async function AuditCockpitPage({
 			evidenceLinks,
 			evidence,
 			processes,
+			commentCounts,
 		] = await Promise.all([
 			listMembersForPicker(tx, ctx.orgId),
 			listOrgFrameworks(tx, ctx.orgId),
@@ -146,9 +163,15 @@ async function AuditCockpitPage({
 			listEvidenceWithControls(tx, ctx.orgId),
 			listEvidence(tx, ctx.orgId),
 			listProcesses(tx, ctx.orgId),
+			requestCommentCounts(
+				tx,
+				ctx.orgId,
+				a.requests.map((r) => r.id),
+			),
 		]);
 		return {
 			...a,
+			commentCounts,
 			members,
 			frameworks,
 			programmes,
@@ -230,7 +253,42 @@ async function AuditCockpitPage({
 			ownerUserId: p.ownerUserId,
 		})),
 	]);
-	const answered = requests.filter((r) => r.status !== "open").length;
+	const todayIso = berlinToday();
+	const counts = requestCounts(requests);
+	// offen = offen oder abgelehnt (Nacharbeit), wie die Ansicht „Offen“
+	const openCount = viewCount("offen", counts);
+	const view: RequestView = requestViewOf(one(sp.ansicht), counts);
+	const q = one(sp.q);
+	const shownRequests = requests.filter(
+		(r) =>
+			(REQUEST_VIEWS[view] as readonly string[]).includes(r.status) &&
+			matchesRequest(r, q),
+	);
+	const viewHref = (v: RequestView) => {
+		const p = new URLSearchParams({ tab: "anfragen", ansicht: v });
+		if (q) p.set("q", q);
+		return `/audits/${audit.id}?${p}`;
+	};
+	const phases = auditPhases(
+		audit,
+		requests,
+		todayIso,
+		{
+			periodStart: t("phasePeriodStart"),
+			periodEnd: t("phasePeriodEnd"),
+			planned: t("phasePlanned"),
+			performed: t("phasePerformed"),
+			requestsDue: (n) => t("phaseRequestsDue", { n }),
+		},
+		() => `/audits/${audit.id}?tab=anfragen&ansicht=offen`,
+	);
+	const openFindings = findings.filter((f) => f.status !== "closed");
+	// Rückfrage aus dem Prüfpfad: Anfrage-Dialog mit Control vorbelegt
+	const followUp = {
+		open: one(sp.neu) === "1",
+		control: one(sp.control),
+		title: one(sp.titel),
+	};
 	const periodLabel =
 		audit.periodStart || audit.periodEnd
 			? `${audit.periodStart ? fmtDate.format(new Date(audit.periodStart)) : "…"} – ${audit.periodEnd ? fmtDate.format(new Date(audit.periodEnd)) : "…"}`
@@ -333,7 +391,7 @@ async function AuditCockpitPage({
 						{t("requests")}
 					</dt>
 					<dd className="font-semibold text-title-3">
-						{answered}/{requests.length}
+						{requests.length - openCount}/{requests.length}
 					</dd>
 				</div>
 				{readiness && (
@@ -373,11 +431,12 @@ async function AuditCockpitPage({
 				base={`/audits/${audit.id}`}
 				active={tab}
 				tabs={[
+					{ value: "uebersicht", label: t("tabOverview") },
 					{ value: "pruefpfad", label: t("tabPath"), count: path.length },
 					{
 						value: "anfragen",
 						label: t("tabRequests"),
-						count: requests.length - answered || undefined,
+						count: openCount || undefined,
 					},
 					{
 						value: "findings",
@@ -392,6 +451,130 @@ async function AuditCockpitPage({
 					},
 				]}
 			/>
+
+			{tab === "uebersicht" && (
+				<SummaryGrid>
+					<SummaryCard
+						title={t("timelineTitle")}
+						className="md:col-span-2 xl:col-span-3"
+					>
+						<Timeline
+							start={phases.start}
+							end={phases.end}
+							today={todayIso}
+							items={phases.items}
+							label={t("timelineTitle")}
+							todayLabel={t("today")}
+							empty={t("timelineEmpty")}
+						/>
+					</SummaryCard>
+					<SummaryCard title={t("requests")}>
+						{requests.length === 0 ? (
+							<p className="text-footnote text-muted-foreground">
+								{t("requestsEmpty")}
+							</p>
+						) : (
+							<Donut
+								label={t("requests")}
+								center={requests.length}
+								items={[
+									{
+										key: "open",
+										label: t("rstatus_open"),
+										value: counts.open,
+										tone: "warning",
+										href: viewHref("offen"),
+									},
+									{
+										key: "rejected",
+										label: t("rstatus_rejected"),
+										value: counts.rejected,
+										tone: "destructive",
+										href: viewHref("offen"),
+									},
+									{
+										key: "answered",
+										label: t("rstatus_answered"),
+										value: counts.answered,
+										tone: "primary",
+										href: viewHref("beantwortet"),
+									},
+									{
+										key: "accepted",
+										label: t("rstatus_accepted"),
+										value: counts.accepted,
+										tone: "success",
+										href: viewHref("akzeptiert"),
+									},
+								]}
+							/>
+						)}
+					</SummaryCard>
+					<SummaryCard title={t("findingsOpenTitle")}>
+						{openFindings.length === 0 ? (
+							<p className="text-footnote text-muted-foreground">
+								{t("findingsNoneOpen")}
+							</p>
+						) : (
+							<Donut
+								label={t("findingsOpenTitle")}
+								center={openFindings.length}
+								items={(
+									["critical", "major", "minor", "observation"] as const
+								).map((sev) => ({
+									key: sev,
+									label: t(`severity_${sev}`),
+									value: openFindings.filter((f) => f.severity === sev).length,
+									tone:
+										sev === "critical"
+											? "destructive"
+											: sev === "major"
+												? "warning"
+												: sev === "minor"
+													? "primary"
+													: "muted",
+									href: `/audits/${audit.id}?tab=findings`,
+								}))}
+							/>
+						)}
+					</SummaryCard>
+					{readiness && (
+						<SummaryCard
+							title={`${tr("title")} · ${fmtDate.format(readinessAsOf)}`}
+						>
+							<Link
+								href={`/audits/${audit.id}?tab=pruefungsreife`}
+								className="flex items-center gap-4 rounded-xl hover:bg-muted/50"
+							>
+								<Ring
+									value={readiness.combined.score ?? 0}
+									size={72}
+									tone={
+										(readiness.combined.score ?? 0) >= 80
+											? "success"
+											: (readiness.combined.score ?? 0) >= 50
+												? "warning"
+												: "destructive"
+									}
+									label={`${tr("title")}: ${readiness.combined.score ?? "—"}`}
+								>
+									{readiness.combined.score ?? "—"}
+								</Ring>
+								<span className="flex flex-col gap-1 text-subhead">
+									<Badge variant={VERDICT_TONE[readiness.combined.verdict]}>
+										{tr(`verdict_${readiness.combined.verdict}`)}
+									</Badge>
+									<span className="text-footnote text-muted-foreground">
+										{t("blockersCount", {
+											n: readiness.combined.blockers.length,
+										})}
+									</span>
+								</span>
+							</Link>
+						</SummaryCard>
+					)}
+				</SummaryGrid>
+			)}
 
 			{tab === "pruefungsreife" && readiness && (
 				<section className="flex flex-col gap-4">
@@ -497,6 +680,23 @@ async function AuditCockpitPage({
 																>
 																	{ev} {t("evidenceShort")}
 																</Link>
+																{canRequest && (
+																	<Link
+																		href={`/audits/${audit.id}?${new URLSearchParams(
+																			{
+																				tab: "anfragen",
+																				neu: "1",
+																				control: e.control,
+																				titel: t("followUpTitle", {
+																					req: `${shortFrameworkName(slug)} ${r.code}`,
+																				}),
+																			},
+																		)}`}
+																		className="text-primary hover:underline"
+																	>
+																		{t("followUp")}
+																	</Link>
+																)}
 															</li>
 														);
 													})}
@@ -528,14 +728,51 @@ async function AuditCockpitPage({
 									code: c.code,
 									title: c.title,
 								}))}
+								initialOpen={followUp.open}
+								initialControl={followUp.control}
+								initialTitle={followUp.title}
 							/>
 						)}
 					</div>
+					{requests.length > 0 && (
+						<div className="flex flex-wrap items-center gap-3">
+							<nav
+								aria-label={t("requestViews")}
+								className="inline-flex rounded-xl bg-muted p-0.5 text-subhead"
+							>
+								{(Object.keys(REQUEST_VIEWS) as RequestView[]).map((v) => (
+									<Link
+										key={v}
+										href={viewHref(v)}
+										aria-current={view === v ? "true" : undefined}
+										className={cn(
+											"hit-area rounded-lg px-3 py-1.5",
+											view === v && "bg-card font-medium shadow-sm",
+										)}
+									>
+										{t(`rview_${v}`)}{" "}
+										<span className="text-muted-foreground tabular-nums">
+											{viewCount(v, counts)}
+										</span>
+									</Link>
+								))}
+							</nav>
+							<RegisterFilters
+								filters={[]}
+								searchPlaceholder={t("requestsSearch")}
+								ignore={["tab", "ansicht"]}
+							/>
+						</div>
+					)}
 					{requests.length === 0 ? (
 						<p className="text-subhead">{t("requestsEmpty")}</p>
+					) : shownRequests.length === 0 ? (
+						<p className="text-muted-foreground text-subhead">
+							{t("requestsNoMatch")}
+						</p>
 					) : (
 						<ul className="flex flex-col gap-3">
-							{requests.map((r) => (
+							{shownRequests.map((r) => (
 								<li
 									key={r.id}
 									className="flex flex-col gap-2 rounded-2xl bg-card p-3 text-subhead"
@@ -544,7 +781,19 @@ async function AuditCockpitPage({
 										<Badge variant={REQ_TONE[r.status]}>
 											{t(`rstatus_${r.status}`)}
 										</Badge>
-										<span className="font-medium">{r.title}</span>
+										<Link
+											href={`/audits/${audit.id}/anfragen/${r.id}`}
+											className="font-medium hover:underline"
+										>
+											{r.title}
+										</Link>
+										{(data.commentCounts.get(r.id) ?? 0) > 0 && (
+											<span className="text-footnote text-muted-foreground">
+												{t("commentsCount", {
+													n: data.commentCounts.get(r.id) ?? 0,
+												})}
+											</span>
+										)}
 										{r.controlCode && (
 											<Link
 												href={`/controls/${r.controlCode}`}
@@ -558,9 +807,17 @@ async function AuditCockpitPage({
 											{names.get(r.requestedByUserId ?? "") ?? "—"} ·{" "}
 											{t("assignee")}:{" "}
 											{names.get(r.assigneeUserId ?? "") ?? "—"}
-											{r.dueAt
-												? ` · ${t("dueAt")} ${fmtDate.format(new Date(r.dueAt))}`
-												: ""}
+											{r.dueAt ? (
+												<span
+													className={
+														requestOverdue(r, todayIso)
+															? "text-destructive"
+															: undefined
+													}
+												>
+													{` · ${t("dueAt")} ${fmtDate.format(new Date(r.dueAt))}`}
+												</span>
+											) : null}
 										</span>
 									</div>
 									{r.description && (

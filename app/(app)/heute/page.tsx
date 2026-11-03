@@ -26,6 +26,7 @@ import { signDocumentOf } from "@/lib/approvals/signature";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { auditorLanding } from "@/lib/compliance/audit-workspace";
 import { nextSteps } from "@/lib/compliance/next-steps";
 import { fmtDate, getOrgCoverageCached } from "@/lib/compliance/page-data";
 import {
@@ -44,6 +45,7 @@ import {
 	pendingAcknowledgements,
 } from "@/lib/compliance/queries-p2";
 import {
+	listAuditAssignments,
 	listNonconformities,
 	listObligationRuns,
 } from "@/lib/compliance/queries-p3";
@@ -62,6 +64,13 @@ async function TodayPage() {
 	const ctx = await requireOrgPage(undefined, { employees: true });
 	// Mitarbeitende: ihre Startseite sind die Richtlinien
 	if (ctx.orgRole === "employee") redirect("/richtlinien");
+	// Prüfer:innen: ihr Einstieg ist das Audit, in dem sie prüfen
+	if (ctx.orgRole === "auditor") {
+		const audits = await readOrg(toOrgCtx(ctx), (tx) =>
+			listAuditAssignments(tx, ctx.orgId),
+		);
+		redirect(auditorLanding(audits, ctx.userId));
+	}
 	const t = await getTranslations("Today");
 	const tt = await getTranslations("Trainings");
 	const ts = await getTranslations("Status");

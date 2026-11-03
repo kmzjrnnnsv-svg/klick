@@ -13,9 +13,14 @@ const CommandPaletteDialog = dynamic(
 	{ ssr: false },
 );
 
+// Andere Knöpfe (Suchfeld in der Seitenleiste) öffnen die Palette über
+// dieses Ereignis; die Palette selbst bleibt einmal im Kopf gemountet.
+export const OPEN_PALETTE_EVENT = "klick:open-palette";
+
 // ⌘K: Navigation + Volltextsuche (/suche?q=…).
-// tabBar: unter 1024 px steht die Suche in der Tab-Leiste — kein zweiter Knopf
-// oben (sonst läuft die Kopfleiste bei großer Schrift über)
+// tabBar: unter 1024 px steht die Suche in der Tab-Leiste, ab 1024 px als
+// Suchfeld oben in der Seitenleiste — dann kein Knopf im Kopf (sonst läuft
+// die Kopfleiste bei großer Schrift über)
 export function CommandPalette({
 	groups,
 	tabBar = false,
@@ -37,8 +42,13 @@ export function CommandPalette({
 				setOpen((v) => !v);
 			}
 		}
+		const onOpen = () => setOpen(true);
 		document.addEventListener("keydown", onKey);
-		return () => document.removeEventListener("keydown", onKey);
+		window.addEventListener(OPEN_PALETTE_EVENT, onOpen);
+		return () => {
+			document.removeEventListener("keydown", onKey);
+			window.removeEventListener(OPEN_PALETTE_EVENT, onOpen);
+		};
 	}, []);
 
 	return (
@@ -49,7 +59,7 @@ export function CommandPalette({
 				onClick={() => setOpen(true)}
 				className={
 					tabBar
-						? "hidden font-normal text-muted-foreground lg:inline-flex"
+						? "hidden"
 						: "hidden font-normal text-muted-foreground md:inline-flex"
 				}
 				aria-label={t("searchHint")}
