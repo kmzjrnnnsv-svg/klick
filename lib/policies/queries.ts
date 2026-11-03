@@ -9,7 +9,9 @@ import {
 import { functionsOf } from "@/lib/compliance/function-holders";
 import { loadAssignments } from "@/lib/compliance/function-holders-service";
 import type { OrgTx } from "@/lib/db/with-org";
+import { loadBuilderContext } from "@/lib/documents/builder/server";
 import { inDistribution } from "@/lib/documents/distribution";
+import { fillDocumentTokens, formatBerlinDate } from "@/lib/documents/tokens";
 import { currentPublished } from "@/lib/documents/versions";
 import { currentEvidence } from "@/lib/evidence/current";
 
@@ -74,6 +76,9 @@ export async function policiesFor(
 				title: documents.title,
 				type: documents.type,
 				distribution: documents.distribution,
+				ownerFunction: documents.ownerFunction,
+				approverFunction: documents.approverFunction,
+				nextReviewAt: documents.nextReviewAt,
 			})
 			.from(documents)
 			.where(
@@ -136,12 +141,28 @@ export async function policiesFor(
 						)
 				).map((a) => [a.versionId, a.at]),
 	);
+	// Platzhalter im Kopf der Vorlage: Funktionen statt Personen
+	const info = await loadBuilderContext(tx, orgId);
+	const fn = (k: string | null) => (k ? (info.functionNames[k] ?? null) : null);
 	return docs
 		.flatMap((d) => {
 			const cur = currentPublished(
 				versions.filter((x) => x.documentId === d.id),
 			);
 			if (!cur?.publishedAt) return [];
+			const body = cur.bodyMarkdown
+				? fillDocumentTokens(cur.bodyMarkdown, {
+						docNumber: d.docNumber,
+						version: cur.version,
+						owner: fn(d.ownerFunction),
+						approver: fn(d.approverFunction),
+						effectiveFrom: formatBerlinDate(cur.publishedAt),
+						nextReviewAt: d.nextReviewAt
+							? formatBerlinDate(new Date(d.nextReviewAt))
+							: null,
+						org: info.orgName,
+					})
+				: null;
 			return [
 				{
 					documentId: d.id,
@@ -151,7 +172,7 @@ export async function policiesFor(
 					versionId: cur.id,
 					version: cur.version,
 					publishedAt: cur.publishedAt,
-					bodyMarkdown: cur.bodyMarkdown,
+					bodyMarkdown: body,
 					fileEvidenceId: cur.fileEvidenceId,
 					acknowledgedAt: acks.get(cur.id) ?? null,
 				},

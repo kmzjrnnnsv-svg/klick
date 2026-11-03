@@ -33,6 +33,7 @@ import {
 } from "./controlled-pdf";
 import { diffLines } from "./diff";
 import { DISTRIBUTION_ALL } from "./distribution";
+import { fillDocumentTokens, formatBerlinDate } from "./tokens";
 import { diffStat, type VersionTrail, versionTrails } from "./trail";
 import {
 	currentPublished,
@@ -302,6 +303,29 @@ export async function loadControlledSource(
 						: roleLabel(d),
 				);
 
+	// Platzhalter im Kopf der Vorlage ({{docNumber}} …) für diese Fassung
+	const ownerLabel = doc.ownerFunction
+		? `${fnLabel(doc.ownerFunction)} · ${names.get(doc.ownerUserId ?? "") ?? "—"}`
+		: (names.get(doc.ownerUserId ?? "") ?? null);
+	const approverLabel = doc.approverFunction
+		? fnLabel(doc.approverFunction)
+		: null;
+	const filled = body
+		? fillDocumentTokens(body, {
+				docNumber: doc.docNumber,
+				version: wanted,
+				owner: ownerLabel,
+				approver: approverLabel,
+				effectiveFrom: row?.publishedAt
+					? formatBerlinDate(row.publishedAt)
+					: null,
+				nextReviewAt: doc.nextReviewAt
+					? formatBerlinDate(new Date(doc.nextReviewAt))
+					: null,
+				org: opts.orgName,
+			})
+		: null;
+
 	return {
 		documentId: doc.id,
 		versionId: row?.id ?? null,
@@ -320,12 +344,8 @@ export async function loadControlledSource(
 				typeLabel: TYPE_LABEL[doc.type] ?? doc.type,
 				classificationLabel:
 					CLASS_LABEL[doc.classification] ?? doc.classification,
-				owner: doc.ownerFunction
-					? `${fnLabel(doc.ownerFunction)} · ${names.get(doc.ownerUserId ?? "") ?? "—"}`
-					: (names.get(doc.ownerUserId ?? "") ?? null),
-				approverFunction: doc.approverFunction
-					? fnLabel(doc.approverFunction)
-					: null,
+				owner: ownerLabel,
+				approverFunction: approverLabel,
 				retentionYears: doc.retentionYears,
 			},
 			version: {
@@ -345,7 +365,7 @@ export async function loadControlledSource(
 							editors: [],
 						}),
 				state,
-				bodyMarkdown: body,
+				bodyMarkdown: filled,
 				file: file
 					? {
 							name: file.fileName,

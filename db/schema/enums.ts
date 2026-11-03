@@ -734,6 +734,15 @@ export type ExternalSource = {
 	url?: string | null;
 };
 
+// Richtlinien-Baukasten (Teil 5): Stand am Dokument. builder = Text aus den
+// Antworten (lib/documents/builder), custom = eigener Text im Editor.
+export type DocumentBuilderState = {
+	template: string;
+	version: number;
+	mode: "builder" | "custom";
+	answers: Record<string, string | number>;
+};
+
 export const DOCUMENT_STATUS = [
 	"draft",
 	"in_review",
