@@ -51,37 +51,55 @@ export function RegisterFilters({
 	const active = [...params.keys()].length > 0;
 
 	return (
-		<div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+		<div className="flex flex-wrap items-center gap-2">
 			<Input
 				type="search"
 				defaultValue={params.get("q") ?? ""}
 				placeholder={searchPlaceholder ?? t("search")}
 				onChange={(e) => update("q", e.target.value.trim() || null)}
-				className="sm:max-w-xs"
+				className="w-full sm:max-w-xs"
 				aria-label={t("search")}
 			/>
-			{filters.map((f) => (
-				<Select
-					key={f.key}
-					value={params.get(f.key) ?? "all"}
-					onValueChange={(v) => update(f.key, v)}
-				>
-					<SelectTrigger className="w-full sm:w-44" aria-label={f.label}>
-						<SelectValue placeholder={f.label} />
-					</SelectTrigger>
-					<SelectContent>
-						<SelectItem value="all">
-							{f.label}: {t("all")}
-						</SelectItem>
-						{f.options.map((o) => (
-							<SelectItem key={o.value} value={o.value}>
-								{o.label}
+			{filters.map((f) => {
+				// Auswahl als Chip (wie die Schalter daneben): „Status“ ohne Wahl,
+				// „Status: Umgesetzt“ mit Wahl, dann gefüllt
+				const value = params.get(f.key);
+				const chosen = value
+					? f.options.find((o) => o.value === value)
+					: undefined;
+				return (
+					<Select
+						key={f.key}
+						value={value ?? "all"}
+						onValueChange={(v) => update(f.key, v)}
+					>
+						<SelectTrigger
+							size="sm"
+							aria-label={f.label}
+							className={cn(
+								"hit-area max-w-full rounded-full font-medium text-footnote data-[size=sm]:text-footnote sm:max-w-64",
+								chosen &&
+									"bg-primary-fill text-white hover:bg-primary-fill/90 [&_svg]:opacity-90",
+							)}
+						>
+							<SelectValue placeholder={f.label}>
+								{chosen ? `${f.label}: ${chosen.label}` : f.label}
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">
+								{f.label}: {t("all")}
 							</SelectItem>
-						))}
-					</SelectContent>
-				</Select>
-			))}
-			<div className="flex flex-wrap gap-1.5">
+							{f.options.map((o) => (
+								<SelectItem key={o.value} value={o.value}>
+									{o.label}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				);
+			})}
+			<div className="contents">
 				{chips.map((c) => {
 					const on = params.get(c.key) === "1";
 					return (

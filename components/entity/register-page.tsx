@@ -39,6 +39,7 @@ export function RegisterPage<T extends { id: string }>({
 	lead,
 	eyebrow,
 	actions,
+	summary,
 	filters,
 	chips,
 	searchPlaceholder,
@@ -53,6 +54,8 @@ export function RegisterPage<T extends { id: string }>({
 	lead?: string;
 	eyebrow?: string;
 	actions?: ReactNode;
+	// Kacheln zwischen Kopf und Filtern (z. B. Zuständigkeit, Umgesetzt)
+	summary?: ReactNode;
 	filters: FilterDef[];
 	chips?: ChipDef[];
 	searchPlaceholder?: string;
@@ -82,6 +85,7 @@ export function RegisterPage<T extends { id: string }>({
 				eyebrow={eyebrow}
 				actions={actions}
 			/>
+			{summary && <div className="mb-5">{summary}</div>}
 			<div className="mb-4">
 				<RegisterFilters
 					filters={filters}
