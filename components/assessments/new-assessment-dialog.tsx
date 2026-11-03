@@ -20,6 +20,8 @@ import { errorText } from "@/components/ui/error-text";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
+import { SHORT_CHECK_SIZE } from "@/lib/assessments/short-check";
+import { cn } from "@/lib/utils";
 
 // „Neue Gap-Analyse“: Rahmenwerke (vorausgewählt: alle aktiven), optional
 // Stichtag und „nur Neues“. Danach direkt in den Fragebogen.
@@ -42,6 +44,8 @@ export function NewAssessmentDialog({
 	const [asOf, setAsOf] = useState("");
 	const [title, setTitle] = useState("");
 	const [onlyNew, setOnlyNew] = useState(false);
+	// Kurz-Check zuerst (Entscheidung 03.11.): die wichtigsten Fragen
+	const [scope, setScope] = useState<"short" | "all">("short");
 	const [pending, start] = useTransition();
 
 	return (
@@ -67,6 +71,7 @@ export function NewAssessmentDialog({
 								asOf: asOf || null,
 								title: title || undefined,
 								onlyNew,
+								scope,
 							});
 							if (!res.ok) {
 								toast.error(
@@ -81,6 +86,37 @@ export function NewAssessmentDialog({
 						});
 					}}
 				>
+					<fieldset className="flex flex-col gap-2">
+						<legend className="mb-1 font-medium text-subhead">
+							{t("scopeLegend")}
+						</legend>
+						{(["short", "all"] as const).map((v) => (
+							<label
+								key={v}
+								htmlFor={`ga-scope-${v}`}
+								className={cn(
+									"flex cursor-pointer items-start gap-3 rounded-2xl bg-card p-3 text-subhead ring-1 ring-transparent",
+									scope === v && "ring-primary",
+								)}
+							>
+								<input
+									id={`ga-scope-${v}`}
+									type="radio"
+									name="scope"
+									value={v}
+									checked={scope === v}
+									onChange={() => setScope(v)}
+									className="mt-0.5 size-4 accent-(--primary)"
+								/>
+								<span className="flex flex-col gap-0.5">
+									<span className="font-medium">{t(`scope_${v}`)}</span>
+									<span className="text-footnote text-muted-foreground">
+										{t(`scopeHint_${v}`, { n: SHORT_CHECK_SIZE })}
+									</span>
+								</span>
+							</label>
+						))}
+					</fieldset>
 					<fieldset className="flex flex-col gap-2">
 						<legend className="mb-1 font-medium text-subhead">
 							{t("newFrameworks")}

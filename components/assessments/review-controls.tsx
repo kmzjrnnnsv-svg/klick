@@ -278,7 +278,9 @@ export function ApplyDialog({
 								if (!res.ok) return void toast.error(errorText(tc, res));
 								toast.success(t("applyDone", { count: res.data.changed }));
 								setOpen(false);
-								router.push(`/gap-analyse/${assessmentId}?schritt=massnahmen`);
+								router.push(
+									`/gap-analyse/${assessmentId}?schritt=ergebnis#massnahmen`,
+								);
 							})
 						}
 					>

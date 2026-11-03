@@ -91,14 +91,14 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				key: "gap",
 				name: "Gap-Analyse",
 				summary:
-					"Eine Frage je Control, belegt mit Dokumenten statt Selbstauskunft.",
+					"Eine Frage auf einmal in Alltagssprache, zuerst die 30 wichtigsten, belegt mit Dokumenten statt Selbstauskunft.",
 				where: "Gap-Analyse",
 				trigger: "Aus der Einrichtung, von „Heute“ oder jederzeit neu.",
 				steps: [
-					"Fragen kapitelweise beantworten und je Frage Nachweise hochladen.",
-					"Bewerten: „Ja“ ohne Nachweis zählt nur halb.",
-					"Ergebnis übernehmen: erst die Vorschau der Änderungen, dann der Control-Status.",
-					"Maßnahmen nach Hebel vorschlagen lassen; sie werden Aufgaben.",
+					"Kurz-Check mit den 30 wichtigsten Fragen oder gleich alle; erweitern geht jederzeit.",
+					"Je Frage vier Knöpfe: Ja, Teilweise, Nein, Weiß ich nicht. Danach nur, was passt: Nachweis, was fehlt, oder an wen die Frage geht.",
+					"Ergebnis übernehmen: erst die Vorschau der Änderungen, dann der Control-Status. „Ja“ ohne Nachweis zählt nur halb.",
+					"Maßnahmen nach Hebel anlegen; was fehlt, steht schon in der Aufgabe.",
 				],
 				result:
 					"Control-Status, Maßnahmenplan und ein Bericht zum Herunterladen.",
