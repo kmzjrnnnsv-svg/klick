@@ -159,9 +159,10 @@ export const GOVERNANCE: HelpArticle[] = [
 				id: "cockpit",
 				heading: "Das Audit-Cockpit",
 				steps: [
-					"Öffne das Audit. Der Prüfpfad führt von der Anforderung über das Control zum Nachweis.",
-					"Lad Prüfer:innen über Team mit der Rolle Prüfer:in ein. Sie sehen die gültigen Fassungen und arbeiten im Cockpit.",
-					"Prüfer:innen stellen Nachweisanfragen (PBC). Jede Anfrage wird eine Aufgabe für die verantwortliche Person; die Antwort mit Nachweis erscheint im Cockpit.",
+					"Öffne das Audit. Die Übersicht zeigt auf einer Zeitleiste Prüfzeitraum, Audit-Termin und die Fristen offener Anfragen, dazu den Stand der Anfragen, offene Findings nach Schwere und die Prüfungsreife.",
+					"Der Prüfpfad führt von der Anforderung über das Control zum Nachweis. „Rückfrage“ an einem Control öffnet eine neue Anfrage, in der Control und Titel schon stehen.",
+					"Lad Prüfer:innen über Team mit der Rolle Prüfer:in ein. Sie sehen die gültigen Fassungen und landen nach der Anmeldung direkt im Audit, in dem sie prüfen.",
+					"Prüfer:innen stellen Nachweisanfragen (PBC). Jede Anfrage wird eine Aufgabe für die verantwortliche Person. Unter „Anfragen“ filterst du nach Stand und suchst; jede Anfrage hat eine eigene Seite mit Antwort, Nachweisen und Kommentaren. Prüfer:in und Bearbeitende erfahren jeden Kommentar der Gegenseite.",
 					"Findings erfassen Prüfer:innen direkt. Ab Schwere „leicht“ legt Klick eine Abweichung an.",
 					"Exportier das Prüfungspaket: SoA, Lücken, Controls, Risiken, gültige Dokumentfassungen im Zeitraum, Nachweis-Index, Vorfälle, Protokollauszug, Findings. Jede Datei ist über eine Prüfsumme im Manifest gesichert.",
 				],
@@ -186,7 +187,7 @@ export const GOVERNANCE: HelpArticle[] = [
 			},
 		],
 		roles: [
-			"Prüfer:innen: lesen, Nachweisanfragen, Findings, Abweichungen anlegen.",
+			"Prüfer:innen: lesen, Nachweisanfragen, Findings, Abweichungen anlegen; kommentieren nur am Audit, an Anfragen und Findings.",
 			"Abweichungen bearbeiten: die verantwortliche Funktion; priorisieren die Geschäftsleitung.",
 		],
 		automation: [
