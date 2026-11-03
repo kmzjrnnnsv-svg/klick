@@ -29,7 +29,6 @@ const SHARED: readonly string[] = [
 	"lib/wallet/pair-names",
 	"lib/wallet/prices",
 	"lib/wallet/reconcile-source",
-	"lib/wallet/return-path",
 	"lib/wallet/screening",
 	"lib/wallet/payouts/plan",
 	"lib/wallet/signer/types",

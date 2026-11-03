@@ -21,7 +21,6 @@ import {
 	defaultRiskMethod,
 } from "@/lib/compliance/risk-method";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
-import { listFrameworkOptions } from "@/lib/db/global";
 import { takeQueuedAudits, withOrg } from "@/lib/db/with-org";
 import { TERMS_FLAG, TERMS_VERSION } from "@/lib/legal/terms";
 import { SETUP_FLAG } from "@/lib/setup/steps";
@@ -177,39 +176,9 @@ async function createOrganizationActionImpl(
 	return { ok: true, data: { orgId: org.id, slug: org.slug } };
 }
 
-async function checkSlugAvailableImpl(slug: string): Promise<boolean> {
-	const ctx = await getSessionCtx();
-	if (!ctx) return false;
-	const h = await headers();
-	try {
-		const res = await auth.api.checkOrganizationSlug({
-			body: { slug },
-			headers: h,
-		});
-		return Boolean(res?.status);
-	} catch {
-		return false;
-	}
-}
-
-async function frameworkOptionsImpl() {
-	const ctx = await getSessionCtx();
-	if (!ctx) throw new AuthError("unauthenticated");
-	return listFrameworkOptions();
-}
-
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
 export const createOrganizationAction = safeAction(
 	"createOrganizationAction",
 	createOrganizationActionImpl,
-);
-export const checkSlugAvailable = safeAction(
-	"checkSlugAvailable",
-	checkSlugAvailableImpl,
-	() => false,
-);
-export const frameworkOptions = safeAction(
-	"frameworkOptions",
-	frameworkOptionsImpl,
 );

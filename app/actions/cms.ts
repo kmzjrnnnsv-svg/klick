@@ -8,10 +8,6 @@ import { requirePlatformAdmin } from "@/lib/auth/guards";
 import * as g from "@/lib/db/global";
 import { type ActionResult, fromZod, slug } from "@/lib/validation/common";
 
-async function getCmsPageBySlugImpl(s: string) {
-	return g.getCmsPageBySlug(s);
-}
-
 const cmsSchema = z.object({
 	slug,
 	title: z.string().trim().min(1).max(200),
@@ -59,9 +55,5 @@ async function deleteCmsPageImpl(s: string): Promise<ActionResult> {
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
-export const getCmsPageBySlug = safeAction(
-	"getCmsPageBySlug",
-	getCmsPageBySlugImpl,
-);
 export const saveCmsPage = safeAction("saveCmsPage", saveCmsPageImpl);
 export const deleteCmsPage = safeAction("deleteCmsPage", deleteCmsPageImpl);

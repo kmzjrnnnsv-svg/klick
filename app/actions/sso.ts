@@ -218,10 +218,6 @@ async function verifySsoDomainImpl(providerId: string): Promise<ActionResult> {
 
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
-export const registerSsoProvider = safeAction(
-	"registerSsoProvider",
-	registerSsoProviderImpl,
-);
 export const deleteSsoProvider = safeAction(
 	"deleteSsoProvider",
 	deleteSsoProviderImpl,
