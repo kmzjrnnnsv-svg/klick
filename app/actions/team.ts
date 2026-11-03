@@ -4,6 +4,7 @@ import { APIError } from "better-auth/api";
 import { and, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { member } from "@/db/auth-schema";
 import { memberAccess, memberRoles, orgRoles } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { auditPlatform } from "@/lib/audit";
@@ -32,7 +33,13 @@ import {
 	revokeRegistrationLinks,
 } from "@/lib/auth/registration-link";
 import { auth } from "@/lib/auth/server";
+import { addDays } from "@/lib/charts/timeline";
+import { personDueStatus, remindAllowed } from "@/lib/compliance/people";
+import { lastReminders } from "@/lib/compliance/queries-people";
+import { openItemsByPerson } from "@/lib/compliance/queries-report";
 import { mutateOrg } from "@/lib/db/with-org";
+import { berlinToday } from "@/lib/evidence-studio/queries";
+import { notify } from "@/lib/notifications/notify";
 import {
 	dropInvitedOwnRoles,
 	setOwnRoleAssignments,
@@ -43,6 +50,7 @@ import { type ActionResult, fromZod } from "@/lib/validation/common";
 import { memberAccessSchema } from "@/lib/validation/governance";
 import {
 	inviteMemberSchema,
+	remindMemberSchema,
 	updateMemberRoleSchema,
 } from "@/lib/validation/org";
 
@@ -377,6 +385,62 @@ async function setMemberAccessImpl(input: unknown): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
+// Erinnern (/team): Benachrichtigung an eine Person mit überfälligen oder
+// bald fälligen Punkten, höchstens einmal in 24 Stunden je Person
+async function remindMemberImpl(
+	input: unknown,
+): Promise<ActionResult<{ overdue: number; soon: number }>> {
+	const c = await requireOrg({ member: ["update"] });
+	const parsed = remindMemberSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const userId = parsed.data.userId;
+	if (userId === c.userId) return { ok: false, error: "forbidden" };
+	type Outcome =
+		| "not_found"
+		| "reminded_recently"
+		| "nothing_due"
+		| { overdue: number; soon: number };
+	const out = await mutateOrg<Outcome>(toOrgCtx(c), async (tx) => {
+		const [m] = await tx
+			.select({ id: member.id })
+			.from(member)
+			.where(and(eq(member.organizationId, c.orgId), eq(member.userId, userId)))
+			.limit(1);
+		if (!m) return { result: "not_found" as const, audit: [] };
+		const now = new Date();
+		const last = (await lastReminders(tx, c.orgId, [userId])).get(userId);
+		if (!remindAllowed(last, now))
+			return { result: "reminded_recently" as const, audit: [] };
+		const today = berlinToday(now);
+		const load = (
+			await openItemsByPerson(tx, c.orgId, today, addDays(today, 14))
+		).find((p) => p.userId === userId);
+		const due = personDueStatus(load);
+		if (due.level === "none")
+			return { result: "nothing_due" as const, audit: [] };
+		await notify(tx, {
+			orgId: c.orgId,
+			recipients: [userId],
+			actorUserId: c.userId,
+			kind: "reminder",
+			title: `Erinnerung: ${due.overdue} überfällig, ${due.soon} bald fällig`,
+			link: "/heute/verantwortung",
+			payload: { overdue: due.overdue, soon: due.soon },
+		});
+		return {
+			result: { overdue: due.overdue, soon: due.soon },
+			audit: {
+				action: "member.reminded",
+				target: `user:${userId}`,
+				after: { overdue: due.overdue, soon: due.soon },
+			},
+		};
+	});
+	if (typeof out === "string") return { ok: false, error: out };
+	revalidatePath("/team");
+	return { ok: true, data: out };
+}
+
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
 export const inviteMember = safeAction("inviteMember", inviteMemberImpl);
@@ -394,6 +458,7 @@ export const updateMemberRole = safeAction(
 	updateMemberRoleImpl,
 );
 export const removeMember = safeAction("removeMember", removeMemberImpl);
+export const remindMember = safeAction("remindMember", remindMemberImpl);
 export const setMemberAccess = safeAction(
 	"setMemberAccess",
 	setMemberAccessImpl,

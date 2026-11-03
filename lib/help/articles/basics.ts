@@ -300,6 +300,14 @@ export const BASICS: HelpArticle[] = [
 				tip: "Ein Konto hat höchstens eine eigene Mitgliedschaft; als Berater:in darf es beliebig viele Organisationen betreuen.",
 			},
 			{
+				id: "offene-punkte",
+				heading: "Wer hat was offen?",
+				body: [
+					"Team öffnet mit der Ansicht „Offene Punkte“: alle Personen mit überfälligen oder bald fälligen Punkten (in den nächsten 14 Tagen). Gezählt werden offene Aufgaben, fällige Überprüfungen der Controls, für die jemand verantwortlich ist, und offene Schulungen. „Alle“, „Eingeladen“ und „Extern“ zeigen die übrigen Mitglieder, offene Einladungen und befristete Zugänge; das Suchfeld findet Namen und E-Mail-Adressen.",
+					"Mit der Glocke in der Zeile erinnerst du eine Person an ihre offenen Punkte. Sie bekommt eine Benachrichtigung mit Link auf „Meine Verantwortung“, auf dem Weg, den sie unter Benachrichtigungen gewählt hat. Jede Person wird höchstens einmal in 24 Stunden erinnert; „Zuletzt erinnert“ zeigt, wann.",
+				],
+			},
+			{
 				id: "eigene",
 				heading: "Eigene Rollen",
 				body: [
@@ -316,6 +324,7 @@ export const BASICS: HelpArticle[] = [
 		],
 		roles: [
 			"Team verwalten und Rollen ändern: nur Inhaber:innen, mit Bestätigung.",
+			"Erinnern: wer das Team verwalten darf, nie sich selbst.",
 			"Zugang zurücksetzen (Passkeys verloren): Inhaber:innen für Konten ihrer Organisation.",
 		],
 		norms: [

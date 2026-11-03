@@ -106,6 +106,8 @@ export async function listOrgMembers(orgId: string) {
 				twoFactorEnabled: user.twoFactorEnabled,
 				// qualifiziert — unqualifiziert zählte die Unterabfrage nie etwas
 				passkeys: sql<number>`(select count(*)::int from ${passkey} p where p.user_id = ${user}.id)`,
+				// angemeldet über SSO dieser Org (Konto verknüpft mit ihrem Anbieter)
+				sso: sql<boolean>`exists (select 1 from account a join sso_provider s on s.provider_id = a.provider_id where a.user_id = ${user}.id and s.organization_id = ${orgId})`,
 				createdAt: member.createdAt,
 			})
 			.from(member)

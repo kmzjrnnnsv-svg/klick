@@ -46,6 +46,7 @@ export const KIND_LABELS: Record<NotificationKind, string> = {
 	management_info: "An die Geschäftsleitung",
 	platform_access: "Zugriffe durch Klick",
 	security_change: "Sicherheitsänderungen",
+	reminder: "Erinnerungen",
 	approval_requested: "Freigaben angefragt",
 	approval_decided: "Freigaben entschieden",
 	approval_overdue: "Freigaben überfällig",

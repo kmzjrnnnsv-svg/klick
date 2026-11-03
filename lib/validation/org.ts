@@ -126,3 +126,6 @@ export const memberRolesSchema = z.object({
 	memberId: z.uuid(),
 	roleIds: z.array(z.uuid()).max(20),
 });
+
+// Erinnern an offene Punkte (/team)
+export const remindMemberSchema = z.object({ userId: z.uuid() });
