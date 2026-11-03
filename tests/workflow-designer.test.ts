@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { ApprovalStep } from "@/db/schema/grc";
 import {
@@ -14,7 +15,7 @@ import {
 	WORKFLOW_PRESETS,
 } from "@/lib/approvals/presets";
 import { normalizeSteps, planRoute } from "@/lib/approvals/route";
-import { TRIGGER_BY_KEY } from "@/lib/approvals/triggers";
+import { TRIGGER_BY_KEY, TRIGGERS } from "@/lib/approvals/triggers";
 import { sanitizePermissions } from "@/lib/auth/permission-catalog";
 
 const ROLE_FIN = "11111111-1111-4111-8111-111111111111";
@@ -285,5 +286,20 @@ describe("Vorlagen", () => {
 		expect(route.steps[1]?.mode).toBe("all");
 		expect(route.firstOrder).toBe(2);
 		expect(route.warnings).toEqual([]);
+	});
+});
+
+describe("Texte der Auslöser", () => {
+	it("jeder angeschlossene Auslöser hat Name und Hinweis (sonst MISSING_MESSAGE)", () => {
+		const wf = (
+			JSON.parse(readFileSync("messages/de.json", "utf8")) as {
+				Workflows: Record<string, string>;
+			}
+		).Workflows;
+		const missing = TRIGGERS.filter((x) => x.wired).flatMap((x) => {
+			const k = x.key.replace(".", "_");
+			return [`trigger_${k}`, `triggerHint_${k}`].filter((m) => !wf[m]);
+		});
+		expect(missing).toEqual([]);
 	});
 });
