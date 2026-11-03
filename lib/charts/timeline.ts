@@ -3,6 +3,18 @@
 // sind ISO-Tage (YYYY-MM-DD), gerechnet in UTC, damit Sommerzeit nichts
 // verschiebt.
 
+import type { Tone } from "./ring";
+
+// Ein Termin auf der Zeitleiste (components/charts/timeline.tsx)
+export type TimelineItem = {
+	key: string;
+	date: string;
+	label: string;
+	detail?: string;
+	tone: Tone;
+	href?: string;
+};
+
 const DAY = 86_400_000;
 const ms = (d: string) => new Date(`${d}T00:00:00Z`).getTime();
 

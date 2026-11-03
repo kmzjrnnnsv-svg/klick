@@ -1,23 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { donutArcs, ringFraction } from "@/lib/charts/ring";
+import { donutArcs, ringFraction, type Tone } from "@/lib/charts/ring";
 import { cn } from "@/lib/utils";
 
 // Fortschrittsring und Donut (SVG, serverseitig, ohne Abhängigkeit). Farbe
 // trägt nie allein: der Ring hat seine Zahl in der Mitte, der Donut eine
 // Legende mit Zahlen, deren Zeilen auf den passenden Filter führen.
 
-export type Tone =
-	| "primary"
-	| "success"
-	| "warning"
-	| "destructive"
-	| "muted"
-	| "chart-1"
-	| "chart-2"
-	| "chart-3"
-	| "chart-4"
-	| "chart-5";
+export type { Tone };
 
 const STROKE: Record<Tone, string> = {
 	primary: "stroke-primary",

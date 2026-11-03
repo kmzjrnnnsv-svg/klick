@@ -3,6 +3,19 @@
 // zwischen Segmenten bleibt eine kleine Lücke (2 px bei r = 40), damit die
 // Teile auch ohne Farbe unterscheidbar sind.
 
+// Farbe eines Teils, aus den Tokens (styles/tokens.css)
+export type Tone =
+	| "primary"
+	| "success"
+	| "warning"
+	| "destructive"
+	| "muted"
+	| "chart-1"
+	| "chart-2"
+	| "chart-3"
+	| "chart-4"
+	| "chart-5";
+
 export type DonutPart = { key: string; value: number };
 
 export type DonutArc = {

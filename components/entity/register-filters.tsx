@@ -25,10 +25,16 @@ export function RegisterFilters({
 	filters,
 	chips = [],
 	searchPlaceholder,
+	search = true,
+	ignore = [],
 }: {
 	filters: FilterDef[];
 	chips?: ChipDef[];
 	searchPlaceholder?: string;
+	// ohne Suchfeld, z. B. über Auswertungen
+	search?: boolean;
+	// Parameter, die nicht als Filter zählen (z. B. die Ansicht)
+	ignore?: string[];
 }) {
 	const t = useTranslations("Entity");
 	const router = useRouter();
@@ -48,18 +54,20 @@ export function RegisterFilters({
 		[params, pathname, router],
 	);
 
-	const active = [...params.keys()].length > 0;
+	const active = [...params.keys()].some((k) => !ignore.includes(k));
 
 	return (
 		<div className="flex flex-wrap items-center gap-2">
-			<Input
-				type="search"
-				defaultValue={params.get("q") ?? ""}
-				placeholder={searchPlaceholder ?? t("search")}
-				onChange={(e) => update("q", e.target.value.trim() || null)}
-				className="w-full sm:max-w-xs"
-				aria-label={t("search")}
-			/>
+			{search && (
+				<Input
+					type="search"
+					defaultValue={params.get("q") ?? ""}
+					placeholder={searchPlaceholder ?? t("search")}
+					onChange={(e) => update("q", e.target.value.trim() || null)}
+					className="w-full sm:max-w-xs"
+					aria-label={t("search")}
+				/>
+			)}
 			{filters.map((f) => {
 				// Auswahl als Chip (wie die Schalter daneben): „Status“ ohne Wahl,
 				// „Status: Umgesetzt“ mit Wahl, dann gefüllt
@@ -124,7 +132,17 @@ export function RegisterFilters({
 				<Button
 					variant="ghost"
 					size="sm"
-					onClick={() => router.replace(pathname, { scroll: false })}
+					onClick={() => {
+						const keep = new URLSearchParams();
+						for (const k of ignore) {
+							const v = params.get(k);
+							if (v) keep.set(k, v);
+						}
+						const qs = keep.toString();
+						router.replace(qs ? `${pathname}?${qs}` : pathname, {
+							scroll: false,
+						});
+					}}
 				>
 					<X />
 					{t("clearFilters")}

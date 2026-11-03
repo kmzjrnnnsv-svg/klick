@@ -108,7 +108,8 @@
 		"relations": "Zusammenhänge",
 		"frameworks": "Rahmenwerke",
 		"planning": "Planung",
-		"sectionSwitch": "Seiten in diesem Bereich"
+		"sectionSwitch": "Seiten in diesem Bereich",
+		"analytics": "Auswertung"
 	},
 	"Footer": {
 		"tagline": "Maison Klick — Compliance, die zusammenpasst.",
@@ -8264,5 +8265,42 @@
 		"detail_providers": "Wer für dich arbeitet und was davon abhängt",
 		"step_process_links": "Einen Prozess mit Assets und Dienstleistern verknüpfen",
 		"detail_process_links": "Zeigt, was stillsteht, wenn ein Dienstleister ausfällt."
+	},
+	"Analytics": {
+		"title": "Auswertung",
+		"lead": "Wie sich der Stand entwickelt, was als Nächstes geprüft wird und wo es hakt.",
+		"periodLabel": "Zeitraum",
+		"period_30": "30 Tage",
+		"period_90": "90 Tage",
+		"period_365": "12 Monate",
+		"framework": "Rahmenwerk",
+		"progressTitle": "Abdeckung über die Zeit",
+		"progressEmpty": "Noch zu wenig Verlauf. Klick hält den Stand jede Nacht fest; nach ein paar Tagen erscheint hier die Linie.",
+		"progressAverage": "Durchschnitt der gewählten Rahmenwerke",
+		"progressChange": "{sign}{n} Prozentpunkte im Zeitraum",
+		"byFramework": "Je Rahmenwerk als Tabelle",
+		"colFrom": "Beginn",
+		"colNow": "Heute",
+		"colChange": "Veränderung",
+		"auditsTitle": "Kommende Audits",
+		"auditsEmpty": "In den nächsten zwölf Monaten steht kein Audit an.",
+		"auditsSetDates": "Termine und Turnus unter Einstellungen > Audits & Fristen festlegen",
+		"cycle": "aus dem Turnus",
+		"today": "Heute",
+		"peopleTitle": "Offene Punkte je Person",
+		"peopleEmpty": "Niemand hat gerade offene Punkte mit Frist.",
+		"overdue": "Überfällig",
+		"soon": "Bald fällig",
+		"planned": "Im Plan",
+		"undated": "Ohne Frist",
+		"restPeople": "{n, plural, one {Eine weitere Person} other {# weitere Personen}}",
+		"unknownPerson": "Unbekannte Person",
+		"testsTitle": "Tests nach Bereich",
+		"testsEmpty": "Im Zeitraum wurden keine Tests eingetragen.",
+		"pass": "Bestanden",
+		"partial": "Teilweise",
+		"fail": "Nicht bestanden",
+		"asTable": "Als Tabelle",
+		"total": "Summe"
 	}
 }
