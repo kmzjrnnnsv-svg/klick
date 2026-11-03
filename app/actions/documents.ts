@@ -226,6 +226,9 @@ async function updateDocumentImpl(input: unknown): Promise<ActionResult> {
 		const { ownerUserId: ownerRef, ...rest } = patch;
 		const set: Record<string, unknown> = {};
 		for (const [k, v] of Object.entries(rest)) if (v !== undefined) set[k] = v;
+		// eigener Text im Editor: der Baukasten überschreibt ihn nicht mehr
+		if (patch.bodyMarkdown !== undefined && before.builder?.mode === "builder")
+			set.builder = { ...before.builder, mode: "custom" };
 		const owner = await resolveResponsible(
 			tx,
 			c.orgId,

@@ -25,7 +25,7 @@ import {
 	userRef,
 } from "./_shared";
 import { controls, requirements } from "./catalog";
-import type { ExternalSource } from "./enums";
+import type { DocumentBuilderState, ExternalSource } from "./enums";
 import {
 	CHANGE_KINDS,
 	CHANGE_STATUS,
@@ -401,6 +401,8 @@ export const documents = pgTable(
 		legalBasisRefs: stringList(),
 		language: text().notNull().default("de"),
 		templateCode: text(),
+		// Richtlinien-Baukasten: Antworten und Modus (Migration 0067)
+		builder: json<DocumentBuilderState>(),
 		isoMandatory: boolean().notNull().default(false),
 		...timestamps(),
 	},

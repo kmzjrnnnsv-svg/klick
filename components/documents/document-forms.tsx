@@ -385,11 +385,15 @@ export function ImportDialog() {
 export function DocumentEditor({
 	documentId,
 	body,
+	display,
 	editable,
 	aiDraft = false,
 }: {
 	documentId: string;
 	body: string;
+	// Anzeige mit ersetzten Platzhaltern (Kopf der Vorlage); bearbeitet wird
+	// immer der gespeicherte Text
+	display?: string;
 	editable: boolean;
 	// „Mit KI entwerfen“ (ADR-032), nur wenn die Funktion an ist
 	aiDraft?: boolean;
@@ -426,7 +430,8 @@ export function DocumentEditor({
 				}),
 			);
 		});
-	if (!editable) return <MarkdownView source={body || `_${t("noContent")}_`} />;
+	if (!editable)
+		return <MarkdownView source={(display ?? body) || `_${t("noContent")}_`} />;
 	return (
 		<Tabs defaultValue="edit" className="flex flex-col gap-3">
 			{replace.node}

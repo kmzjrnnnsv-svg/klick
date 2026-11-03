@@ -111,6 +111,17 @@ export const REGISTERS: HelpArticle[] = [
 				],
 			},
 			{
+				id: "baukasten",
+				heading: "Richtlinien mit dem Baukasten schreiben",
+				steps: [
+					"Für zehn häufige Richtlinien (Leitlinie, Zugang, Endgeräte, Patches, Backup, Vorfälle, Dienstleister, Personal, Löschung, Protokollierung) steht im Entwurf „Baukasten starten“.",
+					"Links beantwortest du je Abschnitt kurze Fragen, zum Beispiel „Nach wie vielen Minuten sperrt sich der Bildschirm?“. Empfohlene Werte sind markiert; Funktionen, die bei euch bestellt sind, belegt Klick vor.",
+					"Rechts steht die ganze Richtlinie, so wie sie im Dokument erscheint. Was noch fehlt, ist gelb markiert, zum Beispiel „[Bildschirmsperre, z. B. 5 Minuten]“. Oben steht, wie viele Fragen beantwortet sind.",
+					"Klick speichert zwei Sekunden nach deiner letzten Eingabe und beim Wechsel des Abschnitts. Danach reichst du die Richtlinie wie jedes Dokument zur Prüfung ein.",
+				],
+				tip: "„Eigenen Text schreiben“ übernimmt den Text in den Editor; deine Antworten bleiben gespeichert. Zurück zum Baukasten geht jederzeit, dann entsteht der Text neu aus den Antworten. Nummer, Fassung, Verantwortliche, Freigabe und Datum im Kopf setzt Klick bei Anzeige und PDF selbst ein.",
+			},
+			{
 				id: "fassungen",
 				heading: "Einreichen, freigeben, veröffentlichen",
 				steps: [

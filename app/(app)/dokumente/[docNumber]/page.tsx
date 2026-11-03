@@ -14,6 +14,11 @@ import {
 	DocumentEditor,
 	NewVersionDialog,
 } from "@/components/documents/document-forms";
+import {
+	type FunctionOption,
+	PolicyBuilderPanel,
+	StartPolicyBuilder,
+} from "@/components/documents/policy-builder";
 import { RetentionPanel } from "@/components/documents/retention-panel";
 import {
 	type SignatureLine,
@@ -57,6 +62,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
 import { allows } from "@/lib/auth/permissions";
 import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
+import { TEMPLATE_BY_CODE } from "@/lib/compliance/catalog/document-templates";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
 	listComments,
@@ -66,6 +72,8 @@ import {
 } from "@/lib/compliance/queries";
 import { getDocumentByNumber } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
+import { builderFor } from "@/lib/documents/builder";
+import { loadBuilderContext } from "@/lib/documents/builder/server";
 import { contentDiff } from "@/lib/documents/content-diff";
 import {
 	retentionOf,
@@ -73,6 +81,7 @@ import {
 	safeExternalUrl,
 	suggestedRetentionYears,
 } from "@/lib/documents/retention";
+import { fillDocumentTokens, formatBerlinDate } from "@/lib/documents/tokens";
 import { versionTrails } from "@/lib/documents/trail";
 import {
 	currentPublished,
@@ -314,6 +323,41 @@ async function DocumentDetailPage({
 		doc.status === "draft" ||
 		doc.status === "in_review" ||
 		doc.status === "approved";
+	// Richtlinien-Baukasten (Teil 5) und Platzhalter im Kopf der Vorlage
+	const builder = restricted ? null : builderFor(doc.templateCode);
+	const orgInfo = await readOrg(toOrgCtx(ctx), (tx) =>
+		loadBuilderContext(tx, ctx.orgId),
+	);
+	const fnName = (k: string) => orgInfo.functionNames[k] ?? k;
+	const fill = (
+		markdown: string,
+		v: { version: string; publishedAt: Date | null },
+	) =>
+		fillDocumentTokens(markdown, {
+			docNumber: doc.docNumber,
+			version: v.version,
+			owner: doc.ownerFunction
+				? `${fnName(doc.ownerFunction)} · ${names.get(doc.ownerUserId ?? "") ?? "–"}`
+				: (names.get(doc.ownerUserId ?? "") ?? null),
+			approver: doc.approverFunction ? fnName(doc.approverFunction) : null,
+			effectiveFrom: v.publishedAt ? formatBerlinDate(v.publishedAt) : null,
+			nextReviewAt: doc.nextReviewAt
+				? formatBerlinDate(new Date(doc.nextReviewAt))
+				: null,
+			org: orgInfo.orgName,
+		});
+	const held = new Set(orgInfo.held);
+	const functionOptions: FunctionOption[] = Object.entries(
+		orgInfo.functionNames,
+	)
+		.map(([value, label]) => ({ value, label, held: held.has(value) }))
+		.sort(
+			(a, b) =>
+				Number(b.held) - Number(a.held) || a.label.localeCompare(b.label, "de"),
+		);
+	const builderMode =
+		builder && doc.builder?.mode === "builder" ? "builder" : null;
+	const canBuild = Boolean(builder && canEdit && doc.status === "draft");
 	const acksForCurrent = current
 		? acks.filter((a) => a.documentVersionId === current.id)
 		: [];
@@ -655,11 +699,11 @@ async function DocumentDetailPage({
 									{t("showCurrentText", { version: current.version })}
 								</summary>
 								<div className="border-border/60 border-t px-4 pb-4">
-									<MarkdownView source={current.bodyMarkdown} />
+									<MarkdownView source={fill(current.bodyMarkdown, current)} />
 								</div>
 							</details>
 						) : current.bodyMarkdown ? (
-							<MarkdownView source={current.bodyMarkdown} />
+							<MarkdownView source={fill(current.bodyMarkdown, current)} />
 						) : (
 							!current.fileEvidenceId && (
 								<p className="text-muted-foreground text-subhead">
@@ -705,12 +749,42 @@ async function DocumentDetailPage({
 							doc.fileEvidenceId,
 							t("fileOfVersion", { version: doc.version }),
 						)}
-					<DocumentEditor
-						documentId={doc.id}
-						body={doc.bodyMarkdown ?? ""}
-						editable={canEdit && doc.status === "draft"}
-						aiDraft={ai.features.includes("draft")}
-					/>
+					{builder && builderMode && doc.status === "draft" ? (
+						<PolicyBuilderPanel
+							documentId={doc.id}
+							title={doc.title}
+							builder={builder}
+							initial={doc.builder?.answers ?? {}}
+							orgName={orgInfo.orgName}
+							functionOptions={functionOptions}
+							editable={canEdit}
+						/>
+					) : (
+						<>
+							{canBuild && (
+								<StartPolicyBuilder
+									documentId={doc.id}
+									resume={doc.builder !== null}
+									replacesText={
+										(doc.bodyMarkdown ?? "").trim() !==
+										(
+											TEMPLATE_BY_CODE.get(doc.templateCode ?? "")?.body ?? ""
+										).trim()
+									}
+								/>
+							)}
+							<DocumentEditor
+								documentId={doc.id}
+								body={doc.bodyMarkdown ?? ""}
+								display={fill(doc.bodyMarkdown ?? "", {
+									version: doc.version,
+									publishedAt: null,
+								})}
+								editable={canEdit && doc.status === "draft"}
+								aiDraft={ai.features.includes("draft")}
+							/>
+						</>
+					)}
 				</Section>
 			)}
 
@@ -1030,6 +1104,7 @@ export default withMessages(DocumentDetailPage, [
 	"Entity",
 	"Evidence",
 	"Functions",
+	"PolicyBuilder",
 	"Resolutions",
 	"Settings",
 	"Status",
