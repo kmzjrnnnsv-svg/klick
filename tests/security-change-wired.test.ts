@@ -49,6 +49,18 @@ const WIRES: Wire[] = [
 		effect: ".set({ signaturePolicy",
 	},
 	{
+		file: "app/actions/identity.ts",
+		fn: "saveIdentityPolicyImpl",
+		gate: "requestApplyChange",
+		effect: "writeIdentityPolicy(",
+	},
+	{
+		file: "app/actions/identity.ts",
+		fn: "disconnectIdentitySourceImpl",
+		gate: "requirePermit",
+		effect: "disconnectSource(",
+	},
+	{
 		file: "app/actions/settings.ts",
 		fn: "deleteOrganizationActionImpl",
 		gate: "requirePermit",
@@ -147,7 +159,7 @@ describe("Vier-Augen ist an jeder kritischen Änderung angeschlossen", () => {
 		expect(users).toEqual(["app/actions/settings.ts"]);
 	});
 
-	it("SSO-, DLP-, Netz-, KI- und Unterschrifts-Regeln schreiben nur die Actions, der Dienst und der Notweg", () => {
+	it("SSO-, DLP-, Netz-, KI-, Unterschrifts- und Identitäts-Regeln schreiben nur die Actions, der Dienst und der Notweg", () => {
 		const allowed = new Set([
 			"app/actions/sso.ts",
 			"app/actions/settings.ts",
@@ -157,18 +169,29 @@ describe("Vier-Augen ist an jeder kritischen Änderung angeschlossen", () => {
 			"lib/ai/setup.ts",
 			// Unterschriften nur mit Sicherheitsschlüssel (Verschärfen sofort)
 			"app/actions/signature-policy.ts",
+			// Schwellen der Identitäts-Prüfungen (strenger sofort, aus der Action)
+			"lib/identity/manage.ts",
 			"lib/security-changes/service.ts",
 			// Notweg am Terminal (root, auditiert): IP-Liste ausschalten
 			"scripts/org-network-reset.ts",
 		]);
 		const writers = walkFiles(["app", "lib", "scripts"])
 			.filter((f) =>
-				/\.set\(\{\s*(ssoPolicy|dlpPolicy|networkPolicy|aiPolicy|signaturePolicy)\b/.test(
+				/\.set\(\{\s*(ssoPolicy|dlpPolicy|networkPolicy|aiPolicy|signaturePolicy|identityPolicy)\b/.test(
 					readFileSync(join(ROOT, f), "utf8"),
 				),
 			)
 			.filter((f) => !allowed.has(f));
 		expect(writers).toEqual([]);
+	});
+
+	it("Schwellen der Identität schreibt nur die Action (nach dem Vergleich)", () => {
+		const callers = walkFiles(["app", "lib", "scripts"]).filter(
+			(f) =>
+				f !== "lib/identity/manage.ts" &&
+				readFileSync(join(ROOT, f), "utf8").includes("writeIdentityPolicy("),
+		);
+		expect(callers).toEqual(["app/actions/identity.ts"]);
 	});
 
 	it("IP-Liste: Aussperr-Schutz vor dem Antrag, kein direktes Schreiben", () => {

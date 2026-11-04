@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { RegisterFilters } from "@/components/entity/register-filters";
@@ -30,6 +31,7 @@ import { normalizeRole, toOrgCtx } from "@/lib/auth/guards";
 import { isExternal } from "@/lib/auth/memberships";
 import { listOrgMembers, listPendingInvitations } from "@/lib/auth/org";
 import { canHoldOwnRole } from "@/lib/auth/permission-catalog";
+import { allows } from "@/lib/auth/permissions";
 import { mfaFactors } from "@/lib/auth/session-rules";
 import { addDays } from "@/lib/charts/timeline";
 import {
@@ -43,6 +45,11 @@ import { lastReminders } from "@/lib/compliance/queries-people";
 import { openItemsByPerson } from "@/lib/compliance/queries-report";
 import { readOrg } from "@/lib/db/with-org";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import {
+	hasIdentitySource,
+	identityAccountCounts,
+	identityPolicyFor,
+} from "@/lib/identity/queries";
 import { listOrgRoles, rolesByMember } from "@/lib/org/roles";
 import { cn } from "@/lib/utils";
 
@@ -60,9 +67,19 @@ async function TeamPage({ searchParams }: { searchParams: Promise<Search> }) {
 	const tr = await getTranslations("Roles");
 	const canManage = ctx.orgRole === "owner";
 	const today = berlinToday();
-	const { loads, reminded, lastReview, customRoles, roleMap } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const canIdentity = allows(ctx, { identity: ["read"] });
+	const { loads, reminded, lastReview, customRoles, roleMap, identity } =
+		await readOrg(toOrgCtx(ctx), async (tx) => ({
+			// Konten aus Entra ID (Teil D): Karte nur mit Recht und Quelle
+			identity:
+				canIdentity && (await hasIdentitySource(tx, ctx.orgId))
+					? await identityAccountCounts(
+							tx,
+							ctx.orgId,
+							new Date(),
+							await identityPolicyFor(tx, ctx.orgId),
+						)
+					: null,
 			customRoles: (await listOrgRoles(tx, ctx.orgId)).map((r) => ({
 				id: r.id,
 				name: r.name,
@@ -86,8 +103,7 @@ async function TeamPage({ searchParams }: { searchParams: Promise<Search> }) {
 				(await historyFor(tx, `organization:${ctx.orgId}`, 50)).find(
 					(h) => h.action === "access.review",
 				)?.at ?? null,
-		}),
-	);
+		}));
 	const fmt = new Intl.DateTimeFormat("de-DE", {
 		dateStyle: "medium",
 		timeZone: "Europe/Berlin",
@@ -139,6 +155,29 @@ async function TeamPage({ searchParams }: { searchParams: Promise<Search> }) {
 				lead={t("lead")}
 				actions={canManage ? <InviteForm roles={customRoles} /> : undefined}
 			/>
+			{(identity || (canManage && canIdentity)) && (
+				<Link
+					href="/team/konten"
+					className="hit-area mb-4 flex items-center justify-between gap-3 rounded-2xl bg-card p-4 text-subhead hover:bg-muted/60"
+				>
+					<span className="flex min-w-0 flex-col gap-0.5">
+						<span className="font-medium">{t("identityCard")}</span>
+						<span className="text-footnote text-muted-foreground">
+							{identity
+								? t("identityCardCounts", {
+										n: identity.all,
+										mfa: identity.withoutMfa,
+										admins: identity.admins,
+									})
+								: t("identityCardConnect")}
+						</span>
+					</span>
+					<ChevronRight
+						className="size-4 shrink-0 text-muted-foreground"
+						aria-hidden="true"
+					/>
+				</Link>
+			)}
 			<div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
 				<nav
 					aria-label={t("viewLabel")}

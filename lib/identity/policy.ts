@@ -32,9 +32,14 @@ export const DEFAULT_IDENTITY_POLICY: IdentityPolicy = {
 	staleHours: 72,
 };
 
-type Bounded = Exclude<keyof IdentityPolicy, "staleHours">;
+export type IdentityPolicyKey = Exclude<keyof IdentityPolicy, "staleHours">;
+type Bounded = IdentityPolicyKey;
 
-const BOUNDS: Record<Bounded, readonly [number, number]> = {
+// Grenzen je Schwelle (Formular und Lesen); Reihenfolge = Formular
+export const IDENTITY_POLICY_BOUNDS: Record<
+	IdentityPolicyKey,
+	readonly [number, number]
+> = {
 	mfaFailBelow: [50, 100],
 	maxTopAdmins: [1, 20],
 	leaverGraceDays: [0, 30],
@@ -55,7 +60,8 @@ export function identityPolicyOf(raw: unknown): IdentityPolicy {
 			? (raw as Record<string, unknown>)
 			: {};
 	const d = DEFAULT_IDENTITY_POLICY;
-	const pick = (key: Bounded) => boundedInt(obj[key], BOUNDS[key]) ?? d[key];
+	const pick = (key: Bounded) =>
+		boundedInt(obj[key], IDENTITY_POLICY_BOUNDS[key]) ?? d[key];
 	let recertPassDays = pick("recertPassDays");
 	let recertFailDays = pick("recertFailDays");
 	// „nicht bestanden“ vor „bestanden“ ergäbe keinen Sinn: beide auf Standard

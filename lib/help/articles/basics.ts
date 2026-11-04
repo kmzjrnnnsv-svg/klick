@@ -404,6 +404,15 @@ export const BASICS: HelpArticle[] = [
 				],
 			},
 			{
+				id: "konten",
+				heading: "Konten aus Entra ID prüfen lassen",
+				body: [
+					"Unter Einstellungen > Integrationen verbindet eine Inhaber:in Microsoft Entra ID, nur lesend. Danach prüft Klick jeden Tag vier Controls automatisch: MFA (CC-IAM-03), Admins (CC-IAM-04), Austritte (CC-IAM-02) und Rezertifizierung (CC-IAM-05). Das Ergebnis steht am Control unter „Automatische Prüfung“ und als Test im Testprogramm.",
+					"Team > Konten zeigt alle Konten mit Filtern wie „Ohne MFA“, „Admins“ oder „Ausgeschieden“. Auf der Seite eines Kontos ordnest du es einer Person in Klick zu, markierst es als ausgeschieden oder nimmst ein Notfall- oder Dienstkonto begründet und befristet aus den Prüfungen aus.",
+				],
+				tip: "Klick ändert nie etwas im Tenant. Deaktiviere Konten ausgeschiedener Personen selbst, sonst schlägt die Prüfung „Austritte“ nach der Frist an.",
+			},
+			{
 				id: "externe",
 				heading: "Externe Zugänge",
 				body: [

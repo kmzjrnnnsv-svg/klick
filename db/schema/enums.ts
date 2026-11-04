@@ -644,6 +644,8 @@ export const SECURITY_CHANGE_KINDS = [
 	"signature_policy",
 	// Neues Signaturzertifikat eines SAML-Anbieters übernehmen (AP10c)
 	"sso_saml_cert",
+	// Schwellen der automatischen Identitäts-Prüfungen lockern (Teil D)
+	"identity_policy",
 	// „erlaubt“: einmalige Erlaubnis für die anfragende Person (24 h)
 	"org_delete",
 	// Neu beginnen: alle Daten weg, Org leer neu angelegt
