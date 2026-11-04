@@ -18,6 +18,23 @@ export type InvitationStatus = (typeof INVITATION_STATUS)[number];
 export const CUSTODY_MODES = ["none", "own", "licensed"] as const;
 export type CustodyMode = (typeof CUSTODY_MODES)[number];
 
+// „Zugang anfragen“ (Startseite): wofür, und Stand der Bearbeitung
+export const ACCESS_REQUEST_PURPOSES = [
+	"own",
+	"payments",
+	"bot",
+	"other",
+] as const;
+export type AccessRequestPurpose = (typeof ACCESS_REQUEST_PURPOSES)[number];
+
+export const ACCESS_REQUEST_STATUS = [
+	"new",
+	"contacted",
+	"closed",
+	"spam",
+] as const;
+export type AccessRequestStatus = (typeof ACCESS_REQUEST_STATUS)[number];
+
 export const NOTIFICATION_KINDS = [
 	"security_alert",
 	"payout",

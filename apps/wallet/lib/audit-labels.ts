@@ -7,6 +7,7 @@ const LABELS: Record<string, string> = {
 	"member.removed": "Mitglied entfernt",
 	"member.invitation_revoked": "Einladung zurückgezogen",
 	"org.custody_mode_changed": "Verwahrmodus geändert",
+	"access_request.status": "Zugangsanfrage bearbeitet",
 	"export.wallet_transfers_csv": "Bewegungen als CSV exportiert",
 	"export.link_created": "Mit Klick verbunden",
 	"export.link_paused": "Compliance-Export pausiert",

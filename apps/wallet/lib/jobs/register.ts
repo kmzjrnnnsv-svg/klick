@@ -3,7 +3,7 @@ import { signerConfigured } from "@wallet/lib/wallet/signer/client";
 import type { PgBoss } from "pg-boss";
 import { runVerifyAuditChains } from "./audit-chain";
 import { runDayClose, runKlickExport } from "./klick-export";
-import { runImmediateMails } from "./mails";
+import { runAccessRequestMails, runImmediateMails } from "./mails";
 import { runPriceTick } from "./price-tick";
 import { runRetention } from "./retention";
 import { runWalletPayouts } from "./wallet-payouts";
@@ -54,6 +54,7 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 
 	await boss.work(JOBS.notificationMail, async () => {
 		await runImmediateMails();
+		await runAccessRequestMails();
 	});
 	await boss.work(JOBS.retention, async () => {
 		await runRetention();

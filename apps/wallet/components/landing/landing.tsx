@@ -1,32 +1,32 @@
 import {
-	CLOSE,
+	ACCESS,
 	COMPLIANCE,
 	EVENTS,
 	EVENTS_INTRO,
 	FAQ,
-	GOAL,
+	GOAL_NOTE,
 	HERO,
-	MORE,
 	PAYOUT,
 	PILLARS,
 	STAND,
 	type StandRow,
 	TERMS,
 } from "@wallet/lib/landing";
-import { STAGES, STATUS_LABEL } from "@wallet/lib/roadmap";
 import { TRADING } from "@wallet/lib/trading";
 import { Ban, Check, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Fragment } from "react";
+import { AccessForm } from "./access-form";
 import s from "./landing.module.css";
 import { PublicHeader } from "./public-header";
 
-// Öffentliche Startseite (abgemeldet unter „/“). Oben, was both.money ist,
-// und der Stand in drei Zeilen (heute, geplant, Ziel); dann wie es
-// funktioniert, der Bot als eigenes Band, was heute läuft, das Ziel mit den
-// Stufen, Nachweise, Begriffe und Fragen. Ohne Skript: der Ereignis-Umschalter
-// ist eine Radio-Gruppe, CSS zeigt die gewählte Antwort; Fragen über
-// <details>. Bewegung nur per CSS, nie bei reduzierter Bewegung.
+// Öffentliche Startseite (abgemeldet unter „/“), sieben Abschnitte: was
+// both.money ist mit dem Stand, Krypto überweisen, der Bot per Prompt, „Was
+// passiert, wenn …“, Nachweise, Fragen mit Begriffen und „Zugang anfragen“
+// als einzige Hauptaktion. Die Stufen bis zum Zahlungsweg stehen nur im
+// Fahrplan. Ohne Skript lesbar: der Ereignis-Umschalter ist eine
+// Radio-Gruppe, CSS zeigt die gewählte Antwort; Fragen über <details>.
+// Bewegung nur per CSS, nie bei reduzierter Bewegung.
 const button =
 	"inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary-fill px-6 font-semibold text-white transition-[filter] hover:brightness-110 active:opacity-70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 const textLink =
@@ -68,17 +68,12 @@ export function Landing() {
 						>
 							{HERO.lead}
 						</p>
-						<div
-							className={`flex flex-wrap items-center gap-x-5 gap-y-3 ${s.rise} ${s.rise3}`}
+						<a
+							href="#zugang"
+							className={`${button} self-start ${s.rise} ${s.rise3}`}
 						>
-							<Link href="/login" className={button}>
-								{HERO.action}
-							</Link>
-							<Link href="/roadmap" className={textLink}>
-								{MORE.action}
-								<ChevronRight className="size-4" aria-hidden />
-							</Link>
-						</div>
+							{HERO.action}
+						</a>
 						<p className="max-w-xl text-pretty text-subhead leading-relaxed">
 							{HERO.today}
 						</p>
@@ -87,45 +82,10 @@ export function Landing() {
 				</section>
 
 				<section
-					id="so-gehts"
-					aria-labelledby="bm-pillars"
+					id="ueberweisen"
+					aria-labelledby="bm-payout"
 					className="border-t bg-card"
 				>
-					<div className={section}>
-						<h2 id="bm-pillars" className={`${heading} ${s.reveal}`}>
-							{PILLARS.title}
-						</h2>
-						<p className="mt-4 max-w-2xl text-pretty text-muted-foreground leading-relaxed">
-							{PILLARS.lead}
-						</p>
-						<ol className="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-3">
-							{PILLARS.items.map((p, i) => (
-								<li
-									key={p.key}
-									className={`row-span-3 grid grid-rows-subgrid gap-3 ${s.reveal}`}
-								>
-									<h3 className="flex items-baseline gap-3 font-semibold text-title-3">
-										<span
-											className="font-bold text-title-1 tabular-nums"
-											aria-hidden
-										>
-											{i + 1}
-										</span>
-										{p.title}
-									</h3>
-									<p className="text-pretty leading-relaxed">{p.text}</p>
-									<p className="self-start rounded-xl bg-background px-4 py-3 text-pretty text-muted-foreground text-subhead leading-relaxed">
-										{p.like}
-									</p>
-								</li>
-							))}
-						</ol>
-					</div>
-				</section>
-
-				<Trading />
-
-				<section aria-labelledby="bm-payout" className="border-t">
 					<div className={section}>
 						<h2 id="bm-payout" className={`${heading} ${s.reveal}`}>
 							{PAYOUT.title}
@@ -157,10 +117,38 @@ export function Landing() {
 								</li>
 							))}
 						</ol>
+
+						<h3 className="mt-16 font-bold text-title-2">{PILLARS.title}</h3>
+						<ul className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-3">
+							{PILLARS.items.map((p) => (
+								<li
+									key={p.key}
+									className={`flex flex-col gap-2 border-t pt-4 ${s.reveal}`}
+								>
+									<p className="font-semibold text-headline">{p.title}</p>
+									<p className="text-pretty text-muted-foreground leading-relaxed">
+										{p.like}
+									</p>
+								</li>
+							))}
+						</ul>
+
+						<div className="mt-12 flex flex-col gap-3 rounded-2xl bg-background p-5 sm:p-6">
+							<p className={`${badge} ${TONE.goal}`}>{GOAL_NOTE.label}</p>
+							<p className="max-w-3xl text-pretty leading-relaxed">
+								{GOAL_NOTE.text}
+							</p>
+							<Link href="/roadmap" className={`${textLink} self-start`}>
+								{GOAL_NOTE.action}
+								<ChevronRight className="size-4" aria-hidden />
+							</Link>
+						</div>
 					</div>
 				</section>
 
-				<section aria-labelledby="bm-events" className="border-t bg-card">
+				<Trading />
+
+				<section aria-labelledby="bm-events" className="border-t">
 					<div
 						className={`${section} grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_1.4fr]`}
 					>
@@ -173,90 +161,6 @@ export function Landing() {
 							</p>
 						</div>
 						<EventPicker />
-					</div>
-				</section>
-
-				<section id="ziel" aria-labelledby="bm-goal" className="border-t">
-					<div className={section}>
-						<p className={`${badge} ${TONE.goal}`}>{GOAL.badge}</p>
-						<h2 id="bm-goal" className={`${heading} mt-5 ${s.reveal}`}>
-							{GOAL.title}
-						</h2>
-						<p className="mt-4 max-w-3xl text-pretty text-title-3 leading-relaxed">
-							{GOAL.lead}
-						</p>
-						{/* Zeilen per Subgrid: „Heute“ steht in allen Spalten auf einer Höhe */}
-						<ol className="mt-12 grid grid-cols-1 gap-x-8 gap-y-10 md:grid-cols-2 lg:grid-cols-4">
-							{GOAL.steps.map((step, i) => (
-								<li
-									key={step.key}
-									className={`row-span-3 grid grid-rows-subgrid gap-3 ${s.reveal}`}
-								>
-									<p className="flex items-baseline gap-3 font-semibold text-headline">
-										<span
-											className="font-bold text-title-1 tabular-nums"
-											aria-hidden
-										>
-											{i + 1}
-										</span>
-										{step.title}
-									</p>
-									<p className="text-pretty text-muted-foreground leading-relaxed">
-										{step.text}
-									</p>
-									<p className="flex items-baseline gap-2.5 self-start border-t pt-3 text-subhead">
-										<span
-											className={
-												step.live
-													? "size-2 shrink-0 translate-y-[-1px] rounded-full bg-primary"
-													: "size-2 shrink-0 translate-y-[-1px] rounded-full border border-muted-foreground"
-											}
-											aria-hidden
-										/>
-										<span>
-											<span className="font-medium">Heute:</span> {step.today}
-										</span>
-									</p>
-								</li>
-							))}
-						</ol>
-
-						<div className="mt-16 grid grid-cols-1 items-end gap-6 lg:grid-cols-[1.4fr_auto]">
-							<div className={s.reveal}>
-								<h3 className="font-bold text-title-2">{GOAL.stagesTitle}</h3>
-								<p className="mt-3 max-w-3xl text-pretty text-muted-foreground leading-relaxed">
-									{GOAL.stagesText}
-								</p>
-							</div>
-							<Link
-								href="/roadmap"
-								className={`${button} self-start lg:self-end`}
-							>
-								{GOAL.action}
-							</Link>
-						</div>
-						<ol className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-							{STAGES.map((stage) => (
-								<li
-									key={stage.key}
-									className={`flex flex-col gap-3 rounded-2xl bg-card p-5 ${s.reveal}`}
-								>
-									<h4 className="text-pretty font-semibold text-headline leading-snug">
-										{stage.title}
-									</h4>
-									<span
-										className={`${badge} ${stage.status === "live" ? TONE.live : TONE.goal}`}
-									>
-										{STATUS_LABEL[stage.status]}
-									</span>
-									{stage.requires && (
-										<p className="text-pretty text-muted-foreground text-subhead leading-relaxed">
-											{stage.requires}
-										</p>
-									)}
-								</li>
-							))}
-						</ol>
 					</div>
 				</section>
 
@@ -320,76 +224,87 @@ export function Landing() {
 					</div>
 				</section>
 
-				<section aria-labelledby="bm-terms" className="border-t">
-					<div className={section}>
-						<h2 id="bm-terms" className={`${heading} ${s.reveal}`}>
-							{TERMS.title}
-						</h2>
-						<dl className="mt-10 grid grid-cols-1 gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-							{TERMS.items.map((t) => (
-								<div key={t.term} className={`border-t pt-4 ${s.reveal}`}>
-									<dt className="font-semibold text-headline">{t.term}</dt>
-									<dd className="mt-1.5 text-pretty text-muted-foreground leading-relaxed">
-										{t.text}
-									</dd>
-								</div>
-							))}
-						</dl>
-					</div>
-				</section>
-
-				<section aria-labelledby="bm-faq" className="border-t bg-card">
+				<section aria-labelledby="bm-faq" className="border-t">
 					<div
 						className={`${section} grid grid-cols-1 gap-10 lg:grid-cols-[1fr_2fr]`}
 					>
 						<h2 id="bm-faq" className={heading}>
 							{FAQ.title}
 						</h2>
-						<div className="divide-y border-y">
-							{FAQ.items.map((item) => (
-								<details key={item.q} className="group py-1">
-									<summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 font-medium focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
-										{item.q}
-										<span
-											className="text-primary text-title-3 leading-none transition-transform group-open:rotate-45"
-											aria-hidden
-										>
-											+
-										</span>
-									</summary>
-									<p className="max-w-2xl pb-4 text-pretty text-muted-foreground leading-relaxed">
-										{item.a}
-									</p>
-								</details>
-							))}
+						<div className="flex flex-col gap-8">
+							<div className="divide-y border-y">
+								{FAQ.items.map((item) => (
+									<Question key={item.q} q={item.q}>
+										<p className="max-w-2xl pb-4 text-pretty text-muted-foreground leading-relaxed">
+											{item.a}
+										</p>
+									</Question>
+								))}
+							</div>
+							<div className="border-y">
+								<Question q={TERMS.title}>
+									<dl className="grid grid-cols-1 gap-x-8 gap-y-4 pb-5 sm:grid-cols-2">
+										{TERMS.items.map((t) => (
+											<div key={t.term}>
+												<dt className="font-semibold">{t.term}</dt>
+												<dd className="mt-1 text-pretty text-muted-foreground leading-relaxed">
+													{t.text}
+												</dd>
+											</div>
+										))}
+									</dl>
+								</Question>
+							</div>
 						</div>
 					</div>
 				</section>
 
-				<section aria-labelledby="bm-close" className="border-t">
-					<div className={`${section} flex flex-col items-start gap-6`}>
-						<h2
-							id="bm-close"
-							className="max-w-2xl text-balance font-bold text-title-1 sm:text-4xl"
-						>
-							{CLOSE.sentence}
-						</h2>
-						<div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-							<Link href="/login" className={button}>
-								{CLOSE.action}
-							</Link>
-							<Link href="/roadmap" className={textLink}>
-								{MORE.action}
-								<ChevronRight className="size-4" aria-hidden />
-							</Link>
+				<section
+					id="zugang"
+					aria-labelledby="bm-access"
+					className="border-t bg-card"
+				>
+					<div
+						className={`${section} grid grid-cols-1 items-start gap-10 lg:grid-cols-[1fr_1.4fr]`}
+					>
+						<div className="flex flex-col gap-4">
+							<h2 id="bm-access" className={heading}>
+								{ACCESS.title}
+							</h2>
+							<p className="max-w-md text-pretty text-muted-foreground leading-relaxed">
+								{ACCESS.lead}
+							</p>
+							<p className="flex flex-wrap items-center gap-x-2 text-subhead">
+								{ACCESS.invited}
+								<Link href="/login" className={textLink}>
+									{ACCESS.login}
+									<ChevronRight className="size-4" aria-hidden />
+								</Link>
+							</p>
 						</div>
-						<p className="max-w-xl text-pretty text-muted-foreground text-subhead">
-							{MORE.text}
-						</p>
+						<AccessForm />
 					</div>
 				</section>
 			</main>
 		</>
+	);
+}
+
+// Frage zum Aufklappen (ohne Skript)
+function Question({ q, children }: { q: string; children: React.ReactNode }) {
+	return (
+		<details className="group py-1">
+			<summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 py-3 font-medium focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2 [&::-webkit-details-marker]:hidden">
+				{q}
+				<span
+					className="text-primary text-title-3 leading-none transition-transform group-open:rotate-45"
+					aria-hidden
+				>
+					+
+				</span>
+			</summary>
+			{children}
+		</details>
 	);
 }
 
@@ -462,7 +377,7 @@ function Trading() {
 					</p>
 				</div>
 
-				<ol className="mt-14 grid grid-cols-1 gap-x-8 gap-y-8 border-white/30 border-t pt-10 md:grid-cols-2 lg:grid-cols-4">
+				<ol className="mt-14 grid grid-cols-1 gap-x-6 gap-y-8 border-white/30 border-t pt-10 md:grid-cols-2 lg:grid-cols-5">
 					{TRADING.steps.map((step, i) => (
 						<li key={step.title} className={`flex flex-col gap-2 ${s.reveal}`}>
 							<p className="flex items-baseline gap-3 font-semibold text-headline">
@@ -480,7 +395,7 @@ function Trading() {
 				</ol>
 
 				<div className="mt-14 grid grid-cols-1 gap-4 text-foreground lg:grid-cols-2">
-					<FrameFragment />
+					<PromptFragment />
 					<BotLogFragment />
 				</div>
 
@@ -535,7 +450,9 @@ function RuleList({
 							className={`mt-1 size-5 shrink-0 ${kind === "may" ? "text-success" : "text-warning"}`}
 							aria-hidden
 						/>
-						<span className="text-pretty">{item}</span>
+						<span className="min-w-0 text-pretty break-words hyphens-auto">
+							{item}
+						</span>
 					</li>
 				))}
 			</ul>
@@ -632,15 +549,21 @@ function FakeButton({ children }: { children: React.ReactNode }) {
 	);
 }
 
-function FrameFragment() {
+// Prompt in eigenen Worten, darunter die Regeln, die die KI daraus macht
+function PromptFragment() {
+	const ex = TRADING.example;
 	return (
 		<figure className={`${frag} sm:p-6 ${s.reveal}`}>
 			<figcaption className="text-muted-foreground text-footnote">
-				{TRADING.example.label}
+				{ex.label}
 			</figcaption>
-			<p className={`${fragTitle} mt-1`}>{TRADING.example.frameTitle}</p>
-			<Fields rows={TRADING.example.frame} numeric={false} />
-			<FakeButton>{TRADING.example.frameAction}</FakeButton>
+			<p className={`${fragTitle} mt-1`}>{ex.promptTitle}</p>
+			<p className="mt-2 rounded-xl bg-muted px-3 py-2.5 text-pretty text-callout leading-relaxed">
+				{ex.prompt}
+			</p>
+			<p className={`${fragTitle} mt-5`}>{ex.frameTitle}</p>
+			<Fields rows={ex.frame} numeric={false} />
+			<FakeButton>{ex.frameAction}</FakeButton>
 		</figure>
 	);
 }
@@ -687,6 +610,12 @@ function BotLogFragment() {
 					})}
 				</tbody>
 			</table>
+			<span
+				className="mt-4 inline-flex w-full items-center justify-center rounded-full border border-destructive px-3 py-2 font-semibold text-destructive text-footnote"
+				aria-hidden
+			>
+				{TRADING.example.stopAction}
+			</span>
 		</figure>
 	);
 }
