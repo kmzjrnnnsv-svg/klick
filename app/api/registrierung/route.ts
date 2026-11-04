@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { roleLabel } from "@/lib/auth/memberships";
+import { accessDaysFor, roleLabel } from "@/lib/auth/memberships";
 import {
 	REG_COOKIE,
 	REG_COOKIE_PATH,
@@ -51,6 +51,9 @@ export const POST = ingestRoute("registration.link", async (req: Request) => {
 					email: info.email,
 					organization: info.organization,
 					role: roleLabel(info.role),
+					// befristeter Zugang (Prüfer:innen, Berater:innen), sonst null
+					accessDays: accessDaysFor(info.role),
+					auditor: info.role === "auditor",
 					inviter: info.inviter,
 					accountExists: info.accountExists,
 					expiresAt: info.expiresAt,

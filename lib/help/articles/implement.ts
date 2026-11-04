@@ -32,7 +32,7 @@ export const IMPLEMENT: HelpArticle[] = [
 				id: "reife",
 				heading: "Prüfungsreife",
 				body: [
-					"Die Prüfungsreife beantwortet die Frage: Wenn morgen das Audit wäre, wie gut stünde ich da? Klick rechnet sie je Rahmenwerk zu einem Stichtag aus Abdeckung, gültigen Nachweisen, frischen Wirksamkeitstests, Pflichtdokumenten und offenen Abweichungen, Findings und Sicherheitsbefunden (mit gedeckelten Abzügen). In einem Audit kommen offene Nachweisanfragen dazu.",
+					"Die Prüfungsreife beantwortet die Frage: Wenn morgen das Audit wäre, wie gut stünde ich da? Klick rechnet sie je Rahmenwerk zu einem Stichtag aus Abdeckung, gültigen Nachweisen, frischen Wirksamkeitstests, Pflichtdokumenten und offenen Abweichungen, Feststellungen und Sicherheitsbefunden (mit gedeckelten Abzügen). In einem Audit kommen offene Anfragen dazu.",
 					"Die Blocker-Liste sortiert, was am meisten Punkte bringt. Jeder Blocker führt direkt zur passenden Stelle.",
 				],
 				steps: [

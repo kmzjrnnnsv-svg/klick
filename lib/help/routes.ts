@@ -68,12 +68,19 @@ export function helpSlugForPath(pathname: string): string {
 	return best?.slug ?? HELP_FALLBACK;
 }
 
+// Prüfer:innen: ihr Artikel für alle Seiten der Prüfung
+export const AUDITOR_HELP = "pruefen-mit-klick";
+
 // Ziel des Knopfs „Hilfe zu dieser Seite“: ist `allowed` gesetzt (Artikel,
 // die die Person sehen darf, z. B. Mitarbeitende), sonst „Erste Schritte“.
+// Prüfer:innen führen Audit-Seiten auf „Prüfen mit Klick“.
 export function helpTarget(
 	pathname: string,
 	allowed?: readonly string[],
+	auditor = false,
 ): string {
+	if (auditor && (pathname === "/audits" || pathname.startsWith("/audits/")))
+		return AUDITOR_HELP;
 	const slug = helpSlugForPath(pathname);
 	return !allowed || allowed.includes(slug) ? slug : HELP_FALLBACK;
 }

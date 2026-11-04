@@ -6,6 +6,7 @@ export const HELP_ICONS: Record<string, NavIcon> = {
 	heute: "sun",
 	einrichtung: "list-checks",
 	anmeldung: "lock",
+	"pruefen-mit-klick": "clipboard-check",
 	"rollen-rechte": "users",
 	bestellung: "badge-check",
 	freigaben: "git-pull-request",

@@ -5,7 +5,7 @@ import { AcceptInvitation } from "@/components/auth/accept-invitation";
 import { withMessages } from "@/components/i18n/with-messages";
 import { buttonVariants } from "@/components/ui/button";
 import { getSessionCtx } from "@/lib/auth/guards";
-import { roleLabel } from "@/lib/auth/memberships";
+import { accessDaysFor, roleLabel } from "@/lib/auth/memberships";
 import { auth } from "@/lib/auth/server";
 
 async function InvitationPage({ params }: { params: Promise<{ id: string }> }) {
@@ -62,6 +62,12 @@ async function InvitationPage({ params }: { params: Promise<{ id: string }> }) {
 					role: roleLabel(invitation.role),
 				})}
 			</p>
+			{accessDaysFor(invitation.role) ? (
+				<p className="text-muted-foreground text-subhead">
+					{t("accessDays", { days: accessDaysFor(invitation.role) ?? 0 })}
+					{invitation.role === "auditor" ? ` ${t("auditorFirstStep")}` : ""}
+				</p>
+			) : null}
 			<AcceptInvitation invitationId={id} />
 		</div>
 	);

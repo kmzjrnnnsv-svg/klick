@@ -146,7 +146,7 @@ export const GOVERNANCE: HelpArticle[] = [
 		area: "governance",
 		title: "Audits, Abweichungen und Testprogramm",
 		summary:
-			"Auditprogramm, Audit-Cockpit mit Prüfpfad und Nachweisanfragen, Abweichungen mit Ursache und Wirksamkeit, Testprogramm mit Notfall- und Penetrationstests.",
+			"Auditprogramm, Audit-Cockpit mit Prüfpfad und Anfragen, Abweichungen mit Ursache und Wirksamkeit, Testprogramm mit Notfall- und Penetrationstests.",
 		sections: [
 			{
 				id: "programm",
@@ -159,12 +159,12 @@ export const GOVERNANCE: HelpArticle[] = [
 				id: "cockpit",
 				heading: "Das Audit-Cockpit",
 				steps: [
-					"Öffne das Audit. Die Übersicht zeigt auf einer Zeitleiste Prüfzeitraum, Audit-Termin und die Fristen offener Anfragen, dazu den Stand der Anfragen, offene Findings nach Schwere und die Prüfungsreife.",
+					"Öffne das Audit. Die Übersicht zeigt auf einer Zeitleiste Prüfzeitraum, Audit-Termin und die Fristen offener Anfragen, dazu den Stand der Anfragen, offene Feststellungen nach Schwere und die Prüfungsreife.",
 					"Der Prüfpfad führt von der Anforderung über das Control zum Nachweis. „Rückfrage“ an einem Control öffnet eine neue Anfrage, in der Control und Titel schon stehen.",
 					"Lad Prüfer:innen über Team mit der Rolle Prüfer:in ein. Sie sehen die gültigen Fassungen und landen nach der Anmeldung direkt im Audit, in dem sie prüfen.",
-					"Prüfer:innen stellen Nachweisanfragen (PBC). Jede Anfrage wird eine Aufgabe für die verantwortliche Person. Unter „Anfragen“ filterst du nach Stand und suchst; jede Anfrage hat eine eigene Seite mit Antwort, Nachweisen und Kommentaren. Prüfer:in und Bearbeitende erfahren jeden Kommentar der Gegenseite.",
-					"Findings erfassen Prüfer:innen direkt. Ab Schwere „leicht“ legt Klick eine Abweichung an.",
-					"Exportier das Prüfungspaket: SoA, Lücken, Controls, Risiken, gültige Dokumentfassungen im Zeitraum, Nachweis-Index, Vorfälle, Protokollauszug, Findings. Jede Datei ist über eine Prüfsumme im Manifest gesichert.",
+					"Prüfer:innen stellen Anfragen an die Organisation. Jede Anfrage wird eine Aufgabe für die verantwortliche Person. Unter „Anfragen“ filterst du nach Stand und suchst; jede Anfrage hat eine eigene Seite mit Antwort, Nachweisen und Kommentaren. Prüfer:in und Bearbeitende erfahren jeden Kommentar der Gegenseite.",
+					"Feststellungen erfassen Prüfer:innen direkt. Ab Schwere „leicht“ legt Klick eine Abweichung an.",
+					"Exportier das Prüfungspaket: SoA, Lücken, Controls, Risiken, gültige Dokumentfassungen im Zeitraum, Nachweis-Index, Vorfälle, Protokollauszug, Feststellungen. Jede Datei ist über eine Prüfsumme im Manifest gesichert.",
 				],
 				tip: "Prüf vor dem Audit die Unabhängigkeit: Wer intern prüft, darf den geprüften Bereich nicht selbst verantworten. Klick weist darauf hin.",
 			},
@@ -172,7 +172,7 @@ export const GOVERNANCE: HelpArticle[] = [
 				id: "abweichungen",
 				heading: "Abweichungen (CAPA)",
 				list: [
-					"Abweichungen entstehen aus Findings, nicht bestandenen Tests, schweren Vorfällen, Scan-Befunden oder von Hand.",
+					"Abweichungen entstehen aus Feststellungen, nicht bestandenen Tests, schweren Vorfällen, Scan-Befunden oder von Hand.",
 					"Je Abweichung: Sofortmaßnahme, Ursachenanalyse, Korrekturmaßnahme, Frist nach Klasse (Haupt-, Nebenabweichung, Hinweis) und Rahmenwerk.",
 					"Die Geschäftsleitung kann priorisieren.",
 					"Abschließen geht nur mit der Wirksamkeitsprüfung „wirksam“.",
@@ -187,7 +187,7 @@ export const GOVERNANCE: HelpArticle[] = [
 			},
 		],
 		roles: [
-			"Prüfer:innen: lesen, Nachweisanfragen, Findings, Abweichungen anlegen; kommentieren nur am Audit, an Anfragen und Findings.",
+			"Prüfer:innen: lesen, Anfragen stellen, Feststellungen und Abweichungen anlegen; kommentieren nur am Audit, an Anfragen und Feststellungen.",
 			"Abweichungen bearbeiten: die verantwortliche Funktion; priorisieren die Geschäftsleitung.",
 		],
 		automation: [
@@ -207,7 +207,7 @@ export const GOVERNANCE: HelpArticle[] = [
 			{ key: "zag-marisk:AT4.4.3", why: "Interne Revision." },
 			{ key: "soc2:CC4.2", why: "Mängel melden und beheben." },
 		],
-		related: ["nachweise", "fassungen", "ueberblick"],
+		related: ["nachweise", "fassungen", "ueberblick", "pruefen-mit-klick"],
 	},
 	{
 		slug: "kalender",
