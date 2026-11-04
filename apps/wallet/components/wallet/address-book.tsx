@@ -4,7 +4,7 @@ import {
 	proposeDestination,
 	vetoDestination,
 } from "@wallet/app/actions/wallet-send";
-import { useWalletError } from "@wallet/components/wallet/use-wallet-error";
+import { useWalletErrorText } from "@wallet/components/wallet/use-wallet-error";
 import { Ban, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -19,6 +19,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -40,7 +41,8 @@ export function ProposeDestinationDialog({
 }) {
 	const t = useTranslations("Wallet");
 	const router = useRouter();
-	const onError = useWalletError();
+	const errorText = useWalletErrorText();
+	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [network, setNetwork] = useState<WalletNetwork | "">(
@@ -50,9 +52,10 @@ export function ProposeDestinationDialog({
 	const [label, setLabel] = useState("");
 
 	function submit() {
+		setError(null);
 		start(async () => {
 			const res = await proposeDestination({ network, address, label });
-			if (!res.ok) return onError(res);
+			if (!res.ok) return setError(errorText(res));
 			toast.success(t("abProposed"));
 			setOpen(false);
 			setAddress("");
@@ -128,6 +131,7 @@ export function ProposeDestinationDialog({
 					<p className="text-muted-foreground text-subhead">
 						{t("abProposeHint")}
 					</p>
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button type="submit" disabled={pending || !network}>
 							{pending ? t("abProposing") : t("abProposeSubmit")}
@@ -149,7 +153,8 @@ export function VetoDestinationButton({
 }) {
 	const t = useTranslations("Wallet");
 	const router = useRouter();
-	const onError = useWalletError();
+	const errorText = useWalletErrorText();
+	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [reason, setReason] = useState("");
@@ -171,9 +176,10 @@ export function VetoDestinationButton({
 					className="flex flex-col gap-4"
 					onSubmit={(e) => {
 						e.preventDefault();
+						setError(null);
 						start(async () => {
 							const res = await vetoDestination({ id, reason });
-							if (!res.ok) return onError(res);
+							if (!res.ok) return setError(errorText(res));
 							toast.success(t("abVetoDone"));
 							setOpen(false);
 							router.refresh();
@@ -195,6 +201,7 @@ export function VetoDestinationButton({
 							minLength={3}
 						/>
 					</div>
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button type="submit" variant="destructive" disabled={pending}>
 							{pending ? t("abVetoing") : t("abVetoSubmit")}
