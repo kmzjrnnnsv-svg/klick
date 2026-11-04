@@ -153,7 +153,7 @@ export const SETTINGS: HelpArticle[] = [
 				steps: [
 					"Unter Einstellungen > Integrationen > Microsoft Teams lädst du das App-Paket herunter und gibst es deiner IT. Sie lädt es im Teams Admin Center hoch.",
 					"Trag die Tenant-ID deines Microsoft 365 ein (mit Entra-SSO ist sie vorbelegt) und schick den Freigabe-Link an eine Person mit Administratorrechten. Sie stimmt bei Microsoft zu.",
-					"Nach der Freigabe schaltest du Teams ein und schickst dir einen Testhinweis.",
+					"Nach der Freigabe schaltest du Teams ein und schickst dir einen Testhinweis. Die Freigabe gilt nur, wenn eine Inhaber:in im Tenant ein eigenes Konto mit derselben E-Mail wie in Klick hat.",
 					"Jede Person wählt unter Einstellungen > Benachrichtigungen, welche Arten in Teams kommen.",
 				],
 				tip: "An Microsoft gehen nur der Titel und der Link zur Seite in Klick, keine Inhalte. Freigeben und Unterschreiben bleiben in Klick mit Passkey. Klappt die Zustellung dreimal nicht, kommt die Nachricht per Mail.",

@@ -193,14 +193,22 @@ async function checkOverflow(page: Page, where: string) {
 			const root = document.querySelector<HTMLElement>("[data-scroll-root]");
 			const inner =
 				root && getComputedStyle(root).overflowY === "auto" ? root : null;
-			const vw = inner
-				? inner.getBoundingClientRect().right
-				: document.documentElement.clientWidth;
-			const sw = Math.max(
-				document.documentElement.scrollWidth,
-				inner ? inner.getBoundingClientRect().left + inner.scrollWidth : 0,
-			);
-			if (sw <= vw + 1) return null;
+			// Fenster und Scrollbereich je für sich: der Scrollbereich muss nicht
+			// bis zum rechten Fensterrand reichen (Admin-Rahmen mit max-w-7xl)
+			const doc = document.documentElement;
+			const docOver = doc.scrollWidth > doc.clientWidth + 1;
+			const innerOver = inner
+				? inner.scrollWidth > inner.clientWidth + 1
+				: false;
+			if (!docOver && !innerOver) return null;
+			const vw =
+				inner && innerOver
+					? inner.getBoundingClientRect().right
+					: doc.clientWidth;
+			const sw =
+				inner && innerOver
+					? inner.getBoundingClientRect().left + inner.scrollWidth
+					: doc.scrollWidth;
 			const els = [...document.querySelectorAll("main *")];
 			const el = els.find((e) => {
 				const right = e.getBoundingClientRect().right;

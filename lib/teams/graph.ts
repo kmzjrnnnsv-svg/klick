@@ -1,4 +1,10 @@
-import { createHash, createPrivateKey, randomUUID, sign } from "node:crypto";
+import {
+	constants,
+	createHash,
+	createPrivateKey,
+	randomUUID,
+	sign,
+} from "node:crypto";
 import type { TeamsConfig } from "./config";
 import type { TeamsHttpError, TeamsHttpRequest, TeamsTransport } from "./http";
 
@@ -49,10 +55,12 @@ export function clientAssertion(
 		cert.replace(/-----[^-]+-----/g, "").replace(/\s+/g, ""),
 		"base64",
 	);
+	// PS256 mit SHA-256-Fingerabdruck (x5t#S256, RFC 7515 4.1.8), wie
+	// Microsoft es für Zertifikats-Assertions empfiehlt; kein SHA-1 (x5t).
 	const header = {
-		alg: "RS256",
+		alg: "PS256",
 		typ: "JWT",
-		x5t: b64url(createHash("sha1").update(der).digest()),
+		"x5t#S256": b64url(createHash("sha256").update(der).digest()),
 	};
 	const now = Math.floor(nowMs / 1000);
 	const payload = {
@@ -64,7 +72,11 @@ export function clientAssertion(
 		exp: now + 600,
 	};
 	const data = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(payload))}`;
-	const sig = sign("sha256", Buffer.from(data), createPrivateKey(key));
+	const sig = sign("sha256", Buffer.from(data), {
+		key: createPrivateKey(key),
+		padding: constants.RSA_PKCS1_PSS_PADDING,
+		saltLength: constants.RSA_PSS_SALTLEN_DIGEST,
+	});
 	return `${data}.${b64url(sig)}`;
 }
 
@@ -231,6 +243,44 @@ export function createGraphClient(
 			return v?.length === 1 && v[0]
 				? { ok: true, value: v[0].id }
 				: { ok: false, error: "user_not_found" };
+		},
+
+		// Hat der Tenant ein eigenes Konto (kein Gast) mit dieser Adresse?
+		// Grundlage der Bindung Tenant ↔ Org bei der Freigabe: Gäste aus
+		// anderen Firmen zählen nicht. Gäste erkennt Graph am Anmeldenamen
+		// („…#EXT#@…“), der zum Basisprofil gehört (User.ReadBasic.All).
+		async tenantMember(
+			tenantId: string,
+			email: string,
+		): Promise<GraphResult<boolean>> {
+			type U = {
+				id?: string;
+				userPrincipalName?: string | null;
+				userType?: string | null;
+			};
+			const member = (u: U | null | undefined) =>
+				Boolean(u?.id) &&
+				u?.userType !== "Guest" &&
+				!(u?.userPrincipalName ?? "").toUpperCase().includes("#EXT#");
+			const select = "$select=id,userPrincipalName";
+			const direct = await call(
+				tenantId,
+				"GET",
+				`/users/${encodeURIComponent(email)}?${select}`,
+			);
+			if (!direct.ok) return direct;
+			if (direct.value.status === 200)
+				return { ok: true, value: member(parse<U>(direct.value.body)) };
+			const q = encodeURIComponent(`mail eq '${odataQuote(email)}'`);
+			const list = await call(
+				tenantId,
+				"GET",
+				`/users?$filter=${q}&${select}&$top=2`,
+			);
+			if (!list.ok) return list;
+			if (list.value.status !== 200) return { ok: true, value: false };
+			const v = parse<{ value?: U[] }>(list.value.body)?.value;
+			return { ok: true, value: v?.length === 1 && member(v[0]) };
 		},
 
 		async findCatalogApp(tenantId: string): Promise<GraphResult<string>> {

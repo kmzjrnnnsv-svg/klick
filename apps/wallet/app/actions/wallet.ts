@@ -328,7 +328,7 @@ async function issueReceiveAddressImpl(
 			},
 		};
 	});
-	if (res.ok) revalidatePath(`${PATH}/empfangen`);
+	if (res.ok) revalidatePath("/receive");
 	return res;
 }
 

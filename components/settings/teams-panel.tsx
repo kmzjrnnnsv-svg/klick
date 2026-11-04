@@ -46,6 +46,8 @@ const TEAMS_ERRORS = [
 	"throttled",
 	"not_configured",
 	"not_consented",
+	"tenant_unbound",
+	"tenant_taken",
 ] as const;
 
 const fmt = new Intl.DateTimeFormat("de-DE", {
@@ -136,7 +138,13 @@ export function TeamsPanel({
 						</div>
 						{integration?.lastError && (
 							<p className="text-footnote text-muted-foreground">
-								{t("lastError", { error: integration.lastError })}
+								{(TEAMS_ERRORS as readonly string[]).includes(
+									integration.lastError,
+								)
+									? t(
+											`error_${integration.lastError as (typeof TEAMS_ERRORS)[number]}`,
+										)
+									: t("lastError", { error: integration.lastError })}
 							</p>
 						)}
 

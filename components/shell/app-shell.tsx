@@ -6,6 +6,7 @@ import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ScrollReset } from "@/components/ui/scroll-reset";
 import type { OrgContext } from "@/lib/auth/guards";
 import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
+import { articlesFor } from "@/lib/help";
 import type { NavGroup } from "@/lib/nav";
 import { CommandPalette } from "./command-palette";
 import { HelpLink } from "./help-link";
@@ -97,7 +98,13 @@ export async function AppShell({
 					</Link>
 					<div className="ml-auto flex items-center gap-1">
 						<CommandPalette groups={groups} tabBar />
-						<HelpLink />
+						<HelpLink
+							allowed={
+								ctx.orgRole === "employee"
+									? articlesFor(ctx.orgRole).map((a) => a.slug)
+									: undefined
+							}
+						/>
 						<NotificationBell items={bell.items} unread={bell.unread} />
 						<UserMenu
 							name={ctx.name}

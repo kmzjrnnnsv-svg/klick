@@ -7,6 +7,7 @@ import { accessTokens, type PortalDomain, policyPortals } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { listSsoProvidersForOrg } from "@/lib/auth/org";
+import { isUniqueViolation } from "@/lib/db/errors";
 import { mutateOrg } from "@/lib/db/with-org";
 import { ensurePortal, orgNameAndSlug } from "@/lib/policy-portal/admin";
 import { portalTxtState } from "@/lib/policy-portal/dns";
@@ -17,7 +18,6 @@ import {
 	txtRecordName,
 	txtRecordValue,
 } from "@/lib/policy-portal/rules";
-import { isUniqueViolation } from "@/lib/trust/service";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	portalDomainSchema,

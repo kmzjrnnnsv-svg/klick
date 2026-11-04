@@ -17,7 +17,6 @@ import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { restrictedView } from "@/lib/auth/visibility";
 import {
-	DOCUMENT_TEMPLATES,
 	defaultApproverFunction,
 	TEMPLATE_BY_CODE,
 } from "@/lib/compliance/catalog/document-templates";
@@ -901,18 +900,6 @@ async function uploadDocumentFileImpl(
 	return res;
 }
 
-async function listTemplateOptionsImpl() {
-	await requireOrg({ document: ["read"] });
-	return DOCUMENT_TEMPLATES.map((t) => ({
-		code: t.code,
-		title: t.title,
-		type: t.type,
-		isoMandatory: t.isoMandatory,
-		frameworks: t.frameworks,
-		controls: t.controls,
-	}));
-}
-
 // Sicherheitsnetz: unerwartete Ausnahmen → { ok: false, error, ref } + Log
 // statt Error-Boundary (lib/actions/safe.ts).
 export const createDocument = safeAction("createDocument", createDocumentImpl);
@@ -940,8 +927,4 @@ export const applyDocumentTemplates = safeAction(
 export const importDocumentsFromEvidence = safeAction(
 	"importDocumentsFromEvidence",
 	importDocumentsFromEvidenceImpl,
-);
-export const listTemplateOptions = safeAction(
-	"listTemplateOptions",
-	listTemplateOptionsImpl,
 );

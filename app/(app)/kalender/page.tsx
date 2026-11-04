@@ -89,7 +89,10 @@ async function CalendarPage({
 }) {
 	const ctx = await requireOrgPage({ obligation: ["read"] });
 	const sp = await searchParams;
-	const tab = one(sp.tab) ?? "jahr";
+	// unbekannter Reiter (alter Link) = Standard statt leerer Seite
+	const CAL_TABS = ["jahr", "liste", "pflichten", "rechtsaenderungen"];
+	const rawTab = one(sp.tab);
+	const tab = rawTab && CAL_TABS.includes(rawTab) ? rawTab : "jahr";
 	const now = new Date();
 	const year = Number(one(sp.jahr)) || now.getFullYear();
 	const t = await getTranslations("Calendar");

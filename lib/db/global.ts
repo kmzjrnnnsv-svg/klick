@@ -1,7 +1,7 @@
 import { asc, count, desc, eq, sql } from "drizzle-orm";
 import { globalDb } from "@/db";
 import { member, organization, passkey, user } from "@/db/auth-schema";
-import { cmsPages, frameworks } from "@/db/schema";
+import { cmsPages } from "@/db/schema";
 
 // Globale (nicht mandantenbezogene) Lesezugriffe: CMS-Rechtstexte,
 // Plattform-Admin-Listen. Keine Org-Daten.
@@ -113,15 +113,4 @@ export async function platformCounts() {
 	const [orgs] = await globalDb.select({ n: count() }).from(organization);
 	const [users] = await globalDb.select({ n: count() }).from(user);
 	return { organizations: Number(orgs?.n ?? 0), users: Number(users?.n ?? 0) };
-}
-
-export async function listFrameworkOptions() {
-	return globalDb
-		.select({
-			slug: frameworks.slug,
-			name: frameworks.name,
-			description: frameworks.description,
-		})
-		.from(frameworks)
-		.orderBy(frameworks.sortOrder);
 }

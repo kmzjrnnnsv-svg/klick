@@ -38,7 +38,7 @@ export const FINDING_STATUS_MACHINE: StatusMachine<FindingStatus> = {
 
 export const SECURITY_FINDING_ENTITY: EntityDef<FindingStatus> = {
 	kind: "security_finding",
-	route: "/sicherheit/befunde",
+	route: "/sicherheit?tab=befunde",
 	i18nNamespace: "Security",
 	statusMachine: FINDING_STATUS_MACHINE,
 };

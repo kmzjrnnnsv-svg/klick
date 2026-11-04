@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
 	boolean,
 	index,
@@ -50,6 +51,12 @@ export const teamsIntegrations = pgTable(
 	},
 	(t) => [
 		uniqueIndex("teams_integrations_org_uq").on(t.organizationId),
+		// Ein Tenant gehört nur einer Org, sobald er freigegeben ist (gilt über
+		// alle Orgs, RLS greift bei Indizes nicht); offene Anträge zählen nicht,
+		// damit niemand einen Tenant durch bloßes Eintragen besetzt.
+		uniqueIndex("teams_integrations_tenant_uq")
+			.on(sql`lower(${t.tenantId})`)
+			.where(sql`${t.status} <> 'pending_consent'`),
 		orgPolicy("teams_integrations"),
 	],
 ).enableRLS();

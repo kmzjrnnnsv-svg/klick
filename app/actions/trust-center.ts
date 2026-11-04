@@ -12,6 +12,7 @@ import {
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { FRAMEWORK_BY_SLUG } from "@/lib/compliance/catalog";
+import { isUniqueViolation } from "@/lib/db/errors";
 import { mutateOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/log";
@@ -20,7 +21,6 @@ import { trustAccessEmail } from "@/lib/mail/templates";
 import { newToken } from "@/lib/security/tokens";
 import { documentAccessAllowed } from "@/lib/trust/rules";
 import {
-	isUniqueViolation,
 	loadSnapshotInput,
 	loadTrustCenter,
 	orgName,

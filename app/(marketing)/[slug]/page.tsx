@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
-import { getCmsPageBySlug } from "@/app/actions/cms";
 import { ImprintFacts } from "@/components/legal/imprint-facts";
 import { MarkdownView } from "@/components/markdown-view";
+import { getCmsPageBySlug } from "@/lib/db/global";
 
 // Öffentliche Rechtstexte aus cms_pages (Impressum, Datenschutzerklärung …).
+// Liest direkt (kein öffentlicher Server-Action-Endpunkt); ein DB-Fehler
+// landet auf der Fehlerseite statt als leere Seite.
 // Reservierte Pfade sind App-Routen und dürfen nicht als Slug auftauchen.
 const RESERVED = new Set([
 	"login",

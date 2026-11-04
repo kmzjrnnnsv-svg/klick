@@ -1,5 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { createPublicKey, verify } from "node:crypto";
+import {
+	constants,
+	createPublicKey,
+	verify,
+	X509Certificate,
+} from "node:crypto";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -135,6 +140,11 @@ function fakeMicrosoft(
 			u.pathname === "/v1.0/users/ana@firma.de"
 		)
 			return ok(200, { id: "aad-ana" });
+		if (u.pathname === "/v1.0/users/gast%40firma.de")
+			return ok(200, {
+				id: "aad-gast",
+				userPrincipalName: "gast_firma.de#EXT#@kunde.onmicrosoft.com",
+			});
 		if (
 			u.pathname.startsWith("/v1.0/users/") &&
 			req.method === "GET" &&
@@ -146,6 +156,18 @@ function fakeMicrosoft(
 			u.searchParams.get("$filter") === "mail eq 'bo@firma.de'"
 		)
 			return ok(200, { value: [{ id: "aad-bo" }] });
+		if (
+			u.pathname === "/v1.0/users" &&
+			u.searchParams.get("$filter") === "mail eq 'extern@andere.de'"
+		)
+			return ok(200, {
+				value: [
+					{
+						id: "aad-ext",
+						userPrincipalName: "extern_andere.de#EXT#@kunde.onmicrosoft.com",
+					},
+				],
+			});
 		if (u.pathname === "/v1.0/users") return ok(200, { value: [] });
 		if (u.pathname === "/v1.0/appCatalogs/teamsApps")
 			return ok(200, { value: [{ id: "cat-1" }] });
@@ -171,8 +193,8 @@ describe("Graph-Client", () => {
 		expect((await c.token(TENANT_A)).ok).toBe(true);
 		expect((await c.token(TENANT_A)).ok).toBe(true);
 		expect((await c.token(TENANT_B)).ok).toBe(true);
-		const logins = m.calls.filter((x) =>
-			x.url.includes("login.microsoftonline.com"),
+		const logins = m.calls.filter(
+			(x) => new URL(x.url).host === "login.microsoftonline.com",
 		);
 		expect(logins).toHaveLength(2);
 		expect(logins[0]?.body).toContain("client_secret=geheim");
@@ -208,6 +230,45 @@ describe("Graph-Client", () => {
 				})
 			).ok,
 		).toBe(true);
+	});
+
+	it("Mitglied im Tenant: eigenes Konto ja, Gast und Unbekannte nein", async () => {
+		const m = fakeMicrosoft();
+		const c = createGraphClient(SECRET_CONFIG, m.transport);
+		expect(await c.tenantMember(TENANT_A, "ana@firma.de")).toEqual({
+			ok: true,
+			value: true,
+		});
+		expect(await c.tenantMember(TENANT_A, "bo@firma.de")).toEqual({
+			ok: true,
+			value: true,
+		});
+		expect(await c.tenantMember(TENANT_A, "gast@firma.de")).toEqual({
+			ok: true,
+			value: false,
+		});
+		expect(await c.tenantMember(TENANT_A, "extern@andere.de")).toEqual({
+			ok: true,
+			value: false,
+		});
+		expect(await c.tenantMember(TENANT_A, "nie@firma.de")).toEqual({
+			ok: true,
+			value: false,
+		});
+		// nur lesend
+		expect(
+			m.calls
+				.filter((x) => new URL(x.url).host === "graph.microsoft.com")
+				.every((x) => x.method === "GET"),
+		).toBe(true);
+		const missing = createGraphClient(
+			SECRET_CONFIG,
+			fakeMicrosoft({ consentMissing: [TENANT_B] }).transport,
+		);
+		expect(await missing.tenantMember(TENANT_B, "ana@firma.de")).toEqual({
+			ok: false,
+			error: "consent_missing",
+		});
 	});
 
 	it("fehlende Freigabe und Drosselung als eigene Codes, Token nie in Fehlern", async () => {
@@ -262,8 +323,17 @@ describe("Graph-Client", () => {
 		const [h, p, sig] = jwt.split(".") as [string, string, string];
 		const header = JSON.parse(Buffer.from(h, "base64url").toString());
 		const payload = JSON.parse(Buffer.from(p, "base64url").toString());
-		expect(header).toMatchObject({ alg: "RS256", typ: "JWT" });
-		expect(header.x5t).toMatch(/^[A-Za-z0-9_-]{27}$/);
+		expect(header).toMatchObject({ alg: "PS256", typ: "JWT" });
+		expect(header.x5t).toBeUndefined();
+		// SHA-256 über das DER des Zertifikats
+		const cert = new X509Certificate(
+			readFileSync(join(dir, "cert.pem"), "utf8"),
+		);
+		expect(header["x5t#S256"]).toBe(
+			Buffer.from(cert.fingerprint256.replaceAll(":", ""), "hex").toString(
+				"base64url",
+			),
+		);
 		expect(payload).toMatchObject({
 			iss: "cid",
 			sub: "cid",
@@ -276,7 +346,11 @@ describe("Graph-Client", () => {
 			verify(
 				"sha256",
 				Buffer.from(`${h}.${p}`),
-				pub,
+				{
+					key: pub,
+					padding: constants.RSA_PKCS1_PSS_PADDING,
+					saltLength: constants.RSA_PSS_SALTLEN_DIGEST,
+				},
 				Buffer.from(sig, "base64url"),
 			),
 		).toBe(true);

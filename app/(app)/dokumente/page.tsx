@@ -19,6 +19,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { hidesSecret, restrictedView } from "@/lib/auth/visibility";
 import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
+import { activeFrameworkSlugs } from "@/lib/compliance/initialize-org";
 import { fmtDate } from "@/lib/compliance/page-data";
 import { listDocuments } from "@/lib/compliance/queries-p2";
 import { readOrg } from "@/lib/db/with-org";
@@ -42,9 +43,13 @@ async function DocumentsPage({
 	// Prüfer-Sicht: nur Dokumente mit gültiger Fassung, Stand und Nummer der
 	// gültigen Fassung; streng geheime ohne Grant ohne Titel
 	const restricted = restrictedView(ctx);
-	const rows = (
-		await readOrg(toOrgCtx(ctx), (tx) => listDocuments(tx, ctx.orgId))
-	).flatMap((r) => {
+	const [docRows, frameworkSlugs] = await readOrg(toOrgCtx(ctx), (tx) =>
+		Promise.all([
+			listDocuments(tx, ctx.orgId),
+			activeFrameworkSlugs(tx, ctx.orgId),
+		]),
+	);
+	const rows = docRows.flatMap((r) => {
 		if (restricted && !r.current) return [];
 		const view =
 			restricted && r.current
@@ -189,7 +194,10 @@ async function DocumentsPage({
 				{canCreate && (
 					<>
 						<ImportDialog />
-						<TemplatesDialog templates={templates} />
+						<TemplatesDialog
+							templates={templates}
+							initialOpen={one(sp.vorlagen) === "1"}
+						/>
 						<DocumentCreate templates={templates.filter((x) => !x.present)} />
 					</>
 				)}
@@ -242,12 +250,15 @@ async function DocumentsPage({
 				/>
 			}
 			footer={
-				<Link
-					href="/rahmenwerke/iso27001?tab=soa"
-					className="hit-area text-primary hover:underline"
-				>
-					{`${t("isoMandatory")} > SoA`}
-				</Link>
+				// SoA gibt es nur mit ISO 27001 (sonst 404)
+				frameworkSlugs.includes("iso27001") ? (
+					<Link
+						href="/rahmenwerke/iso27001?tab=soa"
+						className="hit-area text-primary hover:underline"
+					>
+						{`${t("isoMandatory")} > SoA`}
+					</Link>
+				) : undefined
 			}
 		/>
 	);

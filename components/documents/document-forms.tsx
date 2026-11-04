@@ -190,13 +190,16 @@ export function DocumentCreate({ templates }: { templates: TemplateOption[] }) {
 // Vorlagen übernehmen: Mehrfachauswahl, ISO-Pflicht markiert, Vorhandene ausgegraut.
 export function TemplatesDialog({
 	templates,
+	initialOpen = false,
 }: {
 	templates: TemplateOption[];
+	// `/dokumente?vorlagen=1` (z. B. „Vorlagen übernehmen“ aus der SoA)
+	initialOpen?: boolean;
 }) {
 	const t = useTranslations("Documents");
 	const tc = useTranslations("Common");
 	const router = useRouter();
-	const [open, setOpen] = useState(false);
+	const [open, setOpen] = useState(initialOpen);
 	const [pending, start] = useTransition();
 	const [picked, setPicked] = useState<string[]>([]);
 	return (

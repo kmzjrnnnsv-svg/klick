@@ -19,7 +19,11 @@ export default async function TeamsConsentResult({
 			? "resultOk"
 			: ergebnis === "abgelehnt"
 				? "resultDenied"
-				: "resultInvalid";
+				: ergebnis === "fremd"
+					? "resultUnbound"
+					: ergebnis === "vergeben"
+						? "resultTaken"
+						: "resultInvalid";
 	return (
 		<div className="flex flex-col gap-3">
 			<h1 className="font-bold text-title-1">{t("resultTitle")}</h1>

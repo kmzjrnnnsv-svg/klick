@@ -15,8 +15,6 @@ export type IntroStep = (typeof INTRO_STEPS)[number];
 export const isIntroStep = (v: unknown): v is IntroStep =>
 	typeof v === "string" && (INTRO_STEPS as readonly string[]).includes(v);
 
-export const introHref = (s: IntroStep) => `/wallet/einfuehrung/${s}`;
-
 export function introNeighbours(step: IntroStep): {
 	prev: IntroStep | null;
 	next: IntroStep | null;

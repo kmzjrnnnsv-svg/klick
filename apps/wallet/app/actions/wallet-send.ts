@@ -290,7 +290,7 @@ async function proposeDestinationImpl(
 			};
 		},
 	);
-	if (res.ok) revalidatePath(`${PATH}/adressbuch`);
+	if (res.ok) revalidatePath("/address-book");
 	return res;
 }
 
@@ -350,7 +350,7 @@ async function vetoDestinationImpl(input: unknown): Promise<ActionResult> {
 			},
 		};
 	});
-	if (res.ok) revalidatePath(`${PATH}/adressbuch`);
+	if (res.ok) revalidatePath("/address-book");
 	return res;
 }
 
@@ -637,7 +637,7 @@ async function createPayoutImpl(
 		await signerCall("intent.cancel", {
 			intentId: created.result.intentId,
 		}).catch(() => undefined);
-	if (res.ok) revalidatePath(`${PATH}/auszahlungen`);
+	if (res.ok) revalidatePath("/payouts");
 	return res;
 }
 
@@ -696,7 +696,7 @@ async function cancelPayoutImpl(input: unknown): Promise<ActionResult> {
 				},
 			};
 		});
-		revalidatePath(`${PATH}/auszahlungen`, "layout");
+		revalidatePath("/payouts", "layout");
 		return res;
 	}
 	if (p.status === "signed" || p.status === "broadcast") {
@@ -714,7 +714,7 @@ async function cancelPayoutImpl(input: unknown): Promise<ActionResult> {
 				},
 			};
 		});
-		revalidatePath(`${PATH}/auszahlungen`, "layout");
+		revalidatePath("/payouts", "layout");
 		return res;
 	}
 	return fail("not_open");
@@ -743,7 +743,7 @@ async function bumpPayoutImpl(input: unknown): Promise<ActionResult> {
 			},
 		};
 	});
-	revalidatePath(`${PATH}/auszahlungen`, "layout");
+	revalidatePath("/payouts", "layout");
 	return res;
 }
 
