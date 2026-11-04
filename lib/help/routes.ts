@@ -38,6 +38,7 @@ export const HELP_ROUTES: readonly (readonly [string, string])[] = [
 	["/testprogramm", "audits"],
 	["/kalender", "kalender"],
 	["/roadmap", "kalender"],
+	["/jahresplan", "kalender"],
 	["/trust-center", "trust-center"],
 	["/aml", "geldwaesche"],
 	["/eigenmittel", "casp"],

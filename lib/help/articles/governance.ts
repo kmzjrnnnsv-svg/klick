@@ -212,9 +212,9 @@ export const GOVERNANCE: HelpArticle[] = [
 	{
 		slug: "kalender",
 		area: "governance",
-		title: "Kalender und Roadmap",
+		title: "Kalender, Roadmap und Jahresplan",
 		summary:
-			"Alle Fristen an einem Ort und der Weg zur Zulassung als Kanban und Zeitachse.",
+			"Alle Fristen an einem Ort, der Weg zur Zulassung als Kanban und Zeitachse und der Aufwand deines ISMS im Jahr.",
 		sections: [
 			{
 				id: "kalender",
@@ -232,6 +232,15 @@ export const GOVERNANCE: HelpArticle[] = [
 					"Schieb Meilensteine im Kanban durch die Spalten oder nutz das Menü.",
 					"Mach aus einem Meilenstein eine Aufgabe, damit er auf Heute erscheint.",
 					"Die Zeitachse zeigt Meilensteine zusammen mit den wichtigsten Terminen aus dem Kalender.",
+				],
+			},
+			{
+				id: "jahresplan",
+				heading: "ISMS-Jahresplan",
+				body: [
+					"Der Jahresplan zeigt, was dein ISMS im Jahr an Arbeit braucht: Leitlinie, Rahmendokumente, Richtlinien, Verfahren, Nachweise und laufende Aufgaben. Je Punkt siehst du Turnus, Prüfaufwand, Durchlaufzeit, Aufbewahrung und Personentage (PT) je Jahr.",
+					"Oben stehen die Summen: Aufwand je Jahr und der Anteil der oder des ISB in zwei Szenarien. In Szenario A schreiben die Fachbereiche selbst zu, in Szenario B schreibt und pflegt die oder der ISB alles. Daraus folgt der Stellenanteil bei 200 Arbeitstagen.",
+					"Jeder Punkt führt zur Stelle in Klick, an der du ihn erledigst, etwa zur Vorlage unter Dokumente, zu den Risiken oder zur Managementbewertung. Die Werte sind Richtwerte aus einem ISMS aus der Praxis.",
 				],
 			},
 			{
