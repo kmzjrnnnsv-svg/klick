@@ -866,6 +866,9 @@
 		"todoServer": "Server meldet Probleme"
 	},
 	"Errors": {
+		"forbiddenMember": "Dafür fehlt dir das Recht. Inhaber:innen deiner Organisation können deine Rolle anpassen.",
+		"forbiddenEmployee": "Diese Seite ist für Mitarbeitende nicht freigegeben. Hier findest du deine Richtlinien und Schulungen.",
+		"forbiddenExternal": "Diese Seite gehört nicht zu deinem Zugang als {role}. Fehlt dir etwas, frag die Inhaber:innen der Organisation.",
 		"title": "Da ist etwas schiefgelaufen.",
 		"lead": "Der Fehler wurde protokolliert. Du kannst es noch einmal versuchen oder zur Startseite zurück.",
 		"forbidden": "Dafür fehlt dir die Berechtigung.",
@@ -1061,7 +1064,8 @@
 		"source_evidence_request": "Nachweisanfrage",
 		"source_system": "System",
 		"source_other": "automatisch",
-		"linked": "zu {entity}"
+		"linked": "zu {entity}",
+		"authorEvidence": "Nachweis verfassen"
 	},
 	"Controls": {
 		"title": "Controls",
@@ -1264,6 +1268,9 @@
 		"tileNotYet": "Noch keine anwendbaren Anforderungen, zum Beispiel weil das Rahmenwerk erst später gilt."
 	},
 	"Synergies": {
+		"emptyTitle": "Noch kein Rahmenwerk gewählt",
+		"emptyLead": "Synergien zeigen, was ein Control für mehrere Rahmenwerke zugleich erfüllt. Wähle dafür zuerst, welche Rahmenwerke für deine Firma gelten.",
+		"chooseFrameworks": "Rahmenwerke wählen",
 		"title": "Synergien",
 		"lead": "Welche Controls erfüllen die meisten Anforderungen quer über deine Rahmenwerke — und in welcher Reihenfolge lohnt die Umsetzung.",
 		"tabPlan": "Plan",
@@ -1550,6 +1557,7 @@
 		"guidedImpactHint": "Die Schadenshöhe kommt aus den Einzelwerten je Schadensart. Ändern über „Neu bewerten“."
 	},
 	"Documents": {
+		"templatesAll": "Alle",
 		"approvedBy": "freigegeben von {name} am {date}",
 		"approvedOn": "freigegeben am {date}",
 		"showCurrentText": "Text von v{version} anzeigen",
@@ -2207,7 +2215,7 @@
 		"naExcludes": "Wird ausgeschlossen: {list}.",
 		"naKeeps": "Bleibt anwendbar, zählt über andere Maßnahmen: {list}.",
 		"naOutdated": "Die Antwort hat sich seitdem geändert. Diese Bestätigung wirkt nicht mehr.",
-		"gateError_no_approver": "Für diesen Ablauf kann gerade niemand freigeben. Prüfe die Stufen unter Einstellungen > Freigaben oder besetze die Rolle bzw. Funktion.",
+		"gateError_no_approver": "Für diesen Ablauf kann gerade niemand freigeben, meist fehlt die bestellte Geschäftsleitung. Bestelle sie unter Organisation > Rollen & Leitung oder prüfe die Stufen unter Einstellungen > Freigaben.",
 		"gateError_solo_reason_required": "Du bist allein in der Organisation — schalte den Ablauf aus oder lade eine zweite Person ein.",
 		"gateError_solo_not_allowed": "Selbstfreigabe ist hier nicht erlaubt. Lade eine zweite Person ein.",
 		"waitingBadge": "Wartet auf Freigabe",
@@ -2248,6 +2256,7 @@
 		"lead": "IKT-Dienstleister, Auslagerungen und Geschäftspartner — mit Kritikalität, Vertrag, Datenstandort.",
 		"new": "Dienstleister",
 		"created": "Dienstleister angelegt.",
+		"startRatingNext": "Bewertung starten",
 		"saved": "Gespeichert.",
 		"name": "Name",
 		"partnerType": "Art",
@@ -2502,6 +2511,8 @@
 		"applied": "{n} Aufgaben erzeugt.",
 		"pick": "Paket wählen",
 		"startDate": "Startdatum",
+		"startHint": "Ohne Datum ab heute. Die Fristen der Aufgaben zählen ab diesem Tag.",
+		"items": "{n, plural, one {# Aufgabe} other {# Aufgaben}}",
 		"lead": "Checklisten als Aufgaben: Eintritt, Austritt, Vorfall-Erstreaktion, Audit-Vorbereitung, Schlüsselzeremonie …"
 	},
 	"Functions": {
@@ -3102,6 +3113,11 @@
 		"noResponse": "Noch keine Antwort."
 	},
 	"Nonconformities": {
+		"incidentSection": "Abweichung",
+		"incidentNone": "Noch keine Abweichung zu diesem Vorfall. Schwerwiegende Vorfälle legen sie beim Abschluss selbst an; sonst eröffnest du sie hier, wenn die Ursache behoben werden muss.",
+		"fromIncident": "Abweichung eröffnen",
+		"fromIncidentLead": "Die Abweichung hängt an diesem Vorfall. Titel und Ursache sind übernommen, du kannst sie anpassen.",
+		"fromIncidentTitle": "Vorfall {code}: {title}",
 		"forbidden": "Dafür fehlen dir die Rechte (Prüfer:innen dürfen Abweichungen anlegen, aber nicht bearbeiten).",
 		"invalid": "Bitte die Eingaben prüfen (Titel, Datumsangaben).",
 		"priority": "Priorität",
@@ -3947,6 +3963,7 @@
 		"tooManyRows": "Höchstens 2000 Zeilen je Import — teile die Datei auf."
 	},
 	"Privacy": {
+		"dsfaToVvt": "Zum Verarbeitungsverzeichnis",
 		"title": "Datenschutz",
 		"lead": "Verarbeitungsverzeichnis (Art. 30), Datenschutz-Folgenabschätzungen (Art. 35) und Betroffenenanfragen (Art. 12–22) mit Monatsfrist — GwG-Aufbewahrung überlagert Löschung, Pseudonyme sind verschlüsselt.",
 		"tabVvt": "Verzeichnis",
@@ -4142,6 +4159,7 @@
 		"kind_exclusion_invalid": "Ausschluss ohne Grundlage zurücknehmen",
 		"kind_security_finding": "Sicherheitsbefund beheben",
 		"asTask": "Als Aufgabe",
+		"taskFrom": "Offener Punkt der Prüfungsreife. Lösen unter {path}",
 		"taskCreated": "Aufgabe angelegt",
 		"bySection": "Reifegrad je Abschnitt",
 		"export": "Bericht (Markdown)",
@@ -4206,6 +4224,9 @@
 		"naState_changes": "Andere Begründung erbeten",
 		"naState_missing": "Noch nicht zur Bestätigung gegeben",
 		"naState_blocked": "Niemand kann bestätigen",
+		"naNext_pending": "Im Posteingang ansehen",
+		"naNext_blocked": "Geschäftsleitung bestellen",
+		"naNext_answer": "Zur Frage",
 		"applyNaOpen": "{count, plural, one {# Antwort „Nicht relevant“ wirkt noch nicht} other {# Antworten „Nicht relevant“ wirken noch nicht}}. Wartende wirken, sobald sie bestätigt sind.",
 		"naReason": "Warum ist das bei euch nicht relevant?",
 		"naReasonPlaceholder": "z. B. Keine eigene Softwareentwicklung, alles als SaaS bezogen…",
@@ -4267,7 +4288,9 @@
 		"dueAt": "Fällig bis",
 		"createMeasures": "{count, plural, one {# Maßnahme anlegen} other {# Maßnahmen anlegen}}",
 		"measuresCreated": "{count, plural, one {# Aufgabe angelegt} other {# Aufgaben angelegt}}",
+		"measuresOpenTasks": "Zu den Aufgaben",
 		"measuresEmpty": "Keine offenen Maßnahmen – alles beantwortet und belegt.",
+		"measuresReadOnly": "Das schlägt die Gap-Analyse vor. Als Aufgaben anlegen dürfen Inhaber:innen und Bearbeiter:innen.",
 		"resultLead": "Was die Antworten bedeuten: Punktzahl, was sich in der Abdeckung ändert, und was als Nächstes zu tun ist.",
 		"export": "Bericht herunterladen (Markdown)",
 		"toReadiness": "Prüfungsreife ansehen",
@@ -5557,6 +5580,9 @@
 		"frameworksAlready": "Bereits aktiv",
 		"gapFrameworks": "Rahmenwerke der Gap-Analyse",
 		"gapStart": "Gap-Analyse starten",
+		"gapExisting": "Du hast schon eine Gap-Analyse: „{title}“. Arbeite dort weiter; eine zweite brauchst du für die Einrichtung nicht.",
+		"gapOpen": "Gap-Analyse öffnen",
+		"gapFinish": "Einrichtung abschließen",
 		"gapStarted": "Gap-Analyse angelegt, {n} Antworten aus der Einrichtung vorbelegt.",
 		"gapNoFrameworks": "Aktiviere zuerst Rahmenwerke im vorherigen Schritt.",
 		"gapLater": "Jedes weitere Rahmenwerk kannst du später in einer eigenen Gap-Analyse abfragen.",
@@ -7620,6 +7646,7 @@
 		"note": "Die Angabe „gerätegebunden“ stammt vom Schlüssel selbst (keine Attestierung)."
 	},
 	"Relations": {
+		"chooseFrameworks": "Rahmenwerke wählen",
 		"simpleTitle": "Einfach erklärt",
 		"why": "Wozu?",
 		"whoTitle": "Wer verlangt das – und was genau?",
@@ -8325,6 +8352,10 @@
 		"detail_gap_continue": "{title}: {answered} von {total} Fragen beantwortet",
 		"step_gap_start": "Gap-Analyse starten",
 		"detail_gap_start": "{count} Fragen, eine je Maßnahme. Danach weißt du, wo du stehst.",
+		"step_measures_create": "Maßnahmen aus der Gap-Analyse anlegen",
+		"detail_measures_create": "„{title}“ ist übernommen. Leg die Maßnahmen als Aufgaben an, mit Zuständigen und Fristen.",
+		"step_measures_open": "Maßnahmen umsetzen",
+		"detail_measures_open": "{count, plural, one {# Maßnahme aus der Gap-Analyse ist offen.} other {# Maßnahmen aus der Gap-Analyse sind offen.}}",
 		"step_obligations_overdue": "{count, plural, one {Eine Pflicht ist} other {# Pflichten sind}} überfällig",
 		"detail_obligations_overdue": "Meldungen, Berichte und Prüfungen mit Frist stehen im Kalender.",
 		"step_roles": "{count, plural, one {Eine Pflichtfunktion} other {# Pflichtfunktionen}} besetzen",

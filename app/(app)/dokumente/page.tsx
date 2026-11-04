@@ -197,6 +197,7 @@ async function DocumentsPage({
 						<TemplatesDialog
 							templates={templates}
 							initialOpen={one(sp.vorlagen) === "1"}
+							initialPicked={one(sp.vorlage) ? [one(sp.vorlage) as string] : []}
 						/>
 						<DocumentCreate templates={templates.filter((x) => !x.present)} />
 					</>

@@ -191,17 +191,24 @@ export function DocumentCreate({ templates }: { templates: TemplateOption[] }) {
 export function TemplatesDialog({
 	templates,
 	initialOpen = false,
+	initialPicked = [],
 }: {
 	templates: TemplateOption[];
 	// `/dokumente?vorlagen=1` (z. B. „Vorlagen übernehmen“ aus der SoA)
 	initialOpen?: boolean;
+	// `&vorlage=<Code>`: fehlendes Pflichtdokument aus der Prüfungsreife
+	initialPicked?: string[];
 }) {
 	const t = useTranslations("Documents");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [open, setOpen] = useState(initialOpen);
 	const [pending, start] = useTransition();
-	const [picked, setPicked] = useState<string[]>([]);
+	const [picked, setPicked] = useState<string[]>(() =>
+		initialPicked.filter((c) =>
+			templates.some((x) => x.code === c && !x.present),
+		),
+	);
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
@@ -239,7 +246,7 @@ export function TemplatesDialog({
 							setPicked(templates.filter((x) => !x.present).map((x) => x.code))
 						}
 					>
-						{tc("search") === "Suchen" ? "Alle" : "All"}
+						{t("templatesAll")}
 					</Button>
 				</div>
 				<ul className="max-h-[50vh] overflow-y-auto list-inset overflow-hidden rounded-2xl bg-card text-subhead">

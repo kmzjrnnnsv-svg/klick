@@ -116,6 +116,7 @@ export async function BlockerList({
 				{canCreateTask && (
 					<BlockerTaskButton
 						title={`${t(`kind_${b.kind}`)}: ${b.label}`}
+						description={b.href ? t("taskFrom", { path: b.href }) : undefined}
 						priority={TASK_PRIORITY[b.severity]}
 					/>
 				)}

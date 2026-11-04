@@ -252,6 +252,7 @@ export async function loadReadiness(
 					),
 				);
 			pbc = {
+				auditId: a.id,
 				total: reqs.length,
 				answered: reqs.filter((r) => r.status === "answered").length,
 				accepted: reqs.filter((r) => r.status === "accepted").length,

@@ -7,10 +7,6 @@ import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
-import {
-	CompleteTrainingButton,
-	CourseLink,
-} from "@/components/registers/training-plan-forms";
 import { NextStepsList } from "@/components/today/next-steps";
 import {
 	DueBadge,
@@ -20,6 +16,7 @@ import {
 	TodayMeta,
 	TodayRow,
 } from "@/components/today/today-list";
+import { MyTrainings } from "@/components/trainings/my-trainings";
 import { orgSettings } from "@/db/schema";
 import { listRequestsForUser } from "@/lib/approvals/service";
 import { signDocumentOf } from "@/lib/approvals/signature";
@@ -50,29 +47,39 @@ import {
 	listObligationRuns,
 } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
-import { entityHref, resolveEntityTitles } from "@/lib/entities/links";
+import {
+	entityHref,
+	entityLinks,
+	linkKey,
+	resolveEntityTitles,
+} from "@/lib/entities/links";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { termsAccepted } from "@/lib/legal/terms";
 import { listNotifications } from "@/lib/notifications/query";
 import { safeInternalPath } from "@/lib/safe-path";
 import { setupState, shouldRedirectToSetup, stepHref } from "@/lib/setup/steps";
-import { currentTrainings } from "@/lib/trainings/assignments";
 
 // Startseite nach Login: gestapelte Abschnitte, je max. fünf Einträge —
 // Freigaben, Aufgaben, Fälliges, Kenntnisnahmen, Erwähnungen.
-async function TodayPage() {
+async function TodayPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ grund?: string | string[] }>;
+}) {
 	const ctx = await requireOrgPage(undefined, { employees: true });
+	// Hinweis „kein Recht“ wandert mit, wenn die Startseite weiterleitet
+	const grund =
+		(await searchParams).grund === "kein-recht" ? "?grund=kein-recht" : "";
 	// Mitarbeitende: ihre Startseite sind die Richtlinien
-	if (ctx.orgRole === "employee") redirect("/richtlinien");
+	if (ctx.orgRole === "employee") redirect(`/richtlinien${grund}`);
 	// Prüfer:innen: ihr Einstieg ist das Audit, in dem sie prüfen
 	if (ctx.orgRole === "auditor") {
 		const audits = await readOrg(toOrgCtx(ctx), (tx) =>
 			listAuditAssignments(tx, ctx.orgId),
 		);
-		redirect(auditorLanding(audits, ctx.userId));
+		redirect(`${auditorLanding(audits, ctx.userId)}${grund}`);
 	}
 	const t = await getTranslations("Today");
-	const tt = await getTranslations("Trainings");
 	const ts = await getTranslations("Status");
 	const today = new Date().toISOString().slice(0, 10);
 	const weekAhead = new Date(Date.now() + 7 * 86_400_000)
@@ -81,6 +88,7 @@ async function TodayPage() {
 
 	const {
 		tasks,
+		taskLinks,
 		controls,
 		mentions,
 		members,
@@ -98,11 +106,13 @@ async function TodayPage() {
 		const requests = (
 			await listRequestsForUser(tx, ctx.orgId, ctx.userId)
 		).filter((r) => r.eligible);
+		const tasks = await listTasks(tx, ctx.orgId, {
+			assigneeUserId: ctx.userId,
+			openOnly: true,
+		});
 		return {
-			tasks: await listTasks(tx, ctx.orgId, {
-				assigneeUserId: ctx.userId,
-				openOnly: true,
-			}),
+			tasks,
+			taskLinks: await entityLinks(tx, ctx.orgId, tasks),
 			controls: await listControlRows(tx, ctx.orgId),
 			mentions: (await listNotifications(tx, ctx.userId, 20)).filter(
 				(n) => n.kind === "mentioned" && !n.readAt,
@@ -180,14 +190,11 @@ async function TodayPage() {
 	});
 
 	const dueTasks = tasks.filter((x) => x.dueAt && x.dueAt <= weekAhead);
-	const reqById = new Map(trainingReqs.map((r) => [r.id, r]));
-	const myTrainings = [...currentTrainings(trainingRows, today).values()]
-		.filter((x) => x.open && (x.state === "due" || x.state === "overdue"))
-		.map((x) => ({
-			...x,
-			req: x.open ? reqById.get(x.open.requirementId) : undefined,
-		}))
-		.sort((a, b) => (a.open?.dueAt ?? "").localeCompare(b.open?.dueAt ?? ""));
+	// Aufgabe führt zu ihrem Gegenstand, sonst in die Aufgabenliste
+	const taskHref = (task: (typeof tasks)[number]) => {
+		const key = linkKey(task);
+		return (key ? taskLinks.get(key)?.href : undefined) ?? "/heute/aufgaben";
+	};
 	const dueReviews = controls.filter(
 		(c) =>
 			(c.ownerUserId === ctx.userId || c.assigneeUserId === ctx.userId) &&
@@ -207,41 +214,13 @@ async function TodayPage() {
 			/>
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 				<NextStepsList steps={steps} className="md:col-span-2" />
-				{myTrainings.length > 0 && (
-					<TodayCard
-						title={tt("heuteTitle")}
-						link={{ href: "/schulungen?tab=meine", label: t("showAll") }}
-						className="md:col-span-2"
-					>
-						<TodayList>
-							{myTrainings.slice(0, 5).map((x) => (
-								<TodayRow
-									key={x.open?.id}
-									title={x.req?.title}
-									sub={<CourseLink url={x.req?.courseUrl} />}
-									date={
-										x.open && (
-											<DueBadge
-												date={x.open.dueAt}
-												today={today}
-												soonDays={30}
-												overdueLabel={t("overdue")}
-											/>
-										)
-									}
-									action={
-										x.open && (
-											<CompleteTrainingButton
-												assignmentId={x.open.id}
-												title={x.req?.title ?? ""}
-											/>
-										)
-									}
-								/>
-							))}
-						</TodayList>
-					</TodayCard>
-				)}
+				<MyTrainings
+					assignments={trainingRows}
+					requirements={trainingReqs}
+					today={today}
+					link={{ href: "/schulungen?tab=meine", label: t("showAll") }}
+					className="md:col-span-2"
+				/>
 				<TodayCard
 					title={t("approvals")}
 					link={{ href: "/heute/freigaben", label: t("showAll") }}
@@ -293,6 +272,7 @@ async function TodayPage() {
 							{tasks.slice(0, 5).map((task) => (
 								<TodayRow
 									key={task.id}
+									href={taskHref(task)}
 									title={task.title}
 									date={
 										task.dueAt && (
@@ -377,7 +357,7 @@ async function TodayPage() {
 							{dueTasks.slice(0, 5).map((task) => (
 								<TodayRow
 									key={task.id}
-									href="/heute/aufgaben"
+									href={taskHref(task)}
 									title={task.title}
 									date={
 										task.dueAt && (
