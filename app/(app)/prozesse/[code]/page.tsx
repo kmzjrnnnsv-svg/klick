@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { BiaSummary } from "@/components/bcm/bia-summary";
 import { ChainSection } from "@/components/bcm/chain-section";
+import { PlanSummary } from "@/components/bcm/plan-summary";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -35,6 +36,8 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { biaIssues } from "@/lib/bcm/bia";
 import { bcmChain } from "@/lib/bcm/chain";
+import { planIssues } from "@/lib/bcm/plan";
+import { bcmPlanFor } from "@/lib/bcm/plan-queries";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -114,6 +117,7 @@ async function ProcessDetailPage({
 			documents,
 			siteRows,
 			method,
+			plan,
 		] = await Promise.all([
 			listComments(tx, ctx.orgId, "process", id),
 			historyFor(tx, `process:${id}`),
@@ -130,6 +134,7 @@ async function ProcessDetailPage({
 				.where(eq(sites.organizationId, ctx.orgId))
 				.orderBy(sites.name),
 			orgRiskMethod(tx, ctx.orgId),
+			bcmPlanFor(tx, ctx.orgId, id),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -155,6 +160,7 @@ async function ProcessDetailPage({
 			documents,
 			siteRows,
 			method,
+			plan,
 			names,
 		};
 	});
@@ -175,6 +181,7 @@ async function ProcessDetailPage({
 		names,
 		siteRows,
 		method,
+		plan,
 	} = data;
 	const site = siteRows.find((x) => x.id === p.siteId) ?? null;
 
@@ -447,6 +454,30 @@ async function ProcessDetailPage({
 						})),
 					])}
 					target={{ rtoHours: p.rtoHours, rpoHours: p.rpoHours }}
+				/>
+			</Section>
+
+			<Section title={t("planTitle")}>
+				<PlanSummary
+					code={p.code}
+					plan={
+						plan
+							? {
+									status: plan.status,
+									version: plan.version,
+									releasedAt: plan.releasedAt,
+									reviewAt: plan.reviewAt,
+									issues: planIssues(
+										plan.content,
+										p,
+										plan.reviewAt,
+										new Date().toISOString().slice(0, 10),
+									),
+								}
+							: null
+					}
+					canEdit={canEdit}
+					canExport={allows(ctx, { export: ["create"] })}
 				/>
 			</Section>
 

@@ -811,3 +811,13 @@ export const CEREMONY_KINDS = [
 	"recovery_test",
 	"destruction",
 ] as const;
+
+// Notfallplan (N3): Weg der Alarmierung
+export const ALERT_CHANNELS = [
+	"phone",
+	"sms",
+	"mail",
+	"teams",
+	"other",
+] as const;
+export type AlertChannel = (typeof ALERT_CHANNELS)[number];
