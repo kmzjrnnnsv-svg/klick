@@ -147,12 +147,14 @@ export type Permission = Partial<Record<Resource, readonly string[]>>;
 // — eine neue Seite oder Action ohne Recht bleibt ihnen so verschlossen.
 export type OrgGuardOptions = { employees?: boolean };
 
-// eigene Rahmenwerke (R4) ändert der Klick-Betrieb nicht als Person
+// eigene Rahmenwerke (R4) und Konten aus der Identität (Teil D) ändert der
+// Klick-Betrieb nicht als Person
 const IMPERSONATION_READ_ONLY = [
 	"member",
 	"invitation",
 	"integration",
 	"custom_framework",
+	"identity",
 ];
 
 /** Verlangt das Recht in einer Impersonation-Sitzung mehr als Lesen? */

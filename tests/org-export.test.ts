@@ -43,6 +43,22 @@ describe("Org-Export", () => {
 		expect(names).not.toContain("evidence_blobs");
 	});
 
+	it("Zugangsdaten der Identität bleiben im Export null", async () => {
+		const dek = await generateDek();
+		const id = "22222222-2222-2222-2222-222222222222";
+		const secret = await encryptField("okta-token", dek, {
+			keyVersion: 1,
+			aad: fieldAad("identity_sources", id, "secret_enc"),
+		});
+		const { rows, decrypted } = await decryptRows(
+			"identity_sources",
+			[{ id, provider: "okta", secret_enc: secret }],
+			dek,
+		);
+		expect(rows[0]).toEqual({ id, provider: "okta", secret_enc: null });
+		expect(decrypted).toBe(0);
+	});
+
 	it("entschlüsselt enc1-Felder mit passender AAD, lässt Rest unberührt, markiert Fehlschläge", async () => {
 		const dek = await generateDek();
 		const id = "11111111-1111-1111-1111-111111111111";

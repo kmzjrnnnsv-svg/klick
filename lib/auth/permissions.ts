@@ -68,6 +68,11 @@ export const statements = {
 	// Eigene Rahmenwerke der Org (R4): anlegen und pflegen; einschalten und
 	// zurückziehen braucht settings:update mit Step-up
 	custom_framework: ["read", "create", "update"],
+	// Identität (Teil D): Konten aus Entra/Google/Okta lesen, pflegen
+	// (Ausnahmen, Zuordnung, ausgeschieden) und in der Zugriffsprüfung
+	// entscheiden (review wirkt nur auf eigene Einträge). Verbinden und Trennen
+	// nur Inhaber:innen mit Step-up (settings:update).
+	identity: ["read", "update", "review"],
 	product: ["read", "create", "update", "delete"],
 	// Security-Checks: accept = Befund mit Begründung und Ablauf akzeptieren
 	security: ["read", "create", "update", "accept"],
@@ -115,6 +120,7 @@ const readAll = {
 	privacy: ["read"],
 	assessment: ["read"],
 	custom_framework: ["read"],
+	identity: ["read"],
 	product: ["read"],
 	security: ["read"],
 	policy: ["read"],
@@ -185,6 +191,7 @@ export const editor = ac.newRole({
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
 	custom_framework: ["read", "create", "update"],
+	identity: ["read", "update", "review"],
 	product: ["read", "create", "update", "delete"],
 	security: ["read", "create", "update", "accept"],
 	integration: ["read"],
@@ -236,6 +243,7 @@ export const consultant = ac.newRole({
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
 	custom_framework: ["read", "create", "update"],
+	identity: ["read"],
 	product: ["read", "create", "update"],
 	security: ["read", "create", "update"],
 	integration: ["read"],
@@ -280,6 +288,7 @@ export const owner = ac.newRole({
 	privacy: ["read", "create", "update"],
 	assessment: ["read", "create", "answer", "review", "apply"],
 	custom_framework: ["read", "create", "update"],
+	identity: ["read", "update", "review"],
 	product: ["read", "create", "update", "delete"],
 	security: ["read", "create", "update", "accept"],
 	integration: ["read", "create", "revoke"],

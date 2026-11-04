@@ -652,6 +652,8 @@ export const SECURITY_CHANGE_KINDS = [
 	"member_reset_access",
 	"integration_token",
 	"sso_provider_remove",
+	// Identität (Teil D): Quelle trennen (Konten und Prüfungen gehen mit)
+	"identity_source_remove",
 	// Inhaber:in hinzufügen (Einladung oder Rollenwechsel)
 	"owner_add",
 	// Inhaber:in herabstufen oder entfernen: sonst nimmt eine Inhaber:in der

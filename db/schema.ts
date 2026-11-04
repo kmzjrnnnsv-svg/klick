@@ -9,6 +9,7 @@ export * from "./schema/custody";
 export * from "./schema/custom-frameworks";
 export * from "./schema/enums";
 export * from "./schema/grc";
+export * from "./schema/identity";
 export * from "./schema/inquiries";
 export * from "./schema/ledger";
 export * from "./schema/management";
