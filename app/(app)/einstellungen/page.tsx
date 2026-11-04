@@ -128,8 +128,13 @@ import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
-import { entraConfigured } from "@/lib/identity/config";
-import { identityPolicyFor, identitySourceViews } from "@/lib/identity/queries";
+import { GOOGLE_SCOPES } from "@/lib/google/token";
+import { entraConfigured, googleClientId } from "@/lib/identity/config";
+import {
+	type IdentitySourceView,
+	identityPolicyFor,
+	identitySourceViews,
+} from "@/lib/identity/queries";
 import { KIND_LABELS } from "@/lib/jobs/digest";
 import { orgLedger } from "@/lib/ledger/export";
 import { recommendServices } from "@/lib/marketing/recommend";
@@ -1124,6 +1129,7 @@ async function renderSection(
 				})),
 			]);
 			const entra = identity.sources.find((s) => s.provider === "entra");
+			const google = identity.sources.find((s) => s.provider === "google");
 			const entraTenant =
 				sso
 					.map((p) =>
@@ -1149,27 +1155,18 @@ async function renderSection(
 						suggestedTenant={entraTenant}
 					/>
 					<IdentityPanel
-						configured={entraConfigured()}
 						isOwner={ctx.orgRole === "owner"}
 						canSync={allows(ctx, { identity: ["update"] })}
-						source={
-							entra
-								? {
-										id: entra.id,
-										tenantKey: entra.tenantKey,
-										status: entra.status,
-										connectedAt: entra.connectedAt?.toISOString() ?? null,
-										domains: entra.domains,
-										capabilities: entra.capabilities,
-										lastSyncAt: entra.lastSyncAt?.toISOString() ?? null,
-										lastSyncOk: entra.lastSyncOk,
-										accountCount: entra.accountCount,
-										lastError: entra.lastError,
-										consentOpen: entra.consentOpen,
-									}
-								: null
-						}
-						suggestedTenant={entraTenant}
+						entra={{
+							configured: entraConfigured(),
+							source: entra ? sourcePanelView(entra) : null,
+							suggestedTenant: entraTenant,
+						}}
+						google={{
+							clientId: googleClientId(),
+							scopes: GOOGLE_SCOPES,
+							source: google ? sourcePanelView(google) : null,
+						}}
 						policy={identity.policy}
 					/>
 					<WalletLinkPanel
@@ -1220,6 +1217,23 @@ async function renderSection(
 			);
 		}
 	}
+}
+
+// Stand einer Identitätsquelle für die Client-Komponente (Zeitpunkte als Text)
+function sourcePanelView(s: IdentitySourceView) {
+	return {
+		id: s.id,
+		tenantKey: s.tenantKey,
+		status: s.status,
+		connectedAt: s.connectedAt?.toISOString() ?? null,
+		domains: s.domains,
+		capabilities: s.capabilities,
+		lastSyncAt: s.lastSyncAt?.toISOString() ?? null,
+		lastSyncOk: s.lastSyncOk,
+		accountCount: s.accountCount,
+		lastError: s.lastError,
+		consentOpen: s.consentOpen,
+	};
 }
 
 function callbackBase(): string {

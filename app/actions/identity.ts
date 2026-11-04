@@ -19,12 +19,16 @@ import {
 	writeIdentityPolicy,
 } from "@/lib/identity/manage";
 import { identityPolicyOf, identityPolicyRelaxed } from "@/lib/identity/policy";
+import { googleBound, googleCustomer } from "@/lib/identity/providers/google";
 import {
+	connectGoogleSource,
 	disconnectSource,
 	identitySourcesOf,
+	ownerEmailsOf,
 	prepareEntraConsent,
 } from "@/lib/identity/service";
-import { syncIdentitySource } from "@/lib/identity/sync";
+import { identityGoogleGet, syncIdentitySource } from "@/lib/identity/sync";
+import type { ProviderError } from "@/lib/identity/types";
 import { enqueue } from "@/lib/jobs/boss";
 import { IDENTITY_SYNC_SOURCE_JOB } from "@/lib/jobs/identity-sync";
 import { adminConsentUrl, newNonce, sealState } from "@/lib/microsoft/consent";
@@ -36,6 +40,7 @@ import {
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
 	entraConsentSchema,
+	googleConnectSchema,
 	identityExceptionIdSchema,
 	identityExceptionSchema,
 	identityLeftSchema,
@@ -109,6 +114,68 @@ async function startEntraConsentImpl(
 			),
 		},
 	};
+}
+
+// Fehler beim Verbinden mit Google als Code für die Oberfläche
+function googleConnectError(error: ProviderError): string {
+	if (error === "consent_missing") return "google_delegation_missing";
+	if (error === "forbidden") return "google_admin_invalid";
+	if (error === "throttled") return "google_throttled";
+	if (error === "token_failed") return "google_token_failed";
+	if (error === "bad_response" || error === "too_large")
+		return "google_bad_response";
+	return "google_unreachable";
+}
+
+// Erster Abruf gleich nach dem Verbinden (Warteschlange, sonst sofort)
+async function firstSync(orgId: string, sourceId: string) {
+	if (!(await enqueue(IDENTITY_SYNC_SOURCE_JOB, { orgId, sourceId })))
+		await syncIdentitySource(orgId, sourceId);
+}
+
+// Google Workspace verbinden (I3): Klick prüft mit der Admin-Adresse, ob die
+// domänenweite Delegierung steht, liest Kundennummer und Domains und bindet
+// nur, wenn eine Inhaber:in dort ein aktives Konto hat. Netz ohne offene
+// Transaktion.
+async function connectGoogleWorkspaceImpl(
+	input: unknown,
+): Promise<ActionResult> {
+	const g = await ownerStepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = googleConnectSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const get = identityGoogleGet();
+	if (!get) return { ok: false, error: "identity_not_configured" };
+	if (!getOrgLimiter().check(c.orgId).allowed)
+		return { ok: false, error: "rate_limited" };
+	const { adminEmail } = parsed.data;
+	const customer = await googleCustomer(get, adminEmail);
+	if (!customer.ok)
+		return { ok: false, error: googleConnectError(customer.error) };
+	const owners = await readOrg(toOrgCtx(c), (tx) => ownerEmailsOf(tx, c.orgId));
+	if (!(await googleBound(get, adminEmail, customer.value.domains, owners)))
+		return { ok: false, error: "tenant_unbound" };
+	const r = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const x = await connectGoogleSource(
+			tx,
+			{ orgId: c.orgId, userId: c.userId },
+			{
+				customerId: customer.value.customerId,
+				adminEmail,
+				domains: customer.value.domains,
+				now: new Date(),
+			},
+		);
+		return { result: x, audit: x.audit };
+	});
+	if (r.result === "taken") return { ok: false, error: "tenant_taken" };
+	if (r.result === "other_customer")
+		return { ok: false, error: "google_other_customer" };
+	if (r.sourceId) await firstSync(c.orgId, r.sourceId);
+	revalidatePath(PATH);
+	revalidatePath(ACCOUNTS);
+	return { ok: true, data: undefined };
 }
 
 // „Jetzt abrufen“: in die Warteschlange (höchstens zwei gleichzeitig), ohne
@@ -304,6 +371,10 @@ export const saveIdentityPolicy = safeAction(
 export const startEntraConsent = safeAction(
 	"startEntraConsent",
 	startEntraConsentImpl,
+);
+export const connectGoogleWorkspace = safeAction(
+	"connectGoogleWorkspace",
+	connectGoogleWorkspaceImpl,
 );
 export const syncIdentityNow = safeAction(
 	"syncIdentityNow",
