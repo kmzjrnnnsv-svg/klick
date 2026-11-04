@@ -1,7 +1,6 @@
 import { DOCUMENT_TEMPLATES } from "@/lib/compliance/catalog/document-templates";
 import { RISK_SCENARIOS } from "@/lib/compliance/catalog/risk-scenarios";
 import { EVIDENCE_TEMPLATES } from "@/lib/evidence-authoring/templates";
-import { SHOTS, type Shot } from "@/lib/marketing/shots";
 // /funktionen — alle Abläufe in Klick, öffentlich erklärt. Jeder Ablauf:
 // was ihn auslöst, welche Schritte folgen, was am Ende prüfbar vorliegt und
 // wo er in der App liegt. Inhalt in Du-Form (Test tests/marketing-workflows),
@@ -22,7 +21,6 @@ export type WorkflowGroup = {
 	key: string;
 	title: string;
 	lead: string;
-	image: Shot & { alt: string };
 	workflows: Workflow[];
 };
 
@@ -31,10 +29,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "start",
 		title: "Einstieg",
 		lead: "Vom ersten Link bis zum Arbeitsvorrat, ohne Passwort.",
-		image: {
-			...SHOTS.frage,
-			alt: "Gap-Analyse in Klick: eine Frage je Control mit Antwort und Nachweis",
-		},
 		workflows: [
 			{
 				key: "login",
@@ -126,10 +120,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "umsetzen",
 		title: "Umsetzen",
 		lead: "Ein Control, viele Anforderungen. Jeder Nachweis zählt überall.",
-		image: {
-			...SHOTS.pruefungsreife,
-			alt: "Prüfungsreife je Rahmenwerk mit Blockern",
-		},
 		workflows: [
 			{
 				key: "controls",
@@ -363,10 +353,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "risiken",
 		title: "Risiken",
 		lead: "Risiken aus allem, was in Klick passiert, bewertet nach deiner Methode.",
-		image: {
-			...SHOTS.risiko,
-			alt: "Risiko-Assistent in Klick mit Szenarien",
-		},
 		workflows: [
 			{
 				key: "risk-wizard",
@@ -436,10 +422,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "betrieb",
 		title: "Vorfälle und Befunde",
 		lead: "Meldefristen, Befunde und Korrekturen: mit Uhr statt Kalendereintrag.",
-		image: {
-			...SHOTS.sicherheit,
-			alt: "Security-Checks in Klick mit Ampel und Fristen",
-		},
 		workflows: [
 			{
 				key: "incident",
@@ -526,10 +508,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "lieferkette",
 		title: "Dienstleister",
 		lead: "Bewerten intern oder per Fragebogen. Der Lieferant braucht kein Konto.",
-		image: {
-			...SHOTS.portal,
-			alt: "Lieferantenportal: Fragebogen ohne Konto",
-		},
 		workflows: [
 			{
 				key: "provider-rating",
@@ -579,10 +557,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "steuerung",
 		title: "Steuerung",
 		lead: "Freigaben, Beschlüsse und Fristen, damit nichts an einer Person hängen bleibt.",
-		image: {
-			...SHOTS.freigaben,
-			alt: "Freigabe-Designer in Klick mit Stufen",
-		},
 		workflows: [
 			{
 				key: "approvals",
@@ -757,10 +731,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "krypto",
 		title: "Krypto und Finanzen",
 		lead: "Für Kryptowerte-Dienstleister und Zahlungsinstitute auf dem Weg zur Zulassung.",
-		image: {
-			...SHOTS.verwahrung,
-			alt: "Tägliche Abstimmung des Kundenvermögens in Klick",
-		},
 		workflows: [
 			{
 				key: "custody",
@@ -860,10 +830,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "aussen",
 		title: "Nach außen",
 		lead: "Was Kund:innen, Prüfer:innen und Aufsicht sehen dürfen, und nicht mehr.",
-		image: {
-			...SHOTS.trustCenter,
-			alt: "Öffentliches Trust Center einer Organisation",
-		},
 		workflows: [
 			{
 				key: "trust-center",
@@ -946,10 +912,6 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 		key: "sicherheit",
 		title: "Sicherheit der Plattform",
 		lead: "Was Klick selbst tut, damit deine Daten sicher sind.",
-		image: {
-			...SHOTS.anmeldung,
-			alt: "Anmeldung bei Klick mit Passkey",
-		},
 		workflows: [
 			{
 				key: "step-up",
