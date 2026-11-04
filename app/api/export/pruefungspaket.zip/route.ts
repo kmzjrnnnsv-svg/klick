@@ -10,7 +10,9 @@ import { verifyAuditChain } from "@/lib/audit";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { getOrgSummary } from "@/lib/auth/org";
 import { SIGN_ORIGIN, SIGN_RP_ID } from "@/lib/auth/passkey-sign";
+import { allows } from "@/lib/auth/permissions";
 import { ledgerExportAllowed } from "@/lib/auth/visibility";
+import { auditPackageAllowed } from "@/lib/compliance/audit-workspace";
 import { frameworkNameMap } from "@/lib/compliance/page-data";
 import {
 	listControlRows,
@@ -69,12 +71,19 @@ const UUID = /^[0-9a-f-]{36}$/i;
 // (ISO-Daten) oder der gesamte Bestand. Step-up Pflicht; jeder Export steht
 // im Audit-Log.
 export async function GET(req: Request) {
-	const ctx = await exportStepUpGuard(req);
-	if (ctx instanceof NextResponse) return ctx;
 	const sp = new URL(req.url).searchParams;
 	const auditId = sp.get("audit");
 	if (auditId && !UUID.test(auditId))
 		return new NextResponse(null, { status: 404 });
+	// Mit ?audit= dürfen auch Prüfer:innen dieses Audits laden (ohne
+	// Export-Recht); das Paket enthält ohnehin nur gültige Fassungen und
+	// nichts streng Geheimes (buildAuditPackage).
+	const ctx = await exportStepUpGuard(
+		req,
+		auditId ? { audit: ["read"] } : undefined,
+	);
+	if (ctx instanceof NextResponse) return ctx;
+	const exportAll = allows(ctx, { export: ["create"] });
 	const von = sp.get("von");
 	const bis = sp.get("bis");
 	if ((von && !ISO_DATE.test(von)) || (bis && !ISO_DATE.test(bis)))
@@ -89,6 +98,8 @@ export async function GET(req: Request) {
 		if (!cov) return null;
 		const auditData = auditId ? await getAudit(tx, ctx.orgId, auditId) : null;
 		if (auditId && !auditData) return null;
+		if (!auditPackageAllowed(exportAll, auditData?.audit ?? null, ctx.userId))
+			return "forbidden" as const;
 		const period: PackagePeriod | null = auditData
 			? auditData.audit.periodStart || auditData.audit.periodEnd
 				? {
@@ -191,6 +202,7 @@ export async function GET(req: Request) {
 			auditData,
 		};
 	});
+	if (data === "forbidden") return new NextResponse(null, { status: 403 });
 	if (!data) return new NextResponse(null, { status: 404 });
 
 	const evidenceByControl = new Map<string, number>();

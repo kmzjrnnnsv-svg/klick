@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { ensureStepUp } from "@/app/actions/security";
 import { ExportLink } from "@/components/entity/export-link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -118,6 +119,7 @@ export function LedgerPanel({
 						{canExport && (
 							<ExportLink
 								href="/api/export/verlauf.zip"
+								ensure={ensureStepUp}
 								className={cn(
 									buttonVariants({ variant: "secondary", size: "sm" }),
 									"shrink-0",

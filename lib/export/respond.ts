@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
 	AuthError,
 	type OrgContext,
+	type Permission,
 	requireOrg,
 	requireStepUp,
 	toOrgCtx,
@@ -44,11 +45,14 @@ export async function exportGuard(): Promise<OrgContext | NextResponse> {
 
 // Pakete (ZIP) verlangen Step-up (Härtung: Export/Prüfungspaket). Fehlt die
 // frische Bestätigung, leiten wir zur 2FA-Seite und zurück zum Download.
+// `perm` ersetzt das Export-Recht für Ausnahmen mit eigener Prüfung in der
+// Route (Prüfungspaket des eigenen Audits, Verlauf für Prüfer:innen).
 export async function exportStepUpGuard(
 	req: Request,
+	perm: Permission = { export: ["create"] },
 ): Promise<OrgContext | NextResponse> {
 	try {
-		const ctx = await requireStepUp({ export: ["create"] });
+		const ctx = await requireStepUp(perm);
 		return rateLimited(ctx.orgId) ?? (await egressGuard(ctx, "export")) ?? ctx;
 	} catch (e) {
 		if (e instanceof AuthError) {
