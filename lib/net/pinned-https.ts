@@ -16,15 +16,16 @@ export type PinnedError =
 	| "network"
 	| "too_large";
 
-// headers: nur ausgewählte Kopfzeilen (Retry-After bei 429, Link fürs
-// Blättern), klein geschrieben; nie Set-Cookie oder Token
+// headers: nur ausgewählte Kopfzeilen (Retry-After bzw. bei Okta
+// X-Rate-Limit-Reset bei 429, Link fürs Blättern), klein geschrieben; nie
+// Set-Cookie oder Token
 export type PinnedResponse = {
 	status: number;
 	body: string;
 	headers?: Record<string, string>;
 };
 
-const KEPT_HEADERS = ["retry-after", "link"] as const;
+const KEPT_HEADERS = ["retry-after", "link", "x-rate-limit-reset"] as const;
 
 const defaultResolver: Resolver = (host) =>
 	dnsLookup(host, { all: true, verbatim: true });
