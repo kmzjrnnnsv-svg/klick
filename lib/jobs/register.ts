@@ -15,6 +15,12 @@ import {
 import { runComplianceTick } from "./compliance-tick-runner";
 import { runDigest, runImmediateMails } from "./digest";
 import { runEvidenceTexts } from "./evidence-texts";
+import {
+	IDENTITY_SYNC_SOURCE_JOB,
+	type IdentitySyncJob,
+	runIdentitySync,
+	runIdentitySyncSource,
+} from "./identity-sync";
 import { runPostureSnapshot } from "./posture";
 import { runPushNotify } from "./push-notify";
 import { runRetention } from "./retention";
@@ -47,6 +53,8 @@ import { runTeamsNotify } from "./teams-notify";
 //                                  zustellen (nur mit TEAMS_CLIENT_ID)
 //   sso-metadata       05:40       SAML-Metadaten neu holen, neues Zertifikat
 //                                  vormerken, Ablauf 30/7 Tage erinnern
+//   identity-sync      05:15       Konten aus Entra/Google/Okta je Quelle in die
+//                                  Warteschlange identity-sync-source (Teil D)
 //   site-tunnels       jede Minute Standort-Tunnel mit dem Netz-Agenten abgleichen
 //                                  (nur mit SITE_AGENT_SOCKET)
 // Die Wallet-Jobs (wallet-sync, price-tick, wallet-payouts) laufen seit K6 nur
@@ -68,6 +76,8 @@ export const JOBS = {
 	teamsNotify: "teams-notify",
 	pushNotify: "push-notify",
 	ssoMetadata: "sso-metadata",
+	identitySync: "identity-sync",
+	identitySyncSource: IDENTITY_SYNC_SOURCE_JOB,
 	siteTunnels: "site-tunnels",
 	quickCheck: QUICK_CHECK_JOB,
 } as const;
@@ -96,6 +106,7 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await boss.schedule(JOBS.teamsNotify, "* * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.pushNotify, "* * * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.ssoMetadata, "40 5 * * *", {}, { tz: TZ });
+	await boss.schedule(JOBS.identitySync, "15 5 * * *", {}, { tz: TZ });
 	await boss.schedule(JOBS.siteTunnels, "* * * * *", {}, { tz: TZ });
 
 	// Jeder Handler läuft im Job-Pool (lib/db/job-scope.ts): eigene
@@ -155,6 +166,18 @@ export async function registerJobs(boss: PgBoss): Promise<void> {
 	await work(JOBS.siteTunnels, async () => {
 		await runSiteTunnels();
 	});
+	await work(JOBS.identitySync, async () => {
+		await runIdentitySync();
+	});
+	// Abruf je Quelle: höchstens zwei gleichzeitig je Prozess
+	await boss.work<IdentitySyncJob>(
+		JOBS.identitySyncSource,
+		{ localConcurrency: 2 },
+		(jobs) =>
+			runAsJob(async () => {
+				for (const job of jobs) await runIdentitySyncSource(job.data);
+			}),
+	);
 	// Schnellcheck auf Anfrage: höchstens zwei gleichzeitig je Prozess
 	await boss.work<QuickCheckJob>(
 		JOBS.quickCheck,

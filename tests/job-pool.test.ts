@@ -62,12 +62,18 @@ describe("runAsJob", () => {
 
 	it("jeder Job-Handler läuft in runAsJob", () => {
 		const src = readFileSync(join(ROOT, "lib/jobs/register.ts"), "utf8");
-		// nur über den Helfer work(), außer dem Schnellcheck mit eigenem runAsJob
+		// nur über den Helfer work(), außer Schnellcheck und Abruf der
+		// Identität (Warteschlangen mit localConcurrency, eigenes runAsJob)
 		const direct = [...src.matchAll(/boss\.work(?:<[^>]+>)?\(([^,]+),/g)].map(
 			(m) => m[1]?.trim(),
 		);
-		expect(direct).toEqual(["name", "JOBS.quickCheck"]);
+		expect(direct).toEqual([
+			"name",
+			"JOBS.identitySyncSource",
+			"JOBS.quickCheck",
+		]);
 		expect(src).toMatch(/JOBS\.quickCheck[\s\S]*?runAsJob\(/);
+		expect(src).toMatch(/JOBS\.identitySyncSource[\s\S]*?runAsJob\(/);
 	});
 
 	it("Jobs nehmen die Datenbank über mainDb(), nicht globalDb", () => {

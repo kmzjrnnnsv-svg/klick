@@ -5675,6 +5675,7 @@
 		"res_control": "Controls",
 		"res_assessment": "Gap-Analysen & Fragebögen",
 		"res_custom_framework": "Eigene Rahmenwerke",
+		"res_identity": "Konten und Anmeldungen",
 		"res_incident": "Vorfälle",
 		"res_nonconformity": "Abweichungen",
 		"res_task": "Aufgaben",
@@ -7124,6 +7125,7 @@
 		"where_member_reset_access": "Führe es jetzt aus: Team, „Zugang zurücksetzen“ bei der Person.",
 		"where_integration_token": "Führe es jetzt aus: Einstellungen > Integrationen.",
 		"where_sso_provider_remove": "Führe es jetzt aus: Einstellungen > SSO, Verbindung entfernen.",
+		"where_identity_source_remove": "Führe es jetzt aus: Einstellungen > Integrationen, Konten und Anmeldungen, Trennen.",
 		"where_owner_add": "Führe es jetzt aus: Team, als Inhaber:in einladen bzw. Rolle ändern.",
 		"where_owner_remove": "Führe es jetzt aus: Team, Rolle der Inhaber:in ändern bzw. Mitglied entfernen.",
 		"where_network_policy": "",
@@ -7512,6 +7514,14 @@
 		"label": "Ich handle für das Unternehmen, bin dazu berechtigt und volljährig und akzeptiere die <terms>Nutzungsbedingungen</terms>.",
 		"required": "Bitte bestätige die Nutzungsbedingungen.",
 		"submit": "Bestätigen und weiter"
+	},
+	"Identity": {
+		"resultTitle": "Freigabe für Konten und Anmeldungen",
+		"resultOk": "Danke, Klick darf eure Konten jetzt lesen. Der erste Abruf läuft in den nächsten Minuten; die Ergebnisse stehen in Klick unter Team > Konten.",
+		"resultDenied": "Die Freigabe wurde nicht erteilt. Klick liest keine Konten. Einen neuen Link könnt ihr jederzeit erstellen lassen.",
+		"resultUnbound": "Die Freigabe wurde erteilt, gilt aber noch nicht: Im Tenant fehlt ein eigenes Konto mit der E-Mail einer Inhaber:in der Organisation in Klick, aus einer bestätigten Domain des Tenants. Bitte prüft das und lasst einen neuen Link erstellen.",
+		"resultTaken": "Dieser Tenant ist schon mit einer anderen Organisation in Klick verbunden. Wendet euch an die Inhaber:in eurer Organisation.",
+		"resultInvalid": "Dieser Freigabe-Link ist ungültig oder abgelaufen. Lasst in Klick einen neuen Link erstellen."
 	},
 	"Teams": {
 		"title": "Microsoft Teams",

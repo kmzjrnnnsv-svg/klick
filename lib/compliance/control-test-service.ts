@@ -21,6 +21,10 @@ export type ControlTestInput = {
 	notes?: string | null;
 	nextTestAt?: string | null;
 	evidenceId?: string | null;
+	// „skip“: fail ohne eigene Abweichung — der Aufrufer entscheidet selbst
+	// (automatische Prüfungen der Identität: erst nach der Einrichtungsfrist
+	// und nur, wenn keine offen ist)
+	nonconformity?: "auto" | "skip";
 };
 
 export async function insertControlTest(
@@ -74,7 +78,7 @@ export async function insertControlTest(
 			},
 		},
 	];
-	if (input.result === "fail") {
+	if (input.result === "fail" && input.nonconformity !== "skip") {
 		const draft = nonconformityFromTest({
 			id: row.id,
 			controlCode: impl.code,
