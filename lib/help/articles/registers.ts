@@ -338,7 +338,7 @@ export const REGISTERS: HelpArticle[] = [
 					"Arbeite die Stufen ab: einstufen, bewerten, Vertrag erfassen, Angaben zu Auslagerung und Ausstieg ergänzen.",
 					"Sobald bis zum Onboarding alles steht, nimmst du den Dienstleister in Betrieb.",
 				],
-				tip: "Im Register filterst du nach Stufe, zum Beispiel alle Dienstleister, bei denen der Vertrag noch fehlt.",
+				tip: "Im Register filterst du nach Stufe, zum Beispiel alle Dienstleister, bei denen der Vertrag noch fehlt. Vorfälle mit dem Dienstleister stehen rechts am Dienstleister; dort erfasst du auch einen neuen.",
 			},
 			{
 				id: "ausstieg",
@@ -497,6 +497,7 @@ export const REGISTERS: HelpArticle[] = [
 					"Tipp auf „Vorfall melden“ und füll drei Felder: Was ist passiert, wann hast du es bemerkt, was ist betroffen. Das geht schnell, auch am Handy.",
 					"Die oder der Vorfallverantwortliche übernimmt und stuft ein. Klick fragt die Kriterien des jeweiligen Regimes ab (zum Beispiel Anzahl betroffener Kund:innen, Dauer, Datenverlust).",
 					"Ist der Vorfall meldepflichtig, rechnet Klick die Fristen und zeigt die Uhren: Erstmeldung, Zwischenbericht, Abschlussbericht.",
+					"Hat ein Dienstleister den Vorfall verursacht oder ist er betroffen, wählst du ihn beim Melden oder beim Einstufen aus. Der Vorfall erscheint dann auch am Dienstleister.",
 					"Bei schwerwiegenden Vorfällen informiert Klick die Geschäftsleitung sofort; sie bestätigt die Kenntnisnahme.",
 					"Arbeite das Aufgabenpaket ab und markier die Meldungen als abgegeben.",
 					"Schließ den Vorfall mit Ursache. Bei schweren Vorfällen entsteht eine Abweichung, damit die Ursache dauerhaft abgestellt wird.",

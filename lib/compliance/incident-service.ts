@@ -1,5 +1,11 @@
 import { and, eq } from "drizzle-orm";
-import { incidents, incidentUpdates, products, tasks } from "@/db/schema";
+import {
+	incidents,
+	incidentUpdates,
+	products,
+	providers,
+	tasks,
+} from "@/db/schema";
 import type { IncidentRegime } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
 import { TASK_BUNDLES } from "@/lib/compliance/catalog/task-bundles";
@@ -51,6 +57,23 @@ export async function ownProduct(
 		.select({ id: products.id })
 		.from(products)
 		.where(and(eq(products.id, productId), eq(products.organizationId, orgId)))
+		.limit(1);
+	return p ? p.id : undefined;
+}
+
+// Dienstleister muss zur Org gehören (wie ownProduct)
+export async function ownProvider(
+	tx: OrgTx,
+	orgId: string,
+	providerId: string | null | undefined,
+): Promise<string | null | undefined> {
+	if (!providerId) return providerId;
+	const [p] = await tx
+		.select({ id: providers.id })
+		.from(providers)
+		.where(
+			and(eq(providers.id, providerId), eq(providers.organizationId, orgId)),
+		)
 		.limit(1);
 	return p ? p.id : undefined;
 }
@@ -121,10 +144,12 @@ export async function createIncidentRecord(
 		(await orgOwnerIds(tx, ctx.orgId))[0] ??
 		null;
 	const productId = await ownProduct(tx, ctx.orgId, d.productId);
+	const providerId = await ownProvider(tx, ctx.orgId, d.providerId);
 	const [row] = await tx
 		.insert(incidents)
 		.values({
 			productId: productId ?? null,
+			providerId: providerId ?? null,
 			organizationId: ctx.orgId,
 			code,
 			title: d.title,

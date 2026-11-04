@@ -2167,7 +2167,10 @@
 		"mitigationHint": "Sobald ein Fix oder eine Abhilfe bereitsteht, vermerke es hier: Dann läuft die 14-Tage-Frist für den Abschlussbericht.",
 		"reportApprovalRequested": "Freigabe der Meldung angefragt — die Frist läuft weiter. Nach der Freigabe vermerkst du hier die Abgabe.",
 		"reportApprovalPending": "Die Meldung wartet noch auf Freigabe — die Frist läuft weiter.",
-		"rootCauseNone": "Noch keine Ursache erfasst."
+		"rootCauseNone": "Noch keine Ursache erfasst.",
+		"provider": "Dienstleister",
+		"providerNone": "Kein Dienstleister",
+		"providerHint": "Wenn ein Dienstleister den Vorfall verursacht hat oder betroffen ist."
 	},
 	"Approvals": {
 		"title": "Freigaben",
@@ -9249,6 +9252,13 @@
 		"exitCompletedOn": "Ausstieg abgeschlossen am {date}.",
 		"exitRequested": "Ausstieg beantragt am {date}, wartet auf Freigabe.",
 		"exitRejected": "Ausstieg am {date} abgelehnt. Der Dienstleister bleibt in Betrieb.",
-		"errExitIncomplete": "Es fehlen noch Pflichtpunkte der Checkliste."
+		"errExitIncomplete": "Es fehlen noch Pflichtpunkte der Checkliste.",
+		"incidentsTitle": "Vorfälle",
+		"incidentsEmpty": "Noch kein Vorfall mit diesem Dienstleister.",
+		"incidentNew": "Vorfall erfassen",
+		"incidentStatus_open": "offen",
+		"incidentStatus_contained": "eingedämmt",
+		"incidentStatus_resolved": "behoben",
+		"incidentStatus_closed": "abgeschlossen"
 	}
 }
