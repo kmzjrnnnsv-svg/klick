@@ -6,6 +6,7 @@ import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { LegalLinks } from "@/components/shell/legal-links";
 import { buttonVariants } from "@/components/ui/button";
 import { ContainedScroll } from "@/components/ui/contained-scroll";
+import { PageFind } from "@/components/ui/page-find";
 import { ScrollReset } from "@/components/ui/scroll-reset";
 import { ADMIN_NAV } from "@/lib/admin/nav";
 import { gateAdmin } from "@/lib/auth/gates";
@@ -74,6 +75,7 @@ export default async function AdminLayout({
 					className="relative min-w-0 grow lg:overflow-y-auto lg:overscroll-contain lg:py-8"
 				>
 					<ScrollReset />
+					<PageFind />
 					{children}
 				</main>
 			</div>

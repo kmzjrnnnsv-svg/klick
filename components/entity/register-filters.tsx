@@ -61,6 +61,8 @@ export function RegisterFilters({
 			{search && (
 				<Input
 					type="search"
+					data-page-search=""
+					aria-keyshortcuts="Meta+F Control+F"
 					defaultValue={params.get("q") ?? ""}
 					placeholder={searchPlaceholder ?? t("search")}
 					onChange={(e) => update("q", e.target.value.trim() || null)}

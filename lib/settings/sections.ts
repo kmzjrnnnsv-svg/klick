@@ -3,6 +3,8 @@
 // ab Desktop Liste links, Bereich rechts. Der Bereich steht in ?tab= (alte
 // Links bleiben gültig). Pure, getestet.
 
+import { matchesWords, searchWords } from "@/lib/text/search";
+
 // Fünf Gruppen (S3, Nov 2026): was dich betrifft, die Organisation, wer
 // hinein darf, womit Klick verbunden ist, wie ihr arbeitet.
 export const SETTINGS_GROUPS = [
@@ -187,26 +189,19 @@ export function resolveSettingsSection(
 }
 
 // Suche in der Liste (S3): Name, Satz und Suchwörter; Groß-/Kleinschreibung
-// und Umlaute egal, jedes Wort der Eingabe muss vorkommen
-const fold = (v: string) =>
-	v
-		.toLowerCase()
-		.replace(/ä/g, "a")
-		.replace(/ö/g, "o")
-		.replace(/ü/g, "u")
-		.replace(/ß/g, "ss");
+// und Umlaute egal, jedes Wort der Eingabe muss vorkommen (lib/text/search,
+// im Browser über ListSearch)
+export function settingsTerms(key: SettingsSectionKey): string {
+	return SETTINGS_SECTIONS.find((s) => s.key === key)?.terms.join(" ") ?? "";
+}
 
 export function matchSettings<T extends { key: SettingsSectionKey }>(
 	query: string,
 	items: readonly (T & { title: string; hint: string })[],
 ): T[] {
-	const words = fold(query).split(/\s+/).filter(Boolean);
+	const words = searchWords(query);
 	if (words.length === 0) return [...items];
-	const terms = new Map(
-		SETTINGS_SECTIONS.map((s) => [s.key, s.terms.join(" ")] as const),
+	return items.filter((i) =>
+		matchesWords(words, `${i.title} ${i.hint} ${settingsTerms(i.key)}`),
 	);
-	return items.filter((i) => {
-		const text = fold(`${i.title} ${i.hint} ${terms.get(i.key) ?? ""}`);
-		return words.every((w) => text.includes(w));
-	});
 }
