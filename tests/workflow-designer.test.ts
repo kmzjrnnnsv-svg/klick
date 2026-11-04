@@ -297,7 +297,7 @@ describe("Texte der Auslöser", () => {
 			}
 		).Workflows;
 		const missing = TRIGGERS.filter((x) => x.wired).flatMap((x) => {
-			const k = x.key.replace(".", "_");
+			const k = x.key.replaceAll(".", "_");
 			return [`trigger_${k}`, `triggerHint_${k}`].filter((m) => !wf[m]);
 		});
 		expect(missing).toEqual([]);

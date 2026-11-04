@@ -253,7 +253,7 @@ describe("Graph-Client", () => {
 		// nur lesend
 		expect(
 			m.calls
-				.filter((x) => x.url.startsWith("https://graph.microsoft.com"))
+				.filter((x) => new URL(x.url).host === "graph.microsoft.com")
 				.every((x) => x.method === "GET"),
 		).toBe(true);
 		const missing = createGraphClient(
