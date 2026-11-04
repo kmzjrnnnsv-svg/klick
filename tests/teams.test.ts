@@ -188,8 +188,8 @@ describe("Graph-Client", () => {
 		expect((await c.token(TENANT_A)).ok).toBe(true);
 		expect((await c.token(TENANT_A)).ok).toBe(true);
 		expect((await c.token(TENANT_B)).ok).toBe(true);
-		const logins = m.calls.filter((x) =>
-			x.url.includes("login.microsoftonline.com"),
+		const logins = m.calls.filter(
+			(x) => new URL(x.url).host === "login.microsoftonline.com",
 		);
 		expect(logins).toHaveLength(2);
 		expect(logins[0]?.body).toContain("client_secret=geheim");
