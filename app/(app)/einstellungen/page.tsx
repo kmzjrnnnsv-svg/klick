@@ -256,13 +256,19 @@ async function SettingsPage({
 	const sectionTitle = t(SECTION_LABEL[section]);
 	const panel = await renderSection(section, ctx, { canEditSettings });
 	return (
-		// Ab 1024 px geteilte Ansicht: Liste und Bereich scrollen je für sich
-		<div data-split-page="">
-			<div className={cn(chosen && "hidden lg:block")}>
-				<PageHeader compact title={t("title")} />
-			</div>
+		// Wie Einstellungen in macOS/iPadOS:
+		// - Handy: erst die Liste, dann der Bereich (mit Zurück)
+		// - ab 48rem Platz (iPad hochkant): Liste und Bereich nebeneinander,
+		//   die Liste klebt unter der Kopfleiste und scrollt für sich. Gemessen
+		//   am Platz der Seite in rem (Container-Abfrage, @3xl): bei großer
+		//   Schrift bleibt es einspaltig, statt den Inhalt zu quetschen
+		// - ab 1024 px: bündig (data-split-page="flush") — die Liste liegt
+		//   direkt an der Seitenleiste der App, der Bereich nimmt den Rest der
+		//   Breite, beide scrollen je für sich; erst ab 1920 px hat der Inhalt
+		//   eine Höchstbreite (links bündig, nahe an der Liste)
+		<div data-split-page="flush" className="@container">
 			{chosen && (
-				<div className="lg:hidden">
+				<div className="@3xl:hidden">
 					<Link
 						href="/einstellungen"
 						className="-ml-1 mb-1 inline-flex min-h-11 items-center gap-0.5 rounded-md pr-2 text-body text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -275,21 +281,30 @@ async function SettingsPage({
 			)}
 			<div
 				data-split-body=""
-				className="grid grid-cols-1 gap-8 lg:grid-cols-[18rem_minmax(0,1fr)]"
+				className="grid grid-cols-1 gap-8 @3xl:grid-cols-[16rem_minmax(0,1fr)] max-lg:@3xl:gap-6 @5xl:grid-cols-[18rem_minmax(0,1fr)] @7xl:grid-cols-[20rem_minmax(0,1fr)] @min-[100rem]:grid-cols-[22rem_minmax(0,1fr)] lg:gap-0"
 			>
 				<SplitPane
 					as="nav"
 					list
 					aria-label={t("title")}
-					// Am Desktop ist die Liste eine Seitenleiste: ohne Pfeile, mit
-					// eigener Scrollfläche (scrollt für sich, nie den Inhalt mit)
+					// Neben dem Inhalt ist die Liste eine Seitenleiste: ohne Pfeile,
+					// mit eigener Scrollfläche (scrollt für sich, nie den Inhalt mit)
 					className={cn(
-						"lg:pr-1 lg:[&_.lucide-chevron-right]:hidden",
-						chosen && "hidden lg:block",
+						// unter 1024 px klebt die Liste unter der Kopfleiste (das Fenster
+						// scrollt); darüber scrollt sie als Spalte selbst (styles/base.css)
+						"max-lg:@3xl:sticky max-lg:@3xl:top-16 max-lg:@3xl:max-h-[calc(100dvh-8rem)] max-lg:@3xl:self-start max-lg:@3xl:overflow-y-auto max-lg:@3xl:overscroll-contain @3xl:[&_.lucide-chevron-right]:hidden",
+						"lg:px-4 lg:@3xl:border-border/60 lg:@3xl:border-r",
+						chosen && "hidden @3xl:block",
 					)}
 				>
+					{/* Abstand oben am Titel, nicht an der Spalte: sonst hielte das
+					    klebende Suchfeld ihn frei und Zeilen schienen darüber durch */}
+					<div className="lg:pt-6">
+						<PageHeader compact title={t("title")} />
+					</div>
 					<KeepActiveVisible active={section} />
 					<SettingsSearch
+						sticky
 						items={visible.map((k) => ({
 							key: k,
 							title: t(SECTION_LABEL[k]),
@@ -311,18 +326,18 @@ async function SettingsPage({
 											key={k}
 											icon={SECTION_ICON[k]}
 											title={t(SECTION_LABEL[k])}
-											// Satz, was der Bereich regelt; in der Seitenleiste am
-											// Desktop steht er über dem Bereich
+											// Satz, was der Bereich regelt; neben dem Inhalt steht
+											// er über dem Bereich
 											subtitle={
-												<span className="lg:hidden">{t(`hint_${k}`)}</span>
+												<span className="@3xl:hidden">{t(`hint_${k}`)}</span>
 											}
 											href={`/einstellungen?tab=${k}`}
 											current={chosen && k === section}
-											// Ohne Wahl zeigt der Desktop den Standardbereich
+											// Ohne Wahl zeigt die geteilte Ansicht den Standardbereich
 											className={cn(
 												!chosen &&
 													k === section &&
-													"lg:bg-primary/12 lg:font-semibold",
+													"@3xl:bg-primary/12 @3xl:font-semibold",
 											)}
 										/>
 									))}
@@ -338,20 +353,24 @@ async function SettingsPage({
 					main
 					aria-labelledby="einstellungen-bereich"
 					className={cn(
-						"flex flex-col gap-6 lg:pr-1 lg:pb-6",
-						!chosen && "hidden lg:flex",
+						"lg:px-8 lg:pt-6 lg:pb-6 xl:px-10",
+						!chosen && "hidden @3xl:block",
 					)}
 				>
-					<h2
-						id="einstellungen-bereich"
-						className="sr-only font-bold text-title-2 lg:not-sr-only"
-					>
-						{sectionTitle}
-					</h2>
-					<p className="-mt-4 text-callout text-muted-foreground">
-						{t(`hint_${section}`)}
-					</p>
-					{panel}
+					{/* füllt die restliche Breite; erst auf sehr breiten Monitoren eine
+					    Grenze, damit Zeilen nicht endlos lang werden */}
+					<div className="flex w-full flex-col gap-6 min-[120rem]:max-w-[110rem]">
+						<h2
+							id="einstellungen-bereich"
+							className="sr-only font-bold text-title-2 @3xl:not-sr-only"
+						>
+							{sectionTitle}
+						</h2>
+						<p className="-mt-4 text-callout text-muted-foreground">
+							{t(`hint_${section}`)}
+						</p>
+						{panel}
+					</div>
 				</SplitPane>
 			</div>
 		</div>

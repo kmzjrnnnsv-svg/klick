@@ -8,6 +8,7 @@ import {
 	matchSettings,
 	type SettingsSectionKey,
 } from "@/lib/settings/sections";
+import { cn } from "@/lib/utils";
 
 type Item = {
 	key: SettingsSectionKey;
@@ -22,17 +23,27 @@ type Item = {
 export function SettingsSearch({
 	items,
 	labels,
+	sticky = false,
 	children,
 }: {
 	items: Item[];
 	labels: { placeholder: string; results: string; empty: string };
+	// Suchfeld bleibt oben in der eigenen Scrollfläche der Liste stehen,
+	// sobald die Liste neben dem Inhalt steht (Container-Abfrage der Seite)
+	sticky?: boolean;
 	children: ReactNode;
 }) {
 	const [query, setQuery] = useState("");
 	const hits = query.trim() ? matchSettings(query, items) : null;
 	return (
 		<div className="flex flex-col gap-4">
-			<label className="relative block">
+			<label
+				className={cn(
+					"relative block",
+					sticky &&
+						"@3xl:sticky @3xl:top-0 @3xl:z-10 @3xl:-mx-1 @3xl:bg-background @3xl:px-1 @3xl:py-2",
+				)}
+			>
 				<span className="sr-only">{labels.placeholder}</span>
 				<Search
 					aria-hidden="true"
