@@ -22,6 +22,7 @@ import {
 	MitigationButton,
 } from "@/components/incidents/incident-forms";
 import { ManagementAckButton } from "@/components/incidents/management-ack";
+import { IncidentNonconformities } from "@/components/nonconformities/incident-nonconformities";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
@@ -293,6 +294,15 @@ async function IncidentDetailPage({
 			}
 			aside={
 				<>
+					<IncidentNonconformities
+						ctx={ctx}
+						incident={{
+							id: incident.id,
+							code: incident.code,
+							title: incident.title,
+							rootCause: incident.rootCause,
+						}}
+					/>
 					<SourceRisksBlock ctx={ctx} kind="incident" id={id} />
 					<DecisionRequestsBlock ctx={ctx} kind="incident" id={id} />
 					<Section title={te("activity")}>
@@ -472,7 +482,10 @@ export default withMessages(IncidentDetailPage, [
 	"Decisions",
 	"Dlp",
 	"Entity",
+	"Functions",
 	"Incidents",
+	"Nonconformities",
+	"Organisation",
 	"Resolutions",
 	"Settings",
 	"Status",

@@ -160,7 +160,18 @@ export function ProviderForm({
 										: (gate.errorText(res.error) ?? errorText(tc, res)),
 								);
 							if (res.data.approvalPending) toast.info(gate.pendingText());
-							else toast.success(isEdit ? t("saved") : t("created"));
+							else if (isEdit) toast.success(t("saved"));
+							// nächster Schritt nach dem Anlegen: die Bewertung
+							else
+								toast.success(t("created"), {
+									action: {
+										label: t("startRatingNext"),
+										onClick: () =>
+											router.push(
+												`/dienstleister/${res.data.id}?tab=bewertungen`,
+											),
+									},
+								});
 							setOpen(false);
 							router.refresh();
 						});

@@ -845,6 +845,31 @@ export async function listNonconformities(tx: OrgTx, orgId: string) {
 	}));
 }
 
+// Abweichungen zu einem Vorfall (Herkunft „incident“ mit Bezug), für den
+// Abschnitt „Abweichung“ an der Vorfallseite.
+export async function listIncidentNonconformities(
+	tx: OrgTx,
+	orgId: string,
+	incidentId: string,
+) {
+	return tx
+		.select({
+			id: nonconformities.id,
+			code: nonconformities.code,
+			title: nonconformities.title,
+			status: nonconformities.status,
+		})
+		.from(nonconformities)
+		.where(
+			and(
+				eq(nonconformities.organizationId, orgId),
+				eq(nonconformities.source, "incident"),
+				eq(nonconformities.sourceRefId, incidentId),
+			),
+		)
+		.orderBy(asc(nonconformities.createdAt));
+}
+
 export async function getNonconformity(tx: OrgTx, orgId: string, id: string) {
 	const [r] = await tx
 		.select()

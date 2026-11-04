@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/page-header";
 import { SectionSwitch } from "@/components/shell/section-switch";
 import { CompareControls } from "@/components/synergies/compare-controls";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -60,7 +61,17 @@ async function SynergiesPage({
 				<SectionSwitch group="synergies" current="/synergien" ctx={ctx} />
 
 				<PageHeader title={t("title")} lead={t("lead")} />
-				<EmptyState title={t("title")} lead={t("whatIfLead")} />
+				<EmptyState
+					title={t("emptyTitle")}
+					lead={t("emptyLead")}
+					actions={
+						<Button asChild variant="outline" size="sm">
+							<Link href="/einstellungen?tab=frameworks">
+								{t("chooseFrameworks")}
+							</Link>
+						</Button>
+					}
+				/>
 			</>
 		);
 	}

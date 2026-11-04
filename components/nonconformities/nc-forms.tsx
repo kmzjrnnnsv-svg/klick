@@ -60,11 +60,18 @@ export function NonconformityForm({
 	initial,
 	members,
 	frameworks = [],
+	fromIncident,
 }: {
 	initial?: NcDraft;
 	members: MemberOption[];
 	// aktive Rahmenwerke für die Nacharbeitsfristen
 	frameworks?: { slug: string; name: string }[];
+	// Anlegen am Vorfall: Herkunft fest, Titel und Ursache vorbelegt
+	fromIncident?: {
+		id: string;
+		title: string;
+		rootCause?: string | null;
+	};
 }) {
 	const t = useTranslations("Nonconformities");
 	const tc = useTranslations("Common");
@@ -72,13 +79,26 @@ export function NonconformityForm({
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [d, setD] = useState<NcDraft>(
-		initial ?? { source: "self_identified", title: "" },
+		initial ??
+			(fromIncident
+				? {
+						source: "incident",
+						title: fromIncident.title,
+						rootCause: fromIncident.rootCause ?? null,
+					}
+				: { source: "self_identified", title: "" }),
 	);
 	return (
 		<FormDialog
 			title={initial ? t("edit") : t("new")}
-			lead={t("formLead")}
-			trigger={initial ? <EditTrigger /> : <NewTrigger label={t("new")} />}
+			lead={fromIncident ? t("fromIncidentLead") : t("formLead")}
+			trigger={
+				initial ? (
+					<EditTrigger />
+				) : (
+					<NewTrigger label={fromIncident ? t("fromIncident") : t("new")} />
+				)
+			}
 			open={open}
 			setOpen={setOpen}
 			pending={pending}
@@ -96,6 +116,7 @@ export function NonconformityForm({
 						effectivenessCheckAt: d.effectivenessCheckAt || null,
 						followUpClass: d.followUpClass ?? null,
 						followUpFrameworks: d.followUpFrameworks ?? [],
+						...(fromIncident ? { incidentId: fromIncident.id } : {}),
 					});
 					if (!res.ok)
 						return void toast.error(
@@ -122,7 +143,7 @@ export function NonconformityForm({
 				required
 			/>
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-				{!initial && (
+				{!initial && !fromIncident && (
 					<div className="flex flex-col gap-1.5">
 						<Label>{t("source")}</Label>
 						<Select
