@@ -11,13 +11,14 @@ import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { globalDb } from "@/db";
 import { ledgerAnchors, ledgerHeads } from "@/db/schema";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import { LocalKms, setKmsForTests } from "@/lib/crypto/kms";
+import { pendingAnchors } from "@/lib/db/ledger";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
 import { ledgerExportEntries } from "@/lib/ledger/export";
 import {
@@ -246,6 +247,44 @@ d("Verlauf mit Bitcoin-Anker (Postgres)", () => {
 		writeFileSync(kopfPath, JSON.stringify(kopf));
 		const r = verify(dir);
 		expect(r.code).toBe(1);
+	});
+
+	it("hängende Anker blockieren neuere nicht (reihum)", async () => {
+		// 25 ältere Anker, die schon versucht wurden (Kalender bestätigt
+		// nie), und ein neuer, noch nie versuchter
+		const old = new Date(Date.now() - 86_400_000);
+		const stuck = await globalDb
+			.insert(ledgerAnchors)
+			.values(
+				Array.from({ length: 25 }, (_, i) => ({
+					reason: "daily",
+					root: "00".repeat(32),
+					leafCount: 1,
+					createdAt: new Date(old.getTime() - i * 1000),
+					lastUpgradeAt: new Date(Date.now() - 60_000 + i),
+				})),
+			)
+			.returning({ id: ledgerAnchors.id });
+		const [fresh] = await globalDb
+			.insert(ledgerAnchors)
+			.values({ reason: "event", root: "11".repeat(32), leafCount: 1 })
+			.returning({ id: ledgerAnchors.id });
+		try {
+			const batch = (await pendingAnchors(20)).map((a) => a.id);
+			expect(batch).toContain(fresh?.id);
+			// dann die am längsten nicht versuchten, nicht die ältesten
+			expect(batch).toContain(stuck[0]?.id);
+			expect(batch).not.toContain(stuck[24]?.id);
+		} finally {
+			await globalDb
+				.delete(ledgerAnchors)
+				.where(
+					inArray(ledgerAnchors.id, [
+						...stuck.map((r) => r.id),
+						fresh?.id as string,
+					]),
+				);
+		}
 	});
 
 	it("pruefen.mjs im Download = scripts/verify-ledger.mjs", async () => {
