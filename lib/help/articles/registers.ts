@@ -256,6 +256,7 @@ export const REGISTERS: HelpArticle[] = [
 					"Kritische oder wichtige Prozesse brauchen jedes Jahr eine Notfallübung. Plane sie im Testprogramm und trag dort das Ergebnis ein. Erst dann gilt der Prozess als geübt.",
 					"Verknüpf Assets, Dienstleister und den Standort. Die Abhängigkeitskarte zeigt, wo viele kritische Prozesse an einem Dienstleister hängen (Konzentrationsrisiko).",
 				],
+				tip: "Die RTO darf nie größer sein als die MTPD. Klick lehnt das im Formular ab und zeigt es am Prozess rot an.",
 			},
 			{
 				id: "kette",
@@ -265,7 +266,17 @@ export const REGISTERS: HelpArticle[] = [
 					"Am Prozess zeigt „Im Notfall: Abhängigkeiten“ die langsamste Abhängigkeit als erreichbaren Wiederanlauf und den größten Datenverlust. Liegt eine Abhängigkeit über dem RTO oder RPO, ist sie rot markiert; fehlt ein Wert, ist das Ziel noch nicht prüfbar.",
 					"Kritische Prozesse, deren Abhängigkeiten das Ziel verfehlen, meldet „Als Nächstes“, die Abhängigkeitskarte markiert sie mit „Ziel nicht erreichbar“.",
 				],
-				tip: "Die RTO darf nie größer sein als die MTPD. Klick lehnt das im Formular ab und zeigt es am Prozess rot an.",
+			},
+			{
+				id: "notfallplan",
+				heading: "Notfallplan je Prozess",
+				steps: [
+					"Öffne den Prozess und wähle unter „Notfallplan“ „Notfallplan anlegen“. Klick schlägt einen Plan vor: Alarmierung über Notfallmanagement, Krisenstab, verantwortliche Stelle und Geschäftsleitung, Wiederanlauf in der Reihenfolge der verknüpften Assets, Dienstleister als Kontakte.",
+					"Pass Auslöser, Sofortmaßnahmen, Alarmierung (wer, wie, binnen wie vieler Minuten), Notbetrieb, Wiederanlauf (Schritt, zuständig, Ziel in Stunden) und Rückkehr zum Normalbetrieb an und speichere.",
+					"Gib den Plan frei, sobald Auslöser, Alarmierung und Wiederanlauf stehen. Jede Freigabe zählt die Fassung hoch und setzt die nächste Überprüfung auf zwölf Monate.",
+					"Lade den Plan als PDF und leg ihn dort ab, wo du ihn im Notfall ohne Klick findest.",
+				],
+				tip: "Liegt ein Wiederanlauf-Schritt über dem RTO des Prozesses, markiert Klick ihn rot. Änderst du einen freigegebenen Plan, ist er bis zur nächsten Freigabe wieder ein Entwurf.",
 			},
 		],
 		automation: [

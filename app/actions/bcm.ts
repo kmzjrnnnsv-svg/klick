@@ -2,17 +2,27 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { processes } from "@/db/schema";
+import { bcmPlans, processes } from "@/db/schema";
 import type { ProcessBia } from "@/db/schema/registers";
 import { safeAction } from "@/lib/actions/safe";
 import { GateBlocked } from "@/lib/approvals/gate-error";
 import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeBia, suggestTargets } from "@/lib/bcm/bia";
+import {
+	normalizePlan,
+	planIssues,
+	releasable,
+	reviewDate,
+} from "@/lib/bcm/plan";
 import { levelCount } from "@/lib/compliance/risk-method";
-import { mutateOrg } from "@/lib/db/with-org";
+import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { orgRiskMethod } from "@/lib/org/queries";
-import { saveBiaSchema } from "@/lib/validation/bcm";
+import {
+	releaseBcmPlanSchema,
+	saveBcmPlanSchema,
+	saveBiaSchema,
+} from "@/lib/validation/bcm";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 
 // Notfallmanagement: Aktionen rund um BIA, Notfallpläne und Übungen.
@@ -154,3 +164,152 @@ async function saveProcessBiaImpl(input: unknown): Promise<SaveBiaResult> {
 }
 
 export const saveProcessBia = safeAction("saveProcessBia", saveProcessBiaImpl);
+
+// ── Notfallplan je Prozess (N3) ────────────────────────────────────────────
+
+async function processOf(tx: OrgTx, orgId: string, processId: string) {
+	const [p] = await tx
+		.select({
+			id: processes.id,
+			code: processes.code,
+			rtoHours: processes.rtoHours,
+		})
+		.from(processes)
+		.where(
+			and(eq(processes.id, processId), eq(processes.organizationId, orgId)),
+		)
+		.limit(1);
+	return p ?? null;
+}
+
+// Plan speichern; ein freigegebener Plan gilt danach wieder als Entwurf, bis
+// er erneut freigegeben ist (die Fassung zählt erst mit der Freigabe hoch)
+async function saveBcmPlanImpl(
+	input: unknown,
+): Promise<ActionResult<{ code: string }>> {
+	const c = await requireOrg({ process: ["update"] });
+	const parsed = saveBcmPlanSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const content = normalizePlan(parsed.data.content);
+	const res = await mutateOrg<ActionResult<{ code: string }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			const p = await processOf(tx, c.orgId, parsed.data.processId);
+			if (!p) return { result: { ok: false, error: "notFound" }, audit: [] };
+			const [before] = await tx
+				.select({ id: bcmPlans.id, status: bcmPlans.status })
+				.from(bcmPlans)
+				.where(
+					and(
+						eq(bcmPlans.organizationId, c.orgId),
+						eq(bcmPlans.processId, p.id),
+					),
+				)
+				.limit(1);
+			const now = new Date();
+			let id = before?.id;
+			if (before) {
+				await tx
+					.update(bcmPlans)
+					.set({
+						content,
+						status: "draft",
+						updatedBy: c.userId,
+						updatedAt: now,
+					})
+					.where(eq(bcmPlans.id, before.id));
+			} else {
+				const [row] = await tx
+					.insert(bcmPlans)
+					.values({
+						organizationId: c.orgId,
+						processId: p.id,
+						content,
+						updatedBy: c.userId,
+					})
+					.returning({ id: bcmPlans.id });
+				id = row?.id;
+			}
+			return {
+				result: { ok: true, data: { code: p.code } },
+				audit: {
+					action: "bcm_plan.saved",
+					target: `process:${p.id}`,
+					before: before ? { status: before.status } : null,
+					after: {
+						planId: id ?? null,
+						status: "draft",
+						alert: content.alert.length,
+						recovery: content.recovery.length,
+						contacts: content.contacts.length,
+					},
+				},
+			};
+		},
+	);
+	revalidatePath("/prozesse", "layout");
+	return res;
+}
+
+// Freigeben: nur ohne Lücken (Auslöser, Alarmierung, Wiederanlauf), Fassung
+// hoch, Überprüfung in zwölf Monaten
+async function releaseBcmPlanImpl(
+	input: unknown,
+): Promise<ActionResult<{ version: number }>> {
+	const c = await requireOrg({ process: ["update"] });
+	const parsed = releaseBcmPlanSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const res = await mutateOrg<ActionResult<{ version: number }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			const p = await processOf(tx, c.orgId, parsed.data.processId);
+			if (!p) return { result: { ok: false, error: "notFound" }, audit: [] };
+			const [plan] = await tx
+				.select()
+				.from(bcmPlans)
+				.where(
+					and(
+						eq(bcmPlans.organizationId, c.orgId),
+						eq(bcmPlans.processId, p.id),
+					),
+				)
+				.limit(1);
+			if (!plan) return { result: { ok: false, error: "notFound" }, audit: [] };
+			const now = new Date();
+			const issues = planIssues(plan.content, p, null, now.toISOString());
+			if (!releasable(issues))
+				return { result: { ok: false, error: "plan_incomplete" }, audit: [] };
+			if (plan.status === "released")
+				return {
+					result: { ok: true, data: { version: plan.version } },
+					audit: [],
+				};
+			const version = plan.version + 1;
+			await tx
+				.update(bcmPlans)
+				.set({
+					status: "released",
+					version,
+					releasedAt: now,
+					releasedBy: c.userId,
+					reviewAt: reviewDate(now),
+					updatedAt: now,
+				})
+				.where(eq(bcmPlans.id, plan.id));
+			return {
+				result: { ok: true, data: { version } },
+				audit: {
+					action: "bcm_plan.released",
+					target: `process:${p.id}`,
+					before: { status: plan.status, version: plan.version },
+					after: { status: "released", version, reviewAt: reviewDate(now) },
+				},
+			};
+		},
+	);
+	revalidatePath("/prozesse", "layout");
+	return res;
+}
+
+export const saveBcmPlan = safeAction("saveBcmPlan", saveBcmPlanImpl);
+export const releaseBcmPlan = safeAction("releaseBcmPlan", releaseBcmPlanImpl);

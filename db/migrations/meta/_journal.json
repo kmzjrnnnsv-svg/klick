@@ -512,6 +512,13 @@
       "when": 1793828037893,
       "tag": "0072_bcm_chain",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1793828543107,
+      "tag": "0073_bcm_plans",
+      "breakpoints": true
     }
   ]
 }
