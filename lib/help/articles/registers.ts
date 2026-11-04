@@ -341,6 +341,18 @@ export const REGISTERS: HelpArticle[] = [
 				tip: "Im Register filterst du nach Stufe, zum Beispiel alle Dienstleister, bei denen der Vertrag noch fehlt.",
 			},
 			{
+				id: "ausstieg",
+				heading: "Vertrag im Blick und sauber aussteigen",
+				body: [
+					"Klick erinnert dich, bevor die Kündigungsfrist abläuft (60, 30, 14, 7 und 1 Tag vorher) und bevor der Vertrag endet (90, 30 und 7 Tage vorher). Am Monatsersten kommt eine Erinnerung, wenn bei Personendaten der AV-Vertrag fehlt oder der Ausstieg aus einem kritischen Dienstleister seit über einem Jahr nicht getestet wurde.",
+				],
+				steps: [
+					"Über „Ausstieg beginnen“ am Dienstleister gibst du Begründung und geplantes Ende an. Hast du den Ablauf „Aus einem Dienstleister aussteigen“ eingerichtet, bleibt er bis zur Freigabe in Betrieb.",
+					"Danach steht er „Im Ausstieg“ mit einer Checkliste: gekündigt, Daten zurück, Löschung bestätigt, Zugänge entzogen und, bei kritischen Dienstleistern, Ersatz in Betrieb. Jeder Punkt bekommt beim Abhaken ein Datum.",
+					"Sind alle Pflichtpunkte erledigt, schließt du den Ausstieg ab. Der Dienstleister steht dann auf „Beendet“; die Checkliste bleibt als Nachweis.",
+				],
+			},
+			{
 				id: "erfassen",
 				heading: "Dienstleister erfassen und einstufen",
 				steps: [

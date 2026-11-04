@@ -2,9 +2,17 @@ import { Check, Circle, CircleDot } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Section } from "@/components/entity/entity-layout";
-import { ProviderStepActions } from "@/components/supplier/lifecycle-forms";
-import { Badge } from "@/components/ui/badge";
 import {
+	ExitChecklist,
+	ProviderStepActions,
+	StartExitDialog,
+} from "@/components/supplier/lifecycle-forms";
+import { Badge } from "@/components/ui/badge";
+import { PROVIDER_EXIT_ITEMS } from "@/db/schema/enums";
+import type { ProviderExit } from "@/db/schema/registers";
+import {
+	exitComplete,
+	exitItemRequired,
 	type Lifecycle,
 	type LifecycleItem,
 	type LifecycleItemKey,
@@ -48,14 +56,32 @@ export async function LifecyclePanel({
 	status,
 	canEdit,
 	approvalPending,
+	exit,
+	significance,
 }: {
 	lifecycle: Lifecycle;
 	providerId: string;
 	status: string;
 	canEdit: boolean;
 	approvalPending: boolean;
+	// Ausstieg mit Checkliste (L3)
+	exit: ProviderExit | null;
+	significance: {
+		criticality: "critical" | "important" | "standard";
+		isMaterial: boolean;
+	};
 }) {
 	const t = await getTranslations("SupplierLifecycle");
+	const fmt = new Intl.DateTimeFormat("de-DE", {
+		dateStyle: "medium",
+		timeZone: "Europe/Berlin",
+	});
+	const day = (iso: string) =>
+		fmt.format(new Date(iso.length === 10 ? `${iso}T12:00:00Z` : iso));
+	const running = ["active", "onboarding", "paused"].includes(status);
+	// Ausstieg beantragt, Entscheidung offen (Status bleibt bis dahin)
+	const exitRequested =
+		running && approvalPending && exit !== null && !exit.rejectedAt;
 	const base = `/dienstleister/${providerId}`;
 	const states = stageStates(lifecycle);
 	const current = lifecycle.current;
@@ -157,8 +183,34 @@ export async function LifecyclePanel({
 					)}
 				</p>
 				<p className="text-muted-foreground">{t(`lead_${current}`)}</p>
-				{now.length > 0 && (
+				{current !== "exit" && now.length > 0 && (
 					<ul className="flex flex-col gap-1.5">{now.map(item)}</ul>
+				)}
+				{current === "exit" && exit && (
+					<p>
+						{t("exitReasonShown", {
+							reason: exit.reason.replace(/[.!?]\s*$/, ""),
+						})}
+						{exit.plannedEnd &&
+							` ${t("exitPlannedShown", { date: day(exit.plannedEnd) })}`}
+					</p>
+				)}
+				{status === "exiting" && exit && (
+					<ExitChecklist
+						providerId={providerId}
+						canEdit={canEdit}
+						complete={exitComplete({ ...significance, exit })}
+						items={PROVIDER_EXIT_ITEMS.map((k) => ({
+							key: k,
+							required: exitItemRequired(k, significance),
+							doneAt: exit.items[k] ?? null,
+						}))}
+					/>
+				)}
+				{status === "terminated" && exit?.completedAt && (
+					<p className="text-muted-foreground">
+						{t("exitCompletedOn", { date: day(exit.completedAt) })}
+					</p>
 				)}
 				{canEdit && status === "requested" && (
 					<ProviderStepActions providerId={providerId} step="request" ready />
@@ -174,6 +226,16 @@ export async function LifecyclePanel({
 							ready
 						/>
 					)}
+				{exitRequested && exit && (
+					<p className="text-muted-foreground">
+						{t("exitRequested", { date: day(exit.requestedAt) })}
+					</p>
+				)}
+				{running && exit?.rejectedAt && !approvalPending && (
+					<p className="text-muted-foreground">
+						{t("exitRejected", { date: day(exit.rejectedAt) })}
+					</p>
+				)}
 				{later.length > 0 && current !== "exit" && (
 					<details className="rounded-2xl bg-card px-3 py-2">
 						<summary className="cursor-pointer text-footnote">
@@ -198,6 +260,11 @@ export async function LifecyclePanel({
 							))}
 						</ul>
 					</details>
+				)}
+				{canEdit && running && !approvalPending && (
+					<div>
+						<StartExitDialog providerId={providerId} />
+					</div>
 				)}
 			</div>
 		</Section>

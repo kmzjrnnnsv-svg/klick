@@ -791,6 +791,17 @@ export const PROVIDER_STATUSES = [
 	"declined",
 ] as const;
 
+// Ausstieg aus einem Dienstleister (L3): Punkte der Checkliste
+// (DORA Art. 28 Abs. 8, MaRisk AT 9 Tz. 6, DSGVO Art. 28 Abs. 3 g)
+export const PROVIDER_EXIT_ITEMS = [
+	"notice_given",
+	"data_returned",
+	"deletion_confirmed",
+	"access_revoked",
+	"replacement_ready",
+] as const;
+export type ProviderExitItem = (typeof PROVIDER_EXIT_ITEMS)[number];
+
 // aus custody.ts: hier, damit Browser-Code die Werte ohne Tabellen-Schema bekommt
 export const WALLET_KINDS = ["hot", "warm", "cold"] as const;
 

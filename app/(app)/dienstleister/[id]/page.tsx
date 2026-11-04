@@ -377,6 +377,11 @@ async function ProviderPage({
 				status={p.status}
 				canEdit={canEdit}
 				approvalPending={data.approvalPending}
+				exit={p.exit}
+				significance={{
+					criticality: p.criticality,
+					isMaterial: p.isMaterial,
+				}}
 			/>
 			<UrlTabs
 				base={base}

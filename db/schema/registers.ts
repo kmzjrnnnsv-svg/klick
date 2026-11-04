@@ -25,6 +25,7 @@ import {
 	CRITICALITY,
 	PROVIDER_CATEGORIES,
 	PROVIDER_STATUSES,
+	type ProviderExitItem,
 	ROLE_FUNCTIONS,
 } from "./enums";
 
@@ -41,6 +42,18 @@ export const ASSET_REDUNDANCY = ["none", "cold", "warm", "hot"] as const;
 export type AssetRedundancy = (typeof ASSET_REDUNDANCY)[number];
 export type ContractClauses = Record<string, boolean | string>;
 export type DueDiligence = Record<string, boolean | string | null>;
+// Ausstieg (L3): Begründung, geplantes Ende, erledigte Punkte mit Datum;
+// beantragt bzw. abgelehnt über den Auslöser provider.exit
+export type ProviderExit = {
+	reason: string;
+	plannedEnd: string | null;
+	requestedAt: string;
+	requestedBy: string | null;
+	items: Partial<Record<ProviderExitItem, string>>;
+	completedAt?: string | null;
+	completedBy?: string | null;
+	rejectedAt?: string | null;
+};
 // Geführte BIA je Prozess (lib/bcm/bia.ts): je Schadensart der Risikomethode
 // eine Stufe je Zeitstufe; Vorschlag MTPD/RTO wird daraus gerechnet, nie
 // gespeichert — übernommen stehen sie in rto/rpo/mtpd_hours.
@@ -120,6 +133,8 @@ export const providers = pgTable(
 		contractClauses: json<ContractClauses>(),
 		exitStrategy: text(),
 		exitPlanTestedAt: date(),
+		// Ausstieg mit Checkliste (L3), null = kein Ausstieg begonnen
+		exit: json<ProviderExit>(),
 		// Notfall (N2): was der Vertrag zusagt — Wiederanlauf und höchstens
 		// verlorene Daten in Stunden; Abgleich mit den Prozessen in bcmChain
 		rtoHours: integer(),

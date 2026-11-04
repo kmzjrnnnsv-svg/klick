@@ -140,6 +140,17 @@ export const TRIGGERS: readonly TriggerDef[] = [
 		facts: providerFacts,
 		wired: true,
 	},
+	// Ausstieg aus einem Dienstleister (L3): bis zur Entscheidung bleibt er in
+	// Betrieb, danach „Im Ausstieg“ mit Checkliste
+	{
+		key: "provider.exit",
+		kind: "provider_exit",
+		entityType: "provider",
+		area: "register",
+		mode: "pending",
+		facts: providerFacts,
+		wired: true,
+	},
 	{
 		key: "asset.create",
 		kind: "asset_intake",
@@ -450,6 +461,9 @@ export const NEW_TRIGGER_STEPS: Readonly<Record<string, ApprovalStep[]>> = {
 	role_revocation: MANAGEMENT_ALL,
 	key_holder_appointment: MANAGEMENT_ALL,
 	provider_intake: [
+		{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
+	],
+	provider_exit: [
 		{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
 	],
 	asset_intake: [{ order: 1, approverRule: "function:isb_ciso", slaDays: 5 }],

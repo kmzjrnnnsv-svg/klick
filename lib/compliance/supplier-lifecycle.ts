@@ -1,5 +1,13 @@
-import type { PROVIDER_STATUSES } from "@/db/schema/enums";
-import type { ContractClauses, DueDiligence } from "@/db/schema/registers";
+import {
+	PROVIDER_EXIT_ITEMS,
+	type PROVIDER_STATUSES,
+	type ProviderExitItem,
+} from "@/db/schema/enums";
+import type {
+	ContractClauses,
+	DueDiligence,
+	ProviderExit,
+} from "@/db/schema/registers";
 import { ART30_CLAUSES } from "@/lib/compliance/catalog/art30-clauses";
 
 // Lebenszyklus eines Dienstleisters (L1): Bedarf → Einstufung → Prüfung →
@@ -38,7 +46,8 @@ export type LifecycleItemKey =
 	| "targets"
 	| "next_review"
 	| "contract_valid"
-	| "exit_test";
+	| "exit_test"
+	| `exit_${ProviderExitItem}`;
 
 export type LifecycleItem = {
 	key: LifecycleItemKey;
@@ -73,6 +82,8 @@ export type LifecycleInput = {
 	exitPlanTestedAt: string | null;
 	rtoHours: number | null;
 	nextAssessmentAt: string | null;
+	// Ausstieg mit Checkliste (L3); fehlt bei älteren Aufrufern
+	exit?: ProviderExit | null;
 };
 
 export type LifecycleOptions = {
@@ -102,7 +113,9 @@ const POSITIVE = new Set([
 const NEGATIVE = new Set(["reject", "rejected"]);
 
 // kritisch oder wesentlich (Auslagerung): strengere Pflichten
-export function isSignificant(p: LifecycleInput): boolean {
+export function isSignificant(
+	p: Pick<LifecycleInput, "criticality" | "isMaterial">,
+): boolean {
 	return p.criticality === "critical" || p.isMaterial;
 }
 
@@ -201,7 +214,101 @@ export function lifecycleItems(
 			significant,
 			p.exitPlanTestedAt !== null && p.exitPlanTestedAt >= yearBefore(o.today),
 		),
+		// Checkliste des Ausstiegs (L3), nur sobald er läuft
+		...(p.status === "exiting" || p.status === "terminated"
+			? PROVIDER_EXIT_ITEMS.map((k) =>
+					item(
+						`exit_${k}`,
+						"exit",
+						exitItemRequired(k, p),
+						Boolean(p.exit?.items[k]),
+					),
+				)
+			: []),
 	];
+}
+
+// Ersatz bzw. Rückführung ist Pflicht nur bei kritischen oder wesentlichen
+// Dienstleistern (Notfall-Kette), sonst Empfehlung
+export function exitItemRequired(
+	k: ProviderExitItem,
+	p: Pick<LifecycleInput, "criticality" | "isMaterial">,
+): boolean {
+	return k !== "replacement_ready" || isSignificant(p);
+}
+
+// Ausstieg abschließen geht erst, wenn alle Pflichtpunkte erledigt sind
+export function exitComplete(
+	p: Pick<LifecycleInput, "criticality" | "isMaterial" | "exit">,
+): boolean {
+	return PROVIDER_EXIT_ITEMS.every(
+		(k) => !exitItemRequired(k, p) || Boolean(p.exit?.items[k]),
+	);
+}
+
+// Erinnerungen für den Tick (L3): Kündigungsfrist und Vertragsende an festen
+// Vorlauf-Tagen, fehlender AV-Vertrag und überfälliger Ausstiegstest am
+// Monatsersten. Nur für Dienstleister in Aufbau oder Betrieb.
+export const NOTICE_MARKS = [60, 30, 14, 7, 1] as const;
+export const CONTRACT_END_MARKS = [90, 30, 7] as const;
+
+export type ProviderReminder =
+	| { kind: "notice"; date: string; days: number }
+	| { kind: "contract_end"; date: string; days: number }
+	| { kind: "dpa_missing" }
+	| { kind: "exit_test"; lastTest: string | null };
+
+function dayDiff(from: string, to: string): number {
+	return Math.round(
+		(Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
+			86_400_000,
+	);
+}
+
+function minusDays(iso: string, days: number): string {
+	const d = new Date(`${iso}T00:00:00Z`);
+	d.setUTCDate(d.getUTCDate() - days);
+	return d.toISOString().slice(0, 10);
+}
+
+export function providerReminders(
+	p: Pick<
+		LifecycleInput,
+		| "status"
+		| "criticality"
+		| "isMaterial"
+		| "processesPersonalData"
+		| "dpaSignedAt"
+		| "contractEnd"
+		| "noticePeriodDays"
+		| "exitPlanTestedAt"
+	>,
+	today: string,
+): ProviderReminder[] {
+	if (!["active", "onboarding", "paused"].includes(p.status)) return [];
+	const out: ProviderReminder[] = [];
+	if (p.contractEnd) {
+		if (p.noticePeriodDays) {
+			const notice = minusDays(p.contractEnd, p.noticePeriodDays);
+			const days = dayDiff(today, notice);
+			if ((NOTICE_MARKS as readonly number[]).includes(days))
+				out.push({ kind: "notice", date: notice, days });
+		}
+		const days = dayDiff(today, p.contractEnd);
+		if ((CONTRACT_END_MARKS as readonly number[]).includes(days))
+			out.push({ kind: "contract_end", date: p.contractEnd, days });
+	}
+	const firstOfMonth = today.endsWith("-01");
+	if (firstOfMonth && p.status === "active") {
+		if (p.processesPersonalData && !p.dpaSignedAt)
+			out.push({ kind: "dpa_missing" });
+		if (
+			isSignificant(p) &&
+			(p.exitPlanTestedAt === null || p.exitPlanTestedAt < yearBefore(today))
+		)
+			out.push({ kind: "exit_test", lastTest: p.exitPlanTestedAt });
+	}
+	return out;
 }
 
 // Stufe: Bedarf, Ausstieg und Ablehnung folgen dem Status; sonst die erste

@@ -526,6 +526,13 @@
       "when": 1793829808971,
       "tag": "0074_bcm_exercises",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1793832490941,
+      "tag": "0075_provider_exit",
+      "breakpoints": true
     }
   ]
 }

@@ -338,6 +338,30 @@ export const APPROVAL_WORKFLOW_TEMPLATES: ApprovalWorkflowTemplate[] = [
 		defaultEnabled: false,
 	},
 	{
+		kind: "provider_exit",
+		name: "Aus einem Dienstleister aussteigen",
+		entityType: "provider",
+		description:
+			"Auslagerungsbeauftragte:r gibt den Ausstieg frei; bis dahin bleibt der Dienstleister in Betrieb.",
+		steps: NEW_TRIGGER_STEPS.provider_exit ?? [],
+		defaultEnabled: false,
+	},
+	{
+		kind: "provider_exit_management",
+		name: "Aus einem kritischen Dienstleister aussteigen",
+		entityType: "provider",
+		trigger: "provider.exit",
+		conditions: [{ field: "needsManagement", op: "is_true" }],
+		priority: 10,
+		description:
+			"Kritische oder wichtige Funktion bzw. wesentliche Auslagerung: Auslagerungsbeauftragte:r, dann die Geschäftsleitung (DORA Art. 28 Abs. 8, MaRisk AT 9).",
+		steps: [
+			{ order: 1, approverRule: "function:outsourcing_officer", slaDays: 10 },
+			{ order: 2, approverRule: "function:management_body", slaDays: 10 },
+		],
+		defaultEnabled: false,
+	},
+	{
 		kind: "asset_retirement",
 		name: "Asset außer Betrieb nehmen",
 		entityType: "asset",

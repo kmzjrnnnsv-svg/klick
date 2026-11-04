@@ -1,5 +1,10 @@
-import type { EntityKind, NotificationKind } from "@/db/schema/enums";
+import type {
+	EntityKind,
+	NotificationKind,
+	PROVIDER_STATUSES,
+} from "@/db/schema/enums";
 import { managementAckState } from "@/lib/compliance/incident-management";
+import { providerReminders } from "@/lib/compliance/supplier-lifecycle";
 import { previousBusinessDay } from "@/lib/custody/reconcile";
 import { acknowledgementLink } from "@/lib/documents/distribution";
 import {
@@ -62,6 +67,15 @@ export type DueRows = {
 		name: string;
 		nextAssessmentAt: Date | string | null;
 		ownerUserId: string | null;
+		// Vertrag, AV-Vertrag, Ausstiegstest (L3); fehlt = keine Erinnerung
+		status?: (typeof PROVIDER_STATUSES)[number];
+		criticality?: "critical" | "important" | "standard";
+		isMaterial?: boolean;
+		processesPersonalData?: boolean;
+		dpaSignedAt?: string | null;
+		contractEnd?: string | null;
+		noticePeriodDays?: number | null;
+		exitPlanTestedAt?: string | null;
 	}[];
 	evidenceExpiring: readonly {
 		id: string;
@@ -444,6 +458,9 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		});
 	}
 	for (const p of rows.providerAssessments) {
+		// beendete, abgelehnte und nur gemeldete Dienstleister nicht bewerten
+		if (p.status && !["active", "onboarding", "paused"].includes(p.status))
+			continue;
 		const due = toDate(p.nextAssessmentAt);
 		if (!due || due > horizon) continue;
 		notifications.push({
@@ -454,6 +471,66 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			link: `/dienstleister/${encodeURIComponent(p.id)}?tab=bewertungen`,
 			dedupeKey: `review:provider:${p.id}:${isoDay(due)}`,
 		});
+	}
+	// Dienstleister (L3): Kündigungsfrist, Vertragsende, fehlender AV-Vertrag,
+	// überfälliger Ausstiegstest
+	for (const p of rows.providerAssessments) {
+		if (!p.status) continue;
+		const reminders = providerReminders(
+			{
+				status: p.status,
+				criticality: p.criticality ?? "standard",
+				isMaterial: p.isMaterial ?? false,
+				processesPersonalData: p.processesPersonalData ?? false,
+				dpaSignedAt: p.dpaSignedAt ?? null,
+				contractEnd: p.contractEnd ?? null,
+				noticePeriodDays: p.noticePeriodDays ?? null,
+				exitPlanTestedAt: p.exitPlanTestedAt ?? null,
+			},
+			isoDay(now),
+		);
+		const link = `/dienstleister/${encodeURIComponent(p.id)}`;
+		const recipients = recipientsOf(p.ownerUserId, rows.orgOwnerIds);
+		for (const r of reminders) {
+			if (r.kind === "notice")
+				notifications.push({
+					kind: "review_due",
+					recipients,
+					title: `Kündigungsfrist ${p.name}: noch ${r.days} Tag${r.days === 1 ? "" : "e"}`,
+					body: `Kündigen bis ${fmtDay(toDate(`${r.date}T00:00:00Z`) ?? now)}, sonst verlängert sich der Vertrag womöglich. Entscheide über Verlängerung oder Ausstieg.`,
+					link,
+					dedupeKey: `provider:notice:${p.id}:${r.date}:${r.days}`,
+				});
+			else if (r.kind === "contract_end")
+				notifications.push({
+					kind: "review_due",
+					recipients,
+					title: `Vertrag mit ${p.name} endet in ${r.days} Tagen`,
+					body: `Vertragsende ${fmtDay(toDate(`${r.date}T00:00:00Z`) ?? now)}. Verlängern oder den Ausstieg vorbereiten.`,
+					link,
+					dedupeKey: `provider:contract_end:${p.id}:${r.date}:${r.days}`,
+				});
+			else if (r.kind === "dpa_missing")
+				notifications.push({
+					kind: "review_due",
+					recipients,
+					title: `AV-Vertrag fehlt: ${p.name}`,
+					body: "Der Dienstleister verarbeitet Personendaten, ein AV-Vertrag nach Art. 28 DSGVO ist nicht erfasst.",
+					link: `${link}?angaben=1`,
+					dedupeKey: `provider:dpa:${p.id}:${isoDay(now).slice(0, 7)}`,
+				});
+			else
+				notifications.push({
+					kind: "review_due",
+					recipients,
+					title: `Ausstieg testen: ${p.name}`,
+					body: r.lastTest
+						? `Der Ausstieg wurde zuletzt am ${fmtDay(toDate(`${r.lastTest}T00:00:00Z`) ?? now)} getestet, vor mehr als einem Jahr.`
+						: "Für diesen kritischen Dienstleister ist kein Test des Ausstiegs erfasst.",
+					link: `${link}?angaben=1`,
+					dedupeKey: `provider:exit_test:${p.id}:${isoDay(now).slice(0, 7)}`,
+				});
+		}
 	}
 
 	// Nachweise mit Ablaufdatum

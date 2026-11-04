@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, notInArray } from "drizzle-orm";
 import {
 	amlRiskAnalyses,
 	assets,
@@ -174,6 +174,41 @@ export async function applyApprovalOutcome(
 							eq(assets.status, "pending"),
 						),
 					);
+			return extra;
+		}
+		// Ausstieg (L3): freigegeben = „Im Ausstieg“ mit Checkliste,
+		// abgelehnt = bleibt in Betrieb, der Antrag steht als abgelehnt am Ausstieg
+		case "provider.exit": {
+			if (approved)
+				await tx
+					.update(providers)
+					.set({ status: "exiting" })
+					.where(
+						and(
+							eq(providers.id, r.entityId),
+							eq(providers.organizationId, ctx.orgId),
+							notInArray(providers.status, ["exiting", "terminated"]),
+						),
+					);
+			if (rejected) {
+				const [p] = await tx
+					.select({ exit: providers.exit })
+					.from(providers)
+					.where(
+						and(
+							eq(providers.id, r.entityId),
+							eq(providers.organizationId, ctx.orgId),
+						),
+					)
+					.limit(1);
+				if (p?.exit)
+					await tx
+						.update(providers)
+						.set({
+							exit: { ...p.exit, rejectedAt: new Date().toISOString() },
+						})
+						.where(eq(providers.id, r.entityId));
+			}
 			return extra;
 		}
 		case "asset.retire": {
