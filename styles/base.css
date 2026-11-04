@@ -375,4 +375,12 @@ h1 {
 		font-size: var(--text-title-2);
 		line-height: var(--text-title-2--line-height);
 	}
+	/* bündig (data-split-page="flush", Einstellungen wie in macOS/iPadOS):
+	   die Liste liegt direkt an der Seitenleiste der App, der Inhalt nimmt
+	   die restliche Breite; Abstände tragen die Spalten selbst */
+	main:has(> [data-split-page="flush"]) {
+		max-width: none;
+		margin: 0;
+		padding: 0;
+	}
 }
