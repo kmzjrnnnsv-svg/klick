@@ -82,6 +82,7 @@ async function ControlDetailPage({
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
 	const t = await getTranslations("Controls");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const ta = await getTranslations("Authoring");
 	const te = await getTranslations("Entity");
@@ -239,9 +240,11 @@ async function ControlDetailPage({
 						{t(`effort_${control.effort}`)} · {t(`kind_${control.kind}`)}
 					</MetaItem>
 					<MetaItem label={t("nextReview")}>
-						{row.nextReviewAt
-							? fmtDate.format(new Date(row.nextReviewAt))
-							: "—"}
+						{row.nextReviewAt ? (
+							fmtDate.format(new Date(row.nextReviewAt))
+						) : (
+							<span className="text-muted-foreground">{tc("notPlanned")}</span>
+						)}
 					</MetaItem>
 				</>
 			}
@@ -304,7 +307,7 @@ async function ControlDetailPage({
 												</p>
 											)}
 											<p className="text-muted-foreground text-footnote">
-												{task.assigneeName ?? "—"}
+												{task.assigneeName ?? tc("nobody")}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
 													: ""}

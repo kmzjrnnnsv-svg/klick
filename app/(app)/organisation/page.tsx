@@ -155,6 +155,7 @@ async function OrganisationPage({
 		? (one(sp.tab) as (typeof TABS)[number])
 		: "kontext";
 	const t = await getTranslations("Organisation");
+	const tc = await getTranslations("Common");
 	const tf = await getTranslations("Functions");
 	const canEdit = allows(ctx, { organisation: ["update"] });
 	const canRoles = allows(ctx, { role_assignment: ["update"] });
@@ -640,7 +641,7 @@ async function OrganisationPage({
 										<span className="ml-auto text-muted-foreground text-footnote">
 											{s.approvedAt
 												? `${t("approvedBy")} ${s.approvedByName ?? "—"} · ${fmtDate.format(s.approvedAt)}`
-												: `${t("owner")}: ${s.ownerName ?? "—"}`}
+												: `${t("owner")}: ${s.ownerName ?? tc("nobody")}`}
 										</span>
 										{canEdit && (
 											<ScopeForm
@@ -1081,7 +1082,9 @@ async function OrganisationPage({
 													{a.deputyName ? (
 														<UserChip name={a.deputyName} />
 													) : (
-														"—"
+														<span className="text-muted-foreground">
+															{tc("noDeputy")}
+														</span>
 													)}
 												</TableCell>
 												<TableCell>

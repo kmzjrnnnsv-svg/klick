@@ -82,6 +82,7 @@ async function ProviderPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ provider: ["read"] });
 	const t = await getTranslations("Suppliers");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const tr = await getTranslations("Rating");
 	const tp = await getTranslations("Providers");
@@ -243,14 +244,23 @@ async function ProviderPage({
 								nextDue && nextDue < now ? "text-destructive" : undefined
 							}
 						>
-							{nextDue ? fmtDate.format(nextDue) : "—"}
+							{nextDue ? (
+								fmtDate.format(nextDue)
+							) : (
+								<span className="text-muted-foreground">
+									{tc("notPlanned")}
+								</span>
+							)}
 						</span>
 					</MetaItem>
 					<MetaItem label={t("clauses")}>
 						{t("clausesProgress", { done: clauseDone, total: clauseRequired })}
 					</MetaItem>
 					<MetaItem label={tp("owner")}>
-						<UserChip name={data.names.get(p.ownerUserId ?? "")} />
+						<UserChip
+							name={data.names.get(p.ownerUserId ?? "")}
+							fallback={tc("nobody")}
+						/>
 					</MetaItem>
 				</>
 			}
@@ -284,7 +294,7 @@ async function ProviderPage({
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
 											<p className="text-muted-foreground text-footnote">
-												{task.assigneeName ?? "—"}
+												{task.assigneeName ?? tc("nobody")}
 												{task.dueAt ? ` · ${task.dueAt}` : ""}
 											</p>
 										</div>

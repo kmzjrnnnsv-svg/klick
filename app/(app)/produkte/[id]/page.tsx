@@ -81,6 +81,7 @@ async function ProductPage({
 	const sp = await searchParams;
 	const ctx = await requireOrgPage({ product: ["read"] });
 	const t = await getTranslations("Products");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -139,7 +140,7 @@ async function ProductPage({
 				{d.docNumber} {d.title}
 			</Link>
 		) : (
-			"—"
+			<span className="text-muted-foreground">{t("docNone")}</span>
 		);
 	};
 	const entries = mergeActivity(
@@ -185,7 +186,11 @@ async function ProductPage({
 					</MetaItem>
 					<MetaItem label={t("craClass")}>{t(`class_${p.craClass}`)}</MetaItem>
 					<MetaItem label={t("supportUntil")}>
-						{p.supportUntil ? fmtDate.format(new Date(p.supportUntil)) : "—"}
+						{p.supportUntil ? (
+							fmtDate.format(new Date(p.supportUntil))
+						) : (
+							<span className="text-muted-foreground">{tc("notSet")}</span>
+						)}
 					</MetaItem>
 					<MetaItem label={t("owner")}>
 						<OwnerChip
@@ -225,7 +230,7 @@ async function ProductPage({
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
 											<p className="text-muted-foreground text-footnote">
-												{task.assigneeName ?? "—"}
+												{task.assigneeName ?? tc("nobody")}
 												{task.dueAt ? ` · ${task.dueAt}` : ""}
 											</p>
 										</div>

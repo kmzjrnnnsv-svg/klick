@@ -325,7 +325,9 @@ async function ResolutionsPage({
 													· {fmtDate.format(it.lastAt)}
 												</>
 											) : (
-												"—"
+												<span className="text-muted-foreground">
+													{t("neverDecided")}
+												</span>
 											)}
 										</TableCell>
 										<TableCell>

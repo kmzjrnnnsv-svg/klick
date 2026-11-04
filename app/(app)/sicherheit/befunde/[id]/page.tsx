@@ -34,6 +34,7 @@ async function FindingPage({ params }: { params: Promise<{ id: string }> }) {
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ security: ["read"] });
 	const t = await getTranslations("Security");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const tg = await getTranslations("Engagements");
@@ -285,6 +286,15 @@ async function FindingPage({ params }: { params: Promise<{ id: string }> }) {
 						</li>
 					)}
 					{f.reopenCount > 0 && <li>{t("reopened", { n: f.reopenCount })}</li>}
+					{!control &&
+						!data.engagement &&
+						!data.product &&
+						!data.nonconformity &&
+						!data.task &&
+						!data.scan &&
+						f.reopenCount === 0 && (
+							<li className="text-muted-foreground">{tc("nothingLinked")}</li>
+						)}
 				</ul>
 			</Section>
 		</EntityLayout>
