@@ -50,7 +50,7 @@ export function seedPlan(s: PlanSeed): BcmPlanContent {
 		channel: "phone",
 		withinMinutes: 60,
 	});
-	const recovery = [...s.assets]
+	const recovery: BcmPlanContent["recovery"] = [...s.assets]
 		.sort(
 			(a, b) =>
 				(a.rtoHours ?? Number.POSITIVE_INFINITY) -
