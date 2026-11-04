@@ -7,6 +7,7 @@ import {
 	nonconformityFromIncident,
 	nonconformityFromTest,
 } from "@/lib/compliance/nonconformity";
+import { nonconformitySchema } from "@/lib/validation/governance";
 
 const now = new Date("2026-10-07T12:00:00Z");
 
@@ -126,5 +127,20 @@ describe("capaState / Codes", () => {
 			"NC-2026-003",
 		);
 		expect(nextNonconformityCode(["NC-2025-009"], now)).toBe("NC-2026-001");
+	});
+});
+
+describe("Abweichung am Vorfall eröffnen", () => {
+	it("nimmt den Bezug nur als Kennung an", () => {
+		const id = "6f1c2b8e-4d3a-4c1f-9a2b-1e5d7c9f0a11";
+		const ok = nonconformitySchema.safeParse({
+			title: "Vorfall INC-2026-007: Phishing",
+			incidentId: id,
+		});
+		expect(ok.success && ok.data.incidentId).toBe(id);
+		expect(
+			nonconformitySchema.safeParse({ title: "x", incidentId: "INC-7" })
+				.success,
+		).toBe(false);
 	});
 });

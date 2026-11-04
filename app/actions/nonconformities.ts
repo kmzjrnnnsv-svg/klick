@@ -3,7 +3,7 @@
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { member } from "@/db/auth-schema";
-import { nonconformities, tasks } from "@/db/schema";
+import { incidents, nonconformities, tasks } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
@@ -52,7 +52,7 @@ async function upsertNonconformityImpl(
 	const c = await requireOrg({ nonconformity: ["create"] });
 	const parsed = nonconformitySchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
-	const { id, ...d } = parsed.data;
+	const { id, incidentId, ...d } = parsed.data;
 	if (id && !allows(c, { nonconformity: ["update"] }))
 		return { ok: false, error: "forbidden" };
 	const byAuditor = c.orgRole === "auditor";
@@ -172,6 +172,20 @@ async function upsertNonconformityImpl(
 					},
 				};
 			}
+			// Am Vorfall angelegt: Bezug nur auf einen Vorfall der eigenen Org
+			if (incidentId) {
+				const [inc] = await tx
+					.select({ id: incidents.id })
+					.from(incidents)
+					.where(
+						and(
+							eq(incidents.id, incidentId),
+							eq(incidents.organizationId, c.orgId),
+						),
+					)
+					.limit(1);
+				if (!inc) return { result: null, audit: [] };
+			}
 			// Prüfer:innen sind nie verantwortlich: ohne Auswahl übernimmt eine
 			// Inhaberin/ein Inhaber der Organisation.
 			const chosen = await ownerColumns(tx, c.orgId, d.ownerUserId, null);
@@ -190,8 +204,8 @@ async function upsertNonconformityImpl(
 				tx,
 				{ orgId: c.orgId, userId: c.userId },
 				{
-					source: byAuditor ? "audit" : d.source,
-					sourceRefId: null,
+					source: byAuditor ? "audit" : incidentId ? "incident" : d.source,
+					sourceRefId: byAuditor ? null : (incidentId ?? null),
 					title: d.title,
 					description: d.description ?? null,
 					rootCause: d.rootCause ?? null,
@@ -216,6 +230,7 @@ async function upsertNonconformityImpl(
 		},
 	);
 	revalidatePath(PATH, "layout");
+	if (incidentId) revalidatePath(`/vorfaelle/${incidentId}`);
 	return res ? { ok: true, data: res } : { ok: false, error: "notFound" };
 }
 

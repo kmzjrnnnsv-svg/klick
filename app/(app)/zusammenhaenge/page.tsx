@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { EmptyState } from "@/components/entity/empty-state";
 import { PageHeader } from "@/components/page-header";
@@ -10,6 +11,7 @@ import {
 } from "@/components/relations/relation-map";
 import { ThemeSections } from "@/components/relations/theme-sections";
 import { SectionSwitch } from "@/components/shell/section-switch";
+import { Button } from "@/components/ui/button";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { THEMES } from "@/lib/compliance/catalog/themes";
 import {
@@ -55,7 +57,17 @@ export default async function RelationsPage({
 				<ProcessSteps links />
 				<BasicPicture collapsedTitle={t("bikeTitle")} />
 				{frameworks.length === 0 ? (
-					<EmptyState title={t("emptyTitle")} lead={t("emptyLead")} />
+					<EmptyState
+						title={t("emptyTitle")}
+						lead={t("emptyLead")}
+						actions={
+							<Button asChild variant="outline" size="sm">
+								<Link href="/einstellungen?tab=frameworks">
+									{t("chooseFrameworks")}
+								</Link>
+							</Button>
+						}
+					/>
 				) : (
 					<>
 						<section className="flex flex-col gap-3">

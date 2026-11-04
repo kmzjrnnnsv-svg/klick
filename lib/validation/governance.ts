@@ -397,6 +397,8 @@ export const nonconformitySchema = z.object({
 	// Nacharbeit je Rahmenwerk (Einstellungen → Audits & Fristen)
 	followUpClass: z.enum(FOLLOW_UP_CLASS_KEYS).nullable().optional(),
 	followUpFrameworks: frameworkSlugs.optional(),
+	// Anlegen am Vorfall: Herkunft „incident“ mit Bezug (nur beim Anlegen)
+	incidentId: uuid.optional(),
 });
 
 export const nonconformityPrioritySchema = z.object({

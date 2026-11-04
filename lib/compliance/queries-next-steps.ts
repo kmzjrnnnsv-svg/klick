@@ -108,6 +108,7 @@ export async function loadOrgStatus(
 					DEFAULT_RISK_APPETITE.tolerable,
 			hasDocuments: counts.documents > 0,
 			hasProviders: counts.providers > 0,
+			measures: counts.measures,
 			processLinked: counts.processLinked,
 		};
 		return {
@@ -135,6 +136,7 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 		providers,
 		processLinked,
 		settings,
+		measures,
 	] = await Promise.all([
 		tx.execute<{ n: number }>(sql`
 			select count(*)::int as n from obligation_runs
@@ -177,6 +179,11 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 			select risk_appetite as appetite,
 			  setup_flags->>'riskMethodConfirmedAt' as confirmed
 			from org_settings where organization_id = ${orgId}`),
+		tx.execute<{ total: number; open: number }>(sql`
+			select count(*)::int as total,
+			  count(*) filter (where status <> 'done')::int as open
+			from tasks
+			where organization_id = ${orgId} and source_kind = 'assessment'`),
 	]);
 	return {
 		overdueRuns: n(overdueRuns),
@@ -190,6 +197,10 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 		processLinked: Boolean(processLinked[0]?.ok),
 		riskMethodConfirmed: Boolean(settings[0]?.confirmed),
 		riskAppetite: settings[0]?.appetite ?? null,
+		measures: {
+			total: measures[0]?.total ?? 0,
+			open: measures[0]?.open ?? 0,
+		},
 	};
 }
 
@@ -204,6 +215,7 @@ export async function personalStepFacts(opts: {
 		id: string;
 		title: string;
 		status: string;
+		appliedAt?: Date | null;
 		answered: number;
 		total: number;
 	}[];
@@ -212,6 +224,10 @@ export async function personalStepFacts(opts: {
 	const { setup } = opts;
 	const open = opts.gapAnalyses.find((a) =>
 		["draft", "in_progress", "submitted", "in_review"].includes(a.status),
+	);
+	// neueste übernommene (Liste kommt neueste zuerst)
+	const applied = opts.gapAnalyses.find(
+		(a) => a.status === "completed" && a.appliedAt,
 	);
 	let startCount = 0;
 	if (
@@ -251,6 +267,10 @@ export async function personalStepFacts(opts: {
 					}
 				: null,
 			startCount,
+			applied:
+				applied && opts.canCreateGap
+					? { id: applied.id, title: applied.title }
+					: null,
 		},
 	};
 }

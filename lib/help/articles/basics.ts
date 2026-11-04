@@ -13,7 +13,22 @@ export const BASICS: HelpArticle[] = [
 			"Wie Klick aufgebaut ist, wie du dich zurechtfindest und warum ein Control für viele Rahmenwerke zählt.",
 		sections: [
 			{
+				id: "mitarbeitende",
+				only: "staff",
+				heading: "Was du als Mitarbeitende:r in Klick tust",
+				body: [
+					"Deine Organisation führt in Klick ihre Richtlinien und Pflichtschulungen. Du siehst nur, was dich betrifft: die Richtlinien, die für dich gelten, und die Schulungen, die dir zugewiesen sind.",
+				],
+				steps: [
+					"Öffne Richtlinien. Neue oder geänderte Richtlinien stehen oben.",
+					"Lies die Richtlinie und bestätige mit „Zur Kenntnis genommen“.",
+					"Unter „Meine Schulungen“ auf derselben Seite schließt du zugewiesene Schulungen ab.",
+				],
+				tip: "Erinnerungen kommen per Mail oder Push. Der Link darin führt direkt zur Richtlinie bzw. Schulung.",
+			},
+			{
 				id: "idee",
+				only: "team",
 				heading: "Die Idee: ein Control, viele Anforderungen",
 				body: [
 					"Rahmenwerke wie ISO 27001, DORA, NIS2, MiCAR oder das GwG verlangen vieles doppelt: Zugriffsschutz, Notfallplanung, Lieferantensteuerung, Schulungen. Klick bündelt diese Pflichten in rund 170 harmonisierten Controls. Ein Control ist eine Maßnahme, die du einmal umsetzt und belegst. Klick rechnet daraus für jedes gewählte Rahmenwerk ab, wie weit du bist.",
@@ -22,6 +37,7 @@ export const BASICS: HelpArticle[] = [
 			},
 			{
 				id: "navigation",
+				only: "team",
 				heading: "So findest du dich zurecht",
 				body: [
 					"Am Computer steht links die Seitenleiste mit den Bereichen. Ab Tablet-Breite scrollen Seitenleiste und Inhalt je für sich; Impressum und Datenschutz stehen klein unten in der Seitenleiste. Zugeklappte Gruppen bleiben zu, bis du sie wieder öffnest. Am Handy gibt es unten eine Leiste mit höchstens fünf Tabs: Heute, Umsetzen, Register, Steuerung und Suche. Umsetzen, Register und Steuerung öffnen eine Liste ihrer Seiten.",
@@ -38,6 +54,7 @@ export const BASICS: HelpArticle[] = [
 			},
 			{
 				id: "start",
+				only: "team",
 				heading: "Die ersten zehn Minuten",
 				steps: [
 					"Schließ die geführte Einrichtung ab: Rollen, Unternehmen und Standorte, Tätigkeit, IT und Daten, Rahmenwerke. Klick legt daraus deinen Arbeitsvorrat an.",
@@ -109,8 +126,10 @@ export const BASICS: HelpArticle[] = [
 					"Öffne eine Aufgabe über ihren Titel. Sie zeigt, woher sie kommt (Control, Risiko, Vorfall, Gap-Analyse …).",
 					"Setz den Status: offen, in Arbeit, erledigt. Manche Übergänge verlangen eine Begründung.",
 					"Hinterleg Kommentare und erwähn Kolleg:innen mit @Name; sie bekommen eine Benachrichtigung.",
-					"Hängt die Aufgabe an einem Control, lade dort den Nachweis hoch. So zählt die Arbeit für alle Rahmenwerke.",
+					"Hängt die Aufgabe an einem Control, lade dort den Nachweis hoch oder verfass ihn über „Nachweis verfassen“ direkt an der Aufgabe. So zählt die Arbeit für alle Rahmenwerke.",
+					"Steht in der Beschreibung ein Pfad wie /controls/CC-IAM-01, ist er ein Link. So kommen offene Punkte der Prüfungsreife direkt dorthin, wo du sie löst.",
 				],
+				tip: "Für wiederkehrende Abläufe wie Eintritt, Austritt oder Schlüsselzeremonie gibt es Aufgabenpakete: unter Heute > Aufgaben „Aufgabenpaket anwenden“, Startdatum wählen, fertig. Die Fristen rechnet Klick ab dem Startdatum.",
 			},
 			{
 				id: "verantwortung",
@@ -579,7 +598,7 @@ export const BASICS: HelpArticle[] = [
 			},
 		],
 		automation: [
-			"Offene Kenntnisnahmen erscheinen auf Heute und in der Tages-Mail; der Tick erinnert.",
+			"Offene Kenntnisnahmen erscheinen auf Heute (für Mitarbeitende unter Richtlinien) und in der Tages-Mail; der Tick erinnert.",
 			"Portal-Adressen, die nie einen Code eingelöst haben, löscht Klick nach 7 Tagen.",
 		],
 		norms: [

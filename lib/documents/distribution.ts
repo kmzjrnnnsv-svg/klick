@@ -15,3 +15,29 @@ export function inDistribution(
 	if (distribution.includes(viewer.role)) return true;
 	return viewer.functions.some((f) => distribution.includes(functionTarget(f)));
 }
+
+// Wer eine veröffentlichte Fassung zur Kenntnis nehmen soll: Mitglieder im
+// Verteiler, ohne Externe (Prüfer:innen, Berater:innen nehmen nichts zur
+// Kenntnis). Mitarbeitende bestätigen auf /richtlinien, alle anderen am
+// Dokument.
+export function acknowledgementAudience(
+	distribution: readonly string[],
+	members: readonly { userId: string; role: string }[],
+	functionsOf: (userId: string) => readonly string[],
+): { userId: string; employee: boolean }[] {
+	return members
+		.filter(
+			(m) =>
+				m.role !== "auditor" &&
+				m.role !== "consultant" &&
+				inDistribution(distribution, {
+					role: m.role,
+					functions: functionsOf(m.userId),
+				}),
+		)
+		.map((m) => ({ userId: m.userId, employee: m.role === "employee" }));
+}
+
+// Ziel der Kenntnisnahme je Person
+export const acknowledgementLink = (docNumber: string, employee: boolean) =>
+	`${employee ? "/richtlinien" : "/dokumente"}/${encodeURIComponent(docNumber)}`;

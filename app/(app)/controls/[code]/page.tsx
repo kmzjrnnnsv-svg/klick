@@ -284,6 +284,11 @@ async function ControlDetailPage({
 									>
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
+											{task.description && (
+												<p className="mt-0.5 whitespace-pre-line break-words text-footnote text-muted-foreground">
+													{task.description}
+												</p>
+											)}
 											<p className="text-muted-foreground text-footnote">
 												{task.assigneeName ?? "—"}
 												{task.dueAt

@@ -27,7 +27,8 @@ export function redirectFor(code: AuthErrorCode): string {
 		case "session_expired":
 			return "/login?grund=sitzung-abgelaufen";
 		case "forbidden":
-			return "/heute";
+			// Hinweis „Dafür fehlt dir das Recht“ über ForbiddenNotice
+			return "/heute?grund=kein-recht";
 		case "step_up_required":
 			return "/login/2fa?stepup=1";
 		case "ip_blocked":

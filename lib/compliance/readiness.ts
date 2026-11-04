@@ -138,6 +138,8 @@ export type ReadinessInput = {
 		accepted: number;
 		open: readonly { id: string; title: string; dueAt: string | null }[];
 		rejected: readonly { id: string; title: string }[];
+		// Audit der Anfragen, für den Link auf die Anfrage-Seite
+		auditId?: string;
 	};
 	extraBlockers?: readonly ReadinessBlocker[];
 	policy?: ReadinessPolicy;
@@ -371,7 +373,8 @@ export function deriveReadiness(input: ReadinessInput): ReadinessResult {
 				severity: "critical",
 				label: m.title,
 				ref: m.templateCode,
-				href: "/dokumente",
+				// Vorlage direkt angewählt (`/dokumente` liest vorlagen/vorlage)
+				href: `/dokumente?vorlagen=1&vorlage=${encodeURIComponent(m.templateCode)}`,
 				requirements: 0,
 				gain: docGain,
 			});
@@ -525,13 +528,15 @@ export function deriveReadiness(input: ReadinessInput): ReadinessResult {
 	}
 	secPenalty = Math.min(secPenalty, policy.penaltyCaps.security);
 
+	const pbcHref = (id: string) =>
+		input.pbc?.auditId ? `/audits/${input.pbc.auditId}/anfragen/${id}` : "";
 	for (const r of input.pbc?.open ?? [])
 		blockers.push({
 			kind: "pbc_open",
 			severity: "high",
 			label: r.title,
 			ref: r.id,
-			href: "",
+			href: pbcHref(r.id),
 			requirements: 0,
 			gain: 0,
 			dueAt: r.dueAt,
@@ -542,7 +547,7 @@ export function deriveReadiness(input: ReadinessInput): ReadinessResult {
 			severity: "high",
 			label: r.title,
 			ref: r.id,
-			href: "",
+			href: pbcHref(r.id),
 			requirements: 0,
 			gain: 0,
 		});

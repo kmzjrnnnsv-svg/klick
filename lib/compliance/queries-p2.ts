@@ -366,6 +366,22 @@ export async function listTrainingRequirements(tx: OrgTx, orgId: string) {
 		.where(eq(trainingRequirements.organizationId, orgId))
 		.orderBy(asc(trainingRequirements.code));
 }
+// Zuweisungen einer Person (Meine Schulungen auf /richtlinien)
+export async function listUserTrainingAssignments(
+	tx: OrgTx,
+	orgId: string,
+	userId: string,
+) {
+	return tx
+		.select()
+		.from(trainingAssignments)
+		.where(
+			and(
+				eq(trainingAssignments.organizationId, orgId),
+				eq(trainingAssignments.userId, userId),
+			),
+		);
+}
 export async function listTrainingAssignments(tx: OrgTx, orgId: string) {
 	return tx
 		.select()

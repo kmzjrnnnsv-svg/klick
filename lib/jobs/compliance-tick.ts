@@ -1,6 +1,7 @@
 import type { EntityKind, NotificationKind } from "@/db/schema/enums";
 import { managementAckState } from "@/lib/compliance/incident-management";
 import { previousBusinessDay } from "@/lib/custody/reconcile";
+import { acknowledgementLink } from "@/lib/documents/distribution";
 import {
 	alertOverdue,
 	type LinkHealthInput,
@@ -114,6 +115,8 @@ export type DueRows = {
 		title: string;
 		publishedAt: Date | string | null;
 		missingUserIds: readonly string[];
+		/** Teil davon mit Rolle Mitarbeitende (bestätigen auf /richtlinien). */
+		missingEmployeeIds?: readonly string[];
 	}[];
 	/** Bestellt, Schreiben erzeugt, aber noch nicht von der Person unterschrieben. */
 	appointmentAcceptances?: readonly {
@@ -557,7 +560,7 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 			recipients: [ta.userId],
 			title: `Schulung fällig: ${ta.requirementTitle}`,
 			body: dueWording(now, due),
-			link: "/schulungen?tab=meine",
+			link: "/meine-schulungen",
 			dedupeKey: `training:${ta.id}:${isoDay(due)}`,
 		});
 	}
@@ -612,14 +615,21 @@ export function collectDueItems(now: Date, rows: DueRows): TickResult {
 		if (!published) continue;
 		if (now.getTime() - published.getTime() < ACK_GRACE_DAYS * DAY) continue;
 		if (ack.missingUserIds.length === 0) continue;
-		notifications.push({
-			kind: "acknowledgement_due",
-			recipients: [...ack.missingUserIds],
-			title: `Kenntnisnahme offen: ${ack.docNumber}`,
-			body: `${ack.title} — bitte auf „Heute" bestätigen.`,
-			link: "/heute",
-			dedupeKey: `ack:${ack.docNumber}:${isoDay(published)}`,
-		});
+		const staff = new Set(ack.missingEmployeeIds ?? []);
+		for (const employee of [false, true]) {
+			const recipients = ack.missingUserIds.filter(
+				(u) => staff.has(u) === employee,
+			);
+			if (recipients.length === 0) continue;
+			notifications.push({
+				kind: "acknowledgement_due",
+				recipients,
+				title: `Kenntnisnahme offen: ${ack.docNumber}`,
+				body: `${ack.title}: bitte lesen und bestätigen.`,
+				link: acknowledgementLink(ack.docNumber, employee),
+				dedupeKey: `ack:${ack.docNumber}:${isoDay(published)}${employee ? ":staff" : ""}`,
+			});
+		}
 	}
 
 	// Bestellung angenommen? Ab 14 Tagen ohne Unterschrift einmal je Woche

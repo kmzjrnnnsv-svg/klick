@@ -330,7 +330,8 @@ describe("collectDueItems — Kenntnisnahmen", () => {
 					docNumber: "RL-001",
 					title: "ISMS-Leitlinie",
 					publishedAt: new Date(NOW.getTime() - 10 * DAY),
-					missingUserIds: ["u1", "u2"],
+					missingUserIds: ["u1", "u2", "m1"],
+					missingEmployeeIds: ["m1"],
 				},
 				{
 					docNumber: "RL-002",
@@ -346,12 +347,21 @@ describe("collectDueItems — Kenntnisnahmen", () => {
 				},
 			],
 		});
-		expect(r.notifications).toHaveLength(1);
+		// je Ziel eine Nachricht: am Dokument bzw. für Mitarbeitende auf
+		// /richtlinien (sie haben keine Seite „Heute“)
+		expect(r.notifications).toHaveLength(2);
 		expect(r.notifications[0]).toMatchObject({
 			kind: "acknowledgement_due",
 			recipients: ["u1", "u2"],
-			link: "/heute",
+			link: "/dokumente/RL-001",
 		});
+		expect(r.notifications[1]).toMatchObject({
+			recipients: ["m1"],
+			link: "/richtlinien/RL-001",
+		});
+		expect(r.notifications[0]?.dedupeKey).not.toBe(
+			r.notifications[1]?.dedupeKey,
+		);
 	});
 });
 

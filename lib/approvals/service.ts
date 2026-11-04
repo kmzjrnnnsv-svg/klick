@@ -43,6 +43,7 @@ import {
 	WORKFLOW_BY_KIND,
 } from "@/lib/compliance/catalog/approval-workflows";
 import { type OrgTx, queueAudit } from "@/lib/db/with-org";
+import { entityLinks } from "@/lib/entities/links";
 import { notify } from "@/lib/notifications/notify";
 import {
 	entityApproverOf,
@@ -936,14 +937,28 @@ export async function decide(
 			.set({ status: outcome.status, decidedAt: new Date() })
 			.where(eq(approvalRequests.id, req.id));
 	}
+	// Die Nachricht führt zum Gegenstand und nennt ihn: dort geht es weiter
+	// (veröffentlichen, Meldung abgeben …); der Posteingang zeigt nur Offenes.
+	const subject = (
+		await entityLinks(tx, ctx.orgId, [
+			{ entityType: req.entityType, entityId: req.entityId },
+		])
+	).get(`${req.entityType}:${req.entityId}`);
 	await notify(tx, {
 		orgId: ctx.orgId,
 		recipients: [req.requestedByUserId],
 		actorUserId: ctx.userId,
 		kind: "approval_decided",
-		title: `${ctx.name}: ${input.decision === "approved" ? "freigegeben" : input.decision === "rejected" ? "abgelehnt" : "Änderungen angefragt"} — ${wf.name}`,
+		title:
+			`${ctx.name}: ${input.decision === "approved" ? "freigegeben" : input.decision === "rejected" ? "abgelehnt" : "Änderungen angefragt"} — ${wf.name}${subject?.title ? `: ${subject.title}` : ""}`.slice(
+				0,
+				200,
+			),
 		body: input.note?.trim() || undefined,
-		link: `/heute/freigaben?request=${req.id}`,
+		link:
+			subject && subject.href !== "/heute"
+				? subject.href
+				: `/heute/freigaben?request=${req.id}`,
 	});
 	return {
 		ok: true,

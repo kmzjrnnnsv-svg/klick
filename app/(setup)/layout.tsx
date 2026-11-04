@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
+import { HelpLink } from "@/components/shell/help-link";
 import { LegalLinks } from "@/components/shell/legal-links";
 import { getSessionCtx } from "@/lib/auth/guards";
 
@@ -28,6 +29,7 @@ export default async function SetupLayout({
 					>
 						{t("productName")}
 					</Link>
+					<HelpLink />
 				</div>
 			</header>
 			<main

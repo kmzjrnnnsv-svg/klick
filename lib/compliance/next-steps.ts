@@ -11,6 +11,8 @@ export type NextStepKey =
 	| "setup"
 	| "gap_continue"
 	| "gap_start"
+	| "measures_create"
+	| "measures_open"
 	| "obligations_overdue"
 	| "roles"
 	| "nonconformities_overdue"
@@ -33,7 +35,11 @@ export type NextStepFacts = {
 		open: { id: string; title: string; answered: number; total: number } | null;
 		// Fragen einer neuen Gap-Analyse (0 = keine anbieten)
 		startCount: number;
+		// zuletzt übernommene Gap-Analyse (Ergebnis übernommen)
+		applied?: { id: string; title: string } | null;
 	};
+	// Maßnahmen aus Gap-Analysen (Aufgaben mit Herkunft „assessment“)
+	measures?: { total: number; open: number };
 	overdueObligations: number;
 	roleGaps: number;
 	overdueNonconformities: number;
@@ -98,6 +104,18 @@ export function nextSteps(f: NextStepFacts, limit = 5): NextStep[] {
 		});
 	else if (f.gap.startCount > 0)
 		add("gap_start", 90, "/gap-analyse", { count: f.gap.startCount });
+	// nach „Ergebnis übernehmen“: Maßnahmen anlegen, dann abarbeiten
+	if (!f.gap.open && f.gap.applied && (f.measures?.total ?? 0) === 0)
+		add(
+			"measures_create",
+			87,
+			`/gap-analyse/${f.gap.applied.id}?schritt=massnahmen`,
+			{ title: f.gap.applied.title },
+		);
+	else if ((f.measures?.open ?? 0) > 0)
+		add("measures_open", 58, "/heute/aufgaben?all=1", {
+			count: f.measures?.open ?? 0,
+		});
 	if (f.overdueObligations > 0)
 		add("obligations_overdue", 88, "/kalender", {
 			count: f.overdueObligations,

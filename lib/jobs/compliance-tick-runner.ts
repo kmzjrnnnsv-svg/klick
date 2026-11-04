@@ -77,7 +77,7 @@ import { mainDb } from "@/lib/db/job-scope";
 import { remindOverdueReports } from "@/lib/db/platform-access";
 import { forEachOrg, type OrgTx } from "@/lib/db/with-org";
 import { dueDocumentRetention } from "@/lib/documents/destruction";
-import { inDistribution } from "@/lib/documents/distribution";
+import { acknowledgementAudience } from "@/lib/documents/distribution";
 import { currentVersionsByDocument } from "@/lib/documents/in-force";
 import { currentEvidence } from "@/lib/evidence/current";
 
@@ -416,25 +416,27 @@ async function loadDueRows(
 		acknowledgements = published.flatMap((d) => {
 			const v = inForce.get(d.id);
 			if (!v) return [];
-			const audience = members
-				.filter((m) =>
-					inDistribution(d.distribution, {
-						role: normalizeRole(m.role),
-						functions: functionsOf(assignments, m.userId).map(
-							(f) => f.function as string,
-						),
-					}),
-				)
-				.map((m) => m.userId);
+			const audience = acknowledgementAudience(
+				d.distribution,
+				members.map((m) => ({
+					userId: m.userId,
+					role: normalizeRole(m.role),
+				})),
+				(u) => functionsOf(assignments, u).map((f) => f.function as string),
+			);
 			const done = new Set(
 				acks.filter((a) => a.versionId === v.id).map((a) => a.userId),
 			);
+			const missing = audience.filter((a) => !done.has(a.userId));
 			return [
 				{
 					docNumber: d.docNumber,
 					title: d.title,
 					publishedAt: v.publishedAt,
-					missingUserIds: audience.filter((u) => !done.has(u)),
+					missingUserIds: missing.map((a) => a.userId),
+					missingEmployeeIds: missing
+						.filter((a) => a.employee)
+						.map((a) => a.userId),
 				},
 			];
 		});

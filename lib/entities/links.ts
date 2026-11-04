@@ -1,7 +1,8 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getTranslations } from "next-intl/server";
 import {
 	assets,
+	auditRequests,
 	audits,
 	controlImplementations,
 	controls,
@@ -100,7 +101,7 @@ export function entityHref(
 		case "security_engagement":
 			return `/sicherheit/auftraege/${id}`;
 		case "evidence":
-			return "/nachweise";
+			return `/nachweise/${id}`;
 		case "loss_event":
 			return "/risiken?tab=schadensfaelle";
 		case "complaint":
@@ -336,3 +337,69 @@ export async function resolveEntityTitles(
 	}
 	return out;
 }
+
+export type EntityLink = { title: string | null; href: string };
+
+// Titel und Ziel je verknüpfter Entität (Aufgaben auf /heute und
+// /heute/aufgaben): wie entityHref, aber Anfragen eines Audits führen auf
+// ihre eigene Seite (die Kennung des Audits steht nur in der Zeile).
+export async function entityLinks(
+	tx: OrgTx,
+	orgId: string,
+	refs: readonly { entityType: EntityKind | null; entityId: string | null }[],
+): Promise<Map<string, EntityLink>> {
+	const linked = refs.flatMap((r) =>
+		r.entityType && r.entityId
+			? [{ entityType: r.entityType, entityId: r.entityId }]
+			: [],
+	);
+	const out = new Map<string, EntityLink>();
+	if (linked.length === 0) return out;
+	const titles = await resolveEntityTitles(tx, orgId, linked);
+	const requestIds = [
+		...new Set(
+			linked
+				.filter((r) => r.entityType === "audit_request")
+				.map((r) => r.entityId),
+		),
+	];
+	const requests = requestIds.length
+		? await tx
+				.select({
+					id: auditRequests.id,
+					auditId: auditRequests.auditId,
+					title: auditRequests.title,
+				})
+				.from(auditRequests)
+				.where(
+					and(
+						eq(auditRequests.organizationId, orgId),
+						inArray(auditRequests.id, requestIds),
+					),
+				)
+		: [];
+	const requestById = new Map(requests.map((r) => [r.id, r]));
+	for (const r of linked) {
+		const key = `${r.entityType}:${r.entityId}`;
+		if (r.entityType === "audit_request") {
+			const q = requestById.get(r.entityId);
+			out.set(key, {
+				title: q?.title ?? null,
+				href: q ? `/audits/${q.auditId}/anfragen/${q.id}` : "/audits",
+			});
+			continue;
+		}
+		const title = titles.get(key) ?? null;
+		out.set(key, {
+			title,
+			href: entityHref(r.entityType, r.entityId, title ?? undefined),
+		});
+	}
+	return out;
+}
+
+export const linkKey = (r: {
+	entityType: EntityKind | null;
+	entityId: string | null;
+}): string | null =>
+	r.entityType && r.entityId ? `${r.entityType}:${r.entityId}` : null;

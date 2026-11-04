@@ -429,6 +429,7 @@ export const REGISTERS: HelpArticle[] = [
 					"Bei schwerwiegenden Vorfällen informiert Klick die Geschäftsleitung sofort; sie bestätigt die Kenntnisnahme.",
 					"Arbeite das Aufgabenpaket ab und markier die Meldungen als abgegeben.",
 					"Schließ den Vorfall mit Ursache. Bei schweren Vorfällen entsteht eine Abweichung, damit die Ursache dauerhaft abgestellt wird.",
+					"Muss auch bei einem leichteren Vorfall die Ursache abgestellt werden, eröffne die Abweichung selbst: an der Vorfallseite unter „Abweichung“. Titel und Ursache sind übernommen, die Abweichung bleibt mit dem Vorfall verknüpft.",
 				],
 			},
 			{

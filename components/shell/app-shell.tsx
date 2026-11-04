@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { ContainedScroll } from "@/components/ui/contained-scroll";
 import { ScrollReset } from "@/components/ui/scroll-reset";
@@ -9,6 +9,7 @@ import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
 import { articlesFor } from "@/lib/help";
 import type { NavGroup } from "@/lib/nav";
 import { CommandPalette } from "./command-palette";
+import { ForbiddenNotice } from "./forbidden-notice";
 import { HelpLink } from "./help-link";
 import { LegalLinks } from "./legal-links";
 import type { BellItem } from "./notification-bell";
@@ -36,7 +37,15 @@ export async function AppShell({
 	children: ReactNode;
 }) {
 	const t = await getTranslations("Common");
+	const te = await getTranslations("Errors");
 	const home = "/heute";
+	// „Dafür fehlt dir das Recht“ je Rolle (Umleitung aus requireOrgPage)
+	const forbiddenText =
+		ctx.orgRole === "employee"
+			? te("forbiddenEmployee")
+			: isExternal(ctx.orgRole)
+				? te("forbiddenExternal", { role: ROLE_LABEL[ctx.orgRole] })
+				: te("forbiddenMember");
 	return (
 		// Ab 1024 px wie in iPad-/Mac-Apps: das Fenster steht, Seitenleiste und
 		// Inhalt scrollen je für sich (rechte Spalte = data-scroll-root, die
@@ -123,6 +132,9 @@ export async function AppShell({
 				<LegalLinks className="lg:hidden" />
 				<TabBar groups={groups} />
 				<StepUpDialog passkey={ctx.hasPasskey} totp={ctx.hasTotp} />
+				<Suspense fallback={null}>
+					<ForbiddenNotice message={forbiddenText} />
+				</Suspense>
 			</div>
 		</div>
 	);

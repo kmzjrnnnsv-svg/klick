@@ -14,6 +14,7 @@ import {
 	ProcessingActivityForm,
 } from "@/components/privacy/privacy-forms";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -288,6 +289,11 @@ async function PrivacyPage({
 							title={t("dsfaEmpty")}
 							lead={t("dsfaEmptyLead")}
 							requiredBy={t("requiredByDsfa")}
+							actions={
+								<Button asChild variant="outline" size="sm">
+									<Link href="/datenschutz?tab=vvt">{t("dsfaToVvt")}</Link>
+								</Button>
+							}
 						/>
 					) : (
 						<ul className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
