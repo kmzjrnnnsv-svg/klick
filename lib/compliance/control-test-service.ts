@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { controlImplementations, controls, controlTests } from "@/db/schema";
 import type { ControlTestMethod } from "@/db/schema/enums";
 import type { AuditInput } from "@/lib/audit";
@@ -25,6 +25,13 @@ export type ControlTestInput = {
 	// (automatische Prüfungen der Identität: erst nach der Einrichtungsfrist
 	// und nur, wenn keine offen ist)
 	nonconformity?: "auto" | "skip";
+	// Ergebnis zu einem geplanten Test (Testprogramm): die geplante Zeile wird
+	// durchgeführt statt eine zweite anzulegen — Prozess, Standort und Asset
+	// der Planung bleiben, damit die Übung die Lücke schließt
+	plannedTestId?: string | null;
+	processId?: string | null;
+	siteId?: string | null;
+	assetId?: string | null;
 };
 
 export async function insertControlTest(
@@ -49,22 +56,49 @@ export async function insertControlTest(
 		)
 		.limit(1);
 	if (!impl) throw new Error("notFound");
-	const [row] = await tx
-		.insert(controlTests)
-		.values({
-			organizationId: ctx.orgId,
-			implementationId: impl.id,
-			method: input.method,
-			scope: input.scope ?? null,
-			testedAt: input.testedAt ?? new Date(),
-			testerUserId:
-				input.testerUserId === undefined ? ctx.userId : input.testerUserId,
-			result: input.result ?? null,
-			notes: input.notes ?? null,
-			nextTestAt: input.nextTestAt ?? null,
-			evidenceId: input.evidenceId ?? null,
-		})
-		.returning({ id: controlTests.id });
+	const performed = {
+		method: input.method,
+		testedAt: input.testedAt ?? new Date(),
+		testerUserId:
+			input.testerUserId === undefined ? ctx.userId : input.testerUserId,
+		result: input.result ?? null,
+		notes: input.notes ?? null,
+		nextTestAt: input.nextTestAt ?? null,
+		evidenceId: input.evidenceId ?? null,
+	};
+	let row: { id: string } | undefined;
+	if (input.plannedTestId) {
+		// nur ein noch offener Test dieses Controls in dieser Org
+		[row] = await tx
+			.update(controlTests)
+			.set({
+				...performed,
+				...(input.scope ? { scope: input.scope } : {}),
+			})
+			.where(
+				and(
+					eq(controlTests.id, input.plannedTestId),
+					eq(controlTests.organizationId, ctx.orgId),
+					eq(controlTests.implementationId, impl.id),
+					isNull(controlTests.testedAt),
+				),
+			)
+			.returning({ id: controlTests.id });
+		if (!row) throw new Error("notFound");
+	} else {
+		[row] = await tx
+			.insert(controlTests)
+			.values({
+				organizationId: ctx.orgId,
+				implementationId: impl.id,
+				scope: input.scope ?? null,
+				processId: input.processId ?? null,
+				siteId: input.siteId ?? null,
+				assetId: input.assetId ?? null,
+				...performed,
+			})
+			.returning({ id: controlTests.id });
+	}
 	if (!row) throw new Error("insert failed");
 	const audits: AuditInput[] = [
 		{
@@ -75,6 +109,8 @@ export async function insertControlTest(
 				result: input.result ?? null,
 				nextTestAt: input.nextTestAt ?? null,
 				evidenceId: input.evidenceId ?? null,
+				...(input.plannedTestId ? { plannedTestId: input.plannedTestId } : {}),
+				...(input.processId ? { processId: input.processId } : {}),
 			},
 		},
 	];

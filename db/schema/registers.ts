@@ -37,6 +37,23 @@ export {
 
 export type ContractClauses = Record<string, boolean | string>;
 export type DueDiligence = Record<string, boolean | string | null>;
+// Geführte BIA je Prozess (lib/bcm/bia.ts): je Schadensart der Risikomethode
+// eine Stufe je Zeitstufe; Vorschlag MTPD/RTO wird daraus gerechnet, nie
+// gespeichert — übernommen stehen sie in rto/rpo/mtpd_hours.
+export type ProcessBia = {
+	v: 1;
+	// Stunden, aufsteigend (z. B. 4, 8, 24, 72, 168, 336)
+	steps: number[];
+	// ab dieser Stufe ist der Schaden nicht mehr tragbar
+	threshold: number;
+	// Schadensart → Stufe je Zeitstufe (0 = kein Schaden)
+	impacts: Record<string, number[]>;
+	// höchstens tragbarer Datenverlust in Stunden (Vorschlag für das RPO)
+	dataLossHours?: number | null;
+	notes?: string | null;
+	assessedAt: string;
+	assessedBy: string | null;
+};
 
 export const providers = pgTable(
 	"providers",
@@ -224,6 +241,7 @@ export const processes = pgTable(
 		rpoHours: integer(),
 		mtpdHours: integer(),
 		impactNotes: text(),
+		bia: json<ProcessBia>(),
 		inputs: text(),
 		outputs: text(),
 		kpis: json<{ name: string; target?: string }[]>(),
