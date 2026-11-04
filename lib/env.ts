@@ -146,6 +146,11 @@ export const envSchema = z.object({
 	IDENTITY_MS_CLIENT_ID: z.guid().optional(),
 	IDENTITY_MS_CLIENT_SECRET: z.string().optional(),
 	IDENTITY_MS_CERT_FILE: z.string().startsWith("/").optional(),
+	// Google Workspace (Teil D I3): JSON-Schlüssel des Dienstkontos „Klick
+	// Identität“ (systemd-Credential). Die Kundin gibt dessen Client-ID in
+	// der domänenweiten Delegierung mit drei Lese-Bereichen frei. Ohne Datei
+	// ist Google aus.
+	IDENTITY_GOOGLE_SA_FILE: z.string().startsWith("/").optional(),
 	// Push-Benachrichtigungen (Web Push, VAPID): öffentlicher Schlüssel (65 Byte,
 	// base64url) und privater Schlüssel (32 Byte, Credential web_push_private_key;
 	// `pnpm push:keys`). Ohne beide ist Push aus.
