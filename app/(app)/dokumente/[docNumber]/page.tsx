@@ -14,16 +14,14 @@ import {
 	DocumentEditor,
 	NewVersionDialog,
 } from "@/components/documents/document-forms";
-import {
-	type FunctionOption,
-	PolicyBuilderPanel,
-	StartPolicyBuilder,
-} from "@/components/documents/policy-builder";
+import type { FunctionOption } from "@/components/documents/policy-builder";
+import { PolicyBuilderPanel } from "@/components/documents/policy-builder-lazy";
 import { RetentionPanel } from "@/components/documents/retention-panel";
 import {
 	type SignatureLine,
 	SignatureList,
 } from "@/components/documents/signature-list";
+import { StartPolicyBuilder } from "@/components/documents/start-policy-builder";
 import { VersionRetention } from "@/components/documents/version-retention";
 import {
 	ContentChanges,

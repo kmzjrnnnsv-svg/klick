@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { type ReactNode, Suspense } from "react";
 import { StepUpDialog } from "@/components/auth/step-up-dialog";
 import { ContainedScroll } from "@/components/ui/contained-scroll";
+import { PageFind } from "@/components/ui/page-find";
 import { ScrollReset } from "@/components/ui/scroll-reset";
 import type { OrgContext } from "@/lib/auth/guards";
 import { isExternal, ROLE_LABEL } from "@/lib/auth/memberships";
@@ -109,6 +110,7 @@ export async function AppShell({
 				className="relative flex min-w-0 flex-1 flex-col lg:h-dvh lg:overflow-y-auto lg:overscroll-contain"
 			>
 				<ScrollReset />
+				<PageFind />
 				<header className="material-bar sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-border/60 border-b pr-[max(0.75rem,env(safe-area-inset-right))] pl-[max(0.75rem,env(safe-area-inset-left))] sm:px-6">
 					<Link
 						href={home}
@@ -135,9 +137,12 @@ export async function AppShell({
 						/>
 					</div>
 				</header>
+				{/* Breite wächst mit dem Bildschirm, aber nicht endlos: 72rem bis
+				    Laptop, 88rem ab 1600 px, 100rem ab 2240 px Fensterbreite;
+				    geteilte Seiten (data-split-page="flush") nutzen alles */}
 				<main
 					id="inhalt"
-					className="mx-auto w-full max-w-6xl grow px-4 py-6 sm:px-6 sm:py-8"
+					className="mx-auto w-full max-w-6xl grow px-4 py-6 sm:px-6 sm:py-8 min-[100rem]:max-w-[88rem] min-[140rem]:max-w-[100rem]"
 				>
 					{children}
 				</main>

@@ -45,7 +45,6 @@ import { RiskMethodPanel } from "@/components/settings/risk-method-panel";
 import { RolesPanel } from "@/components/settings/roles-panel";
 import { SecurityChangesPanel } from "@/components/settings/security-changes-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
-import { SettingsSearch } from "@/components/settings/settings-search";
 import { SignaturePolicyPanel } from "@/components/settings/signature-policy-panel";
 import { SiteTunnelsSection } from "@/components/settings/site-tunnels-section";
 import { SsoPanel } from "@/components/settings/sso-panel";
@@ -57,6 +56,7 @@ import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
+import { ListSearch } from "@/components/ui/list-search";
 import { SplitPane } from "@/components/ui/split-pane";
 import {
 	approvalWorkflows,
@@ -170,6 +170,7 @@ import {
 	resolveSettingsSection,
 	type SettingsSectionKey,
 	settingsGroups,
+	settingsTerms,
 	visibleSettingsSections,
 } from "@/lib/settings/sections";
 import { orgSignaturePolicy } from "@/lib/signatures/policy-server";
@@ -303,14 +304,16 @@ async function SettingsPage({
 						<PageHeader compact title={t("title")} />
 					</div>
 					<KeepActiveVisible active={section} />
-					<SettingsSearch
+					<ListSearch
 						sticky
 						items={visible.map((k) => ({
-							key: k,
+							id: k,
 							title: t(SECTION_LABEL[k]),
-							hint: t(`hint_${k}`),
+							subtitle: t(`hint_${k}`),
 							href: `/einstellungen?tab=${k}`,
 							icon: SECTION_ICON[k],
+							terms: settingsTerms(k),
+							current: chosen && k === section,
 						}))}
 						labels={{
 							placeholder: t("searchPlaceholder"),
@@ -344,7 +347,7 @@ async function SettingsPage({
 								</ListSection>
 							))}
 						</ListGroup>
-					</SettingsSearch>
+					</ListSearch>
 				</SplitPane>
 				{/* key: ein anderer Bereich beginnt oben */}
 				<SplitPane

@@ -49,6 +49,7 @@ export const BASICS: HelpArticle[] = [
 					"Register: Risiken, Dokumente, Prozesse, Dienstleister, Assets, Vorfälle, Produkte, Schulungen, Datenschutz.",
 					"Steuerung: Organisation, Beschlüsse, Audits, Managementbewertung, Trust Center, Abweichungen, Planung und, je nach Erlaubnis, Geldwäsche und CASP-Themen.",
 					"Suche: oben in der Seitenleiste „Suchen …“ oder überall ⌘K bzw. Strg+K; am Handy der Tab Suche. Du springst damit zu Seiten, Rahmenwerken, Controls und Einträgen.",
+					"Auf einer Seite mit Liste: ⌘F bzw. Strg+F springt ins Suchfeld der Seite, mit den Pfeiltasten nach oben und unten wanderst du durch die Einträge, die Eingabetaste öffnet. Drückst du ⌘F ein zweites Mal, sucht der Browser im Text.",
 					"Oben rechts: Glocke mit Benachrichtigungen, dein Konto und der Hilfe-Knopf. Der Hilfe-Knopf öffnet immer den Artikel zur aktuellen Seite.",
 				],
 			},

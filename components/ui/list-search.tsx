@@ -1,0 +1,115 @@
+"use client";
+
+import { Search } from "lucide-react";
+import { type ReactNode, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { ListKeys } from "@/components/ui/list-keys";
+import { ListRow, ListSection } from "@/components/ui/list";
+import { matchesWords, searchWords } from "@/lib/text/search";
+import { cn } from "@/lib/utils";
+
+export type ListSearchItem = {
+	id: string;
+	title: string;
+	subtitle?: string;
+	href: string;
+	icon?: ReactNode;
+	// weitere Suchwörter, die nicht angezeigt werden
+	terms?: string;
+	current?: boolean;
+};
+
+// Suchfeld über einer kurzen Liste (Einstellungen, Hilfe): filtert im
+// Browser nach Titel, Untertitel und Suchwörtern. Ohne Eingabe bleibt die
+// gruppierte Liste (children). ⌘F springt hinein (PageFind), ↑/↓ wandert
+// durch die Einträge (ListKeys). Mit action schickt die Eingabetaste die
+// Suche als ?q= an diese Seite (Volltext, z. B. /hilfe).
+export function ListSearch({
+	items,
+	labels,
+	sticky = false,
+	action,
+	children,
+}: {
+	items: ListSearchItem[];
+	labels: { placeholder: string; results: string; empty: string };
+	action?: string;
+	// Suchfeld bleibt oben in der eigenen Scrollfläche der Liste stehen,
+	// sobald die Liste neben dem Inhalt steht (Container-Abfrage der Seite)
+	sticky?: boolean;
+	children: ReactNode;
+}) {
+	const [query, setQuery] = useState("");
+	const words = searchWords(query);
+	const hits =
+		words.length > 0
+			? items.filter((i) =>
+					matchesWords(
+						words,
+						`${i.title} ${i.subtitle ?? ""} ${i.terms ?? ""}`,
+					),
+				)
+			: null;
+	const stick =
+		sticky &&
+		"@3xl:sticky @3xl:top-0 @3xl:z-10 @3xl:-mx-1 @3xl:bg-background @3xl:px-1 @3xl:py-2";
+	const field = (
+		<label className={cn("relative block", !action && stick)}>
+			<span className="sr-only">{labels.placeholder}</span>
+			<Search
+				aria-hidden="true"
+				className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+			/>
+			<Input
+				type="search"
+				value={query}
+				onChange={(e) => setQuery(e.target.value)}
+				placeholder={labels.placeholder}
+				name={action ? "q" : undefined}
+				autoComplete="off"
+				spellCheck={false}
+				data-page-search=""
+				aria-keyshortcuts="Meta+F Control+F"
+				className="pl-9"
+			/>
+		</label>
+	);
+	return (
+		<ListKeys className="flex flex-col gap-4">
+			{action ? (
+				<form
+					method="get"
+					action={action}
+					role="search"
+					className={cn(stick)}
+				>
+					{field}
+				</form>
+			) : (
+				field
+			)}
+			{hits === null ? (
+				children
+			) : (
+				<div aria-live="polite">
+					<ListSection title={labels.results}>
+						{hits.length === 0 ? (
+							<ListRow title={labels.empty} />
+						) : (
+							hits.map((i) => (
+								<ListRow
+									key={i.id}
+									icon={i.icon}
+									title={i.title}
+									subtitle={i.subtitle}
+									href={i.href}
+									current={i.current}
+								/>
+							))
+						)}
+					</ListSection>
+				</div>
+			)}
+		</ListKeys>
+	);
+}

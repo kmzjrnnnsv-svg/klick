@@ -11,6 +11,7 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { EdgeFade, useScrollMore } from "@/components/ui/split-pane";
+import { cn } from "@/lib/utils";
 
 // Fragen eines Kapitels als eigene Spalte der geteilten Ansicht (ab 1024 px
 // scrollt nur sie, data-split-pane in styles/base.css; darunter scrollt die
@@ -22,11 +23,13 @@ export function ChapterPane({
 	title,
 	total,
 	answered: initial,
+	className,
 	children,
 }: {
 	title: string;
 	total: number;
 	answered: number;
+	className?: string;
 	children: ReactNode;
 }) {
 	const t = useTranslations("Assessment");
@@ -83,40 +86,44 @@ export function ChapterPane({
 			ref={pane}
 			data-split-pane=""
 			data-split-main=""
-			className="flex min-w-0 flex-col gap-4 lg:pb-6"
+			className={cn("min-w-0 lg:pb-6", className)}
 		>
-			<div
-				ref={head}
-				data-pane-head
-				className="sticky top-14 z-10 -mx-2 flex items-center gap-3 border-border/60 border-b bg-background px-2 py-2"
-			>
-				<div className="min-w-0 flex-1">
-					<h2 className="truncate font-semibold text-headline">{title}</h2>
-					<p
-						className="text-footnote text-muted-foreground tabular-nums"
-						aria-live="polite"
-					>
-						{t("progress", { answered, total })}
-					</p>
+			{/* Lesebreite: Kapitelzeile und Karten auf breiten Bildschirmen
+			    mittig statt über die ganze Breite */}
+			<div className="mx-auto flex w-full max-w-[56rem] flex-col gap-4">
+				<div
+					ref={head}
+					data-pane-head
+					className="sticky top-14 z-10 -mx-2 flex items-center gap-3 border-border/60 border-b bg-background px-2 py-2"
+				>
+					<div className="min-w-0 flex-1">
+						<h2 className="truncate font-semibold text-headline">{title}</h2>
+						<p
+							className="text-footnote text-muted-foreground tabular-nums"
+							aria-live="polite"
+						>
+							{t("progress", { answered, total })}
+						</p>
+					</div>
+					{done ? (
+						<span className="flex shrink-0 items-center gap-1.5 font-medium text-footnote text-success">
+							<CircleCheck className="size-4" aria-hidden />
+							{t("chapterDone")}
+						</span>
+					) : (
+						<Button
+							type="button"
+							variant="secondary"
+							size="sm"
+							className="shrink-0"
+							onClick={nextOpen}
+						>
+							{t("nextOpen")}
+						</Button>
+					)}
 				</div>
-				{done ? (
-					<span className="flex shrink-0 items-center gap-1.5 font-medium text-footnote text-success">
-						<CircleCheck className="size-4" aria-hidden />
-						{t("chapterDone")}
-					</span>
-				) : (
-					<Button
-						type="button"
-						variant="secondary"
-						size="sm"
-						className="shrink-0"
-						onClick={nextOpen}
-					>
-						{t("nextOpen")}
-					</Button>
-				)}
+				{children}
 			</div>
-			{children}
 			<EdgeFade state={edge} />
 		</div>
 	);

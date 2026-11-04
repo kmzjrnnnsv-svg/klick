@@ -10,7 +10,11 @@ import { SplitPane } from "@/components/ui/split-pane";
 // Abschnittsköpfe in Satzschreibung (Headline), keine Versalien.
 // Ab 1024 px geteilte Ansicht (data-split-*, styles/base.css): Kopf und
 // Eckdaten stehen, Hauptspalte und Seitenleiste scrollen je für sich — der
-// Status-Knopf und die Aktionen bleiben so immer erreichbar.
+// Status-Knopf und die Aktionen bleiben so immer erreichbar. Bündig
+// (data-split-page="flush"): die Seitenleiste liegt als Inspektor am
+// rechten Rand (Trennlinie links, wie in Mac-Apps), die Hauptspalte nimmt
+// den Rest, ihr Inhalt bleibt in angenehmer Breite (max. 76rem) statt über
+// ganze Breitbild-Monitore zu laufen.
 export function EntityLayout({
 	back,
 	eyebrow,
@@ -34,8 +38,8 @@ export function EntityLayout({
 	aside: ReactNode;
 }) {
 	return (
-		<div data-split-page="">
-			<div className="mb-6 flex flex-col gap-4 sm:mb-8">
+		<div data-split-page="flush" className="@container">
+			<div className="mb-6 flex flex-col gap-4 sm:mb-8 lg:mb-0 lg:px-8 lg:pt-6 lg:pb-5 xl:px-10">
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
 						{back && <BackLink href={back.href} label={back.label} />}
@@ -60,19 +64,24 @@ export function EntityLayout({
 					</div>
 				</div>
 				{meta && (
-					<dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-2xl bg-card px-4 py-3.5 text-subhead sm:grid-cols-2 sm:px-5 lg:grid-cols-4">
+					<dl className="grid w-full max-w-[76rem] grid-cols-1 gap-x-6 gap-y-3 rounded-2xl bg-card px-4 py-3.5 text-subhead sm:grid-cols-2 sm:px-5 lg:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))]">
 						{meta}
 					</dl>
 				)}
 			</div>
 			<div
 				data-split-body=""
-				className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]"
+				className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-0 lg:border-border/60 lg:border-t @min-[100rem]:grid-cols-[minmax(0,1fr)_26rem]"
 			>
-				<SplitPane main className="flex flex-col gap-8 lg:pr-1 lg:pb-6">
-					{children}
+				<SplitPane main className="lg:px-8 lg:pt-6 lg:pb-6 xl:px-10">
+					<div className="flex w-full max-w-[76rem] flex-col gap-8">
+						{children}
+					</div>
 				</SplitPane>
-				<SplitPane as="aside" className="flex flex-col gap-6 lg:pr-1 lg:pb-6">
+				<SplitPane
+					as="aside"
+					className="flex flex-col gap-6 lg:border-border/60 lg:border-l lg:px-5 lg:pt-6 lg:pb-6"
+				>
 					{aside}
 				</SplitPane>
 			</div>

@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PageHeader } from "@/components/page-header";
+import { ListKeys } from "@/components/ui/list-keys";
 import {
 	Table,
 	TableBody,
@@ -90,73 +91,77 @@ export function RegisterPage<T extends { id: string }>({
 				actions={actions}
 			/>
 			{summary && <div className="mb-5">{summary}</div>}
-			<div className="mb-4">
-				<RegisterFilters
-					filters={filters}
-					chips={chips}
-					searchPlaceholder={searchPlaceholder}
-				/>
-			</div>
-			{rows.length === 0 ? (
-				empty
-			) : (
-				<div className="overflow-hidden rounded-2xl bg-card">
-					<Table className="register-table sm:[&_td:first-child]:pl-4 sm:[&_td:last-child]:pr-4 sm:[&_th:first-child]:pl-4 sm:[&_th:last-child]:pr-4">
-						<TableHeader>
-							<TableRow>
-								{columns.map((c) => (
-									<TableHead key={c.key} className={c.className}>
-										{c.header}
-									</TableHead>
-								))}
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{rows.map((row) => (
-								<TableRow key={row.id} className="group">
-									{columns.map((c) => {
-										const asLink = c.key === linkKey || c.key === mobileLinkKey;
-										const m =
-											c.mobile === false
-												? "hide"
-												: c.key === titleKey
-													? "title"
-													: "meta";
-										return (
-											<TableCell
-												key={c.key}
-												className={cn(c.className, "align-top")}
-												data-m={m}
-												data-interactive={c.interactive ? "" : undefined}
-											>
-												{m === "meta" && (
-													<span data-m-label="">{c.header}</span>
-												)}
-												{asLink ? (
-													<Link
-														href={rowHref(row)}
-														className="hit-area block underline-offset-4 hover:underline"
-														data-row-link={
-															c.key === mobileLinkKey ? "" : undefined
-														}
-													>
-														{c.cell(row)}
-													</Link>
-												) : (
-													c.cell(row)
-												)}
-												{m === "title" && (
-													<ChevronRight aria-hidden="true" data-chevron="" />
-												)}
-											</TableCell>
-										);
-									})}
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
+			{/* ↑/↓ wandert aus dem Suchfeld durch die Zeilen (ListKeys) */}
+			<ListKeys rows="a[data-row-link]">
+				<div className="mb-4">
+					<RegisterFilters
+						filters={filters}
+						chips={chips}
+						searchPlaceholder={searchPlaceholder}
+					/>
 				</div>
-			)}
+				{rows.length === 0 ? (
+					empty
+				) : (
+					<div className="overflow-hidden rounded-2xl bg-card">
+						<Table className="register-table sm:[&_td:first-child]:pl-4 sm:[&_td:last-child]:pr-4 sm:[&_th:first-child]:pl-4 sm:[&_th:last-child]:pr-4">
+							<TableHeader>
+								<TableRow>
+									{columns.map((c) => (
+										<TableHead key={c.key} className={c.className}>
+											{c.header}
+										</TableHead>
+									))}
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{rows.map((row) => (
+									<TableRow key={row.id} className="group">
+										{columns.map((c) => {
+											const asLink =
+												c.key === linkKey || c.key === mobileLinkKey;
+											const m =
+												c.mobile === false
+													? "hide"
+													: c.key === titleKey
+														? "title"
+														: "meta";
+											return (
+												<TableCell
+													key={c.key}
+													className={cn(c.className, "align-top")}
+													data-m={m}
+													data-interactive={c.interactive ? "" : undefined}
+												>
+													{m === "meta" && (
+														<span data-m-label="">{c.header}</span>
+													)}
+													{asLink ? (
+														<Link
+															href={rowHref(row)}
+															className="hit-area block underline-offset-4 hover:underline"
+															data-row-link={
+																c.key === mobileLinkKey ? "" : undefined
+															}
+														>
+															{c.cell(row)}
+														</Link>
+													) : (
+														c.cell(row)
+													)}
+													{m === "title" && (
+														<ChevronRight aria-hidden="true" data-chevron="" />
+													)}
+												</TableCell>
+											);
+										})}
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+				)}
+			</ListKeys>
 			{paging && rows.length > 0 && <Pagination {...paging} />}
 			{footer && (
 				<div className="mt-3 px-4 text-footnote text-muted-foreground">

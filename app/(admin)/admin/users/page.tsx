@@ -101,6 +101,8 @@ async function AdminUsersPage({
 					id="user-q"
 					name="q"
 					type="search"
+					data-page-search=""
+					aria-keyshortcuts="Meta+F Control+F"
 					defaultValue={sp.q ?? ""}
 					placeholder={tu("searchPlaceholder")}
 					autoComplete="off"

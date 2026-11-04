@@ -36,6 +36,8 @@ async function HelpPage({ searchParams }: { searchParams: Promise<Search> }) {
 				<Input
 					name="q"
 					type="search"
+					data-page-search=""
+					aria-keyshortcuts="Meta+F Control+F"
 					defaultValue={q}
 					placeholder={t("placeholder")}
 					aria-label={t("searchLabel")}

@@ -149,6 +149,8 @@ async function AdminOrgsPage({
 					id="org-q"
 					name="q"
 					type="search"
+					data-page-search=""
+					aria-keyshortcuts="Meta+F Control+F"
 					defaultValue={sp.q ?? ""}
 					placeholder={t("searchPlaceholder")}
 					autoComplete="off"

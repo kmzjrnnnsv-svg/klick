@@ -75,6 +75,8 @@ export default async function SearchPage({
 					placeholder={t("placeholder")}
 					aria-label={t("title")}
 					autoFocus
+					data-page-search=""
+					aria-keyshortcuts="Meta+F Control+F"
 				/>
 			</form>
 			{q.length < 2 ? (
