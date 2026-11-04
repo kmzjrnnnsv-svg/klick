@@ -3,10 +3,12 @@ import Link from "next/link";
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
-// Gruppierte Liste nach Apple HIG („inset grouped“, wie die iOS-Einstellungen):
-// Abschnitte mit Kopf und Fuß, Zeilen mit Titel, Untertitel, Wert, Zubehör
-// (Schalter, Status) und Pfeil für Drill-down. Trennlinien eingerückt bis zum
-// Text. Server-tauglich; Zeilen mit href werden Links.
+// Gruppierte Liste nach Apple HIG („inset grouped“, wie die Postfächer in
+// Mail am iPhone): Abschnitte mit Kopf und Fuß, Zeilen mit Titel, Untertitel,
+// Wert, Zubehör (Schalter, Status) und Pfeil für Drill-down. Trennlinien
+// eingerückt bis zum Text. Kopf und Symbol wie im Menü der Seitenleiste
+// (klein und grau bzw. Akzentfarbe ohne Kachel), damit Menü und Listen eine
+// Sprache sprechen. Server-tauglich; Zeilen mit href werden Links.
 
 function ListGroup({ className, ...props }: React.ComponentProps<"div">) {
 	return (
@@ -40,7 +42,9 @@ function ListSection({
 			{(title || actions) && (
 				<div className="flex items-end justify-between gap-3 px-4">
 					{title && (
-						<h2 className="font-semibold text-foreground text-subhead">{title}</h2>
+						<h2 className="font-semibold text-footnote text-muted-foreground">
+							{title}
+						</h2>
 					)}
 					{actions}
 				</div>
@@ -73,7 +77,7 @@ function ListRow({
 	subtitle?: React.ReactNode;
 	// Wert rechts (grau), z. B. „Aus“ oder ein Datum
 	value?: React.ReactNode;
-	// Symbol links (Lucide, wird in einer getönten Kachel gezeigt)
+	// Symbol links (Lucide, in Akzentfarbe wie im Menü)
 	icon?: React.ReactNode;
 	// Bedienelement oder Status rechts (Switch, Badge, Button)
 	accessory?: React.ReactNode;
@@ -91,7 +95,7 @@ function ListRow({
 			{icon && (
 				<span
 					aria-hidden="true"
-					className="flex size-7 shrink-0 items-center justify-center rounded-md bg-primary-fill text-white [&_svg]:size-4"
+					className="flex w-5 shrink-0 items-center justify-center text-primary [&_svg]:size-5"
 				>
 					{icon}
 				</span>
