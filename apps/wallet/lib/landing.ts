@@ -1,16 +1,18 @@
 // Öffentliche Startseite von both.money (abgemeldet unter „/“): alle Texte an
 // einer Stelle, Du-Form, keine Geviertstriche, kurze Sätze (Test
-// public-pages). Oben, was both.money ist, und der Stand in drei Zeilen
-// (heute, geplant, Ziel); dann wie es funktioniert, der Bot (lib/trading.ts),
-// was heute läuft und das Ziel. Zahlungsweg und Kundengeld sind klar als Ziel
-// bzw. „gesperrt“ markiert, die Stufen stehen im Fahrplan (lib/roadmap.ts).
-// Rechtliche Einordnung vor der Bewerbung prüfen.
+// public-pages). Sieben Abschnitte (Wunsch 03.11.): oben, was both.money ist,
+// mit dem Stand in drei Zeilen; dann Krypto überweisen, der Bot per Prompt
+// (lib/trading.ts), „Was passiert, wenn …“, Nachweise, Fragen mit Begriffen
+// und „Zugang anfragen“ als einzige Hauptaktion. Zahlungsweg und Kundengeld
+// sind klar als Ziel bzw. „gesperrt“ markiert; die Stufen stehen nur im
+// Fahrplan (lib/roadmap.ts), hier ein Satz mit Link. Rechtliche Einordnung
+// vor der Bewerbung prüfen.
 
 export const HERO = {
 	// Zeilen von Hand umbrochen
 	lines: ["Geld bewegt sich", "nur nach Regeln"],
-	lead: "both.money ist eine Wallet für Unternehmen. Sie bewahrt Kryptowerte auf, bewegt sie nur in festen Grenzen und belegt jeden Schritt.",
-	action: "Anmelden",
+	lead: "both.money ist eine Wallet für Unternehmen. Du überweist Kryptowerte nur in festen Grenzen, und jeder Schritt ist belegt.",
+	action: "Zugang anfragen",
 	today:
 		"Heute läuft both.money im Test: Bitcoin-Testnetz, kein echtes Geld, Zugang nur per Einladung.",
 } as const;
@@ -32,16 +34,16 @@ export const STAND = {
 			key: "heute",
 			label: "Heute",
 			tone: "live",
-			title: "Wallet für eigene Bestände",
+			title: "Krypto überweisen, mit Freigabe",
 			text: "Empfangen, aufbewahren und senden mit Sicherheitsschlüssel. Im Testnetz, ohne echtes Geld.",
-			href: "#so-gehts",
+			href: "#ueberweisen",
 		},
 		{
 			key: "geplant",
 			label: "Geplant",
 			tone: "planned",
-			title: "Automatisch handeln",
-			text: "Ein Bot tauscht Gold gegen US-Dollar, nur in Grenzen, die du setzt.",
+			title: "Ein Bot, gesteuert per Prompt",
+			text: "Du beschreibst in Worten, wie er Gold gegen US-Dollar tauscht. Er handelt nur nach Regeln, die du bestätigst.",
 			href: "#handeln",
 		},
 		{
@@ -50,17 +52,17 @@ export const STAND = {
 			tone: "goal",
 			title: "Zahlungsweg",
 			text: "Geld annehmen und an geprüfte Empfänger weitergeben. Erst mit Erlaubnis der Aufsicht.",
-			href: "#ziel",
+			href: "/roadmap#ziel",
 		},
 	] satisfies StandRow[],
 } as const;
 
-// So funktioniert both.money: drei Sätze mit einem Bild aus dem Alltag
+// Worauf eine Überweisung baut: drei Sätze mit einem Bild aus dem Alltag
+// (im Abschnitt „Krypto überweisen“)
 export type Pillar = { key: string; title: string; text: string; like: string };
 
 export const PILLARS = {
-	title: "So funktioniert both.money",
-	lead: "Drei Dinge machen den Unterschied. Jedes steht in einem Satz, darunter ein Bild aus dem Alltag.",
+	title: "Worauf das baut",
 	items: [
 		{
 			key: "tresor",
@@ -83,10 +85,11 @@ export const PILLARS = {
 	] satisfies Pillar[],
 } as const;
 
-// Eine Auszahlung, Schritt für Schritt (Ruf und Antwort)
+// Krypto überweisen, Schritt für Schritt (Ruf und Antwort); zuerst auf der
+// Seite (Wunsch 03.11.)
 export const PAYOUT = {
-	title: "Eine Auszahlung, Schritt für Schritt",
-	lead: "So läuft es heute im Testnetz. Je Schritt steht oben, was du tust, und darunter, was both.money daraufhin tut.",
+	title: "Krypto überweisen, Schritt für Schritt",
+	lead: "So läuft eine Überweisung heute im Testnetz. Je Schritt steht oben, was du tust, und darunter, was both.money daraufhin tut.",
 	steps: [
 		{
 			say: "Du legst die Auszahlung an.",
@@ -169,52 +172,10 @@ export const EVENTS: readonly LandingEvent[] = [
 	},
 ];
 
-// Das Ziel: so soll eine Zahlung laufen; je Schritt, was davon heute läuft
-export type FlowStep = {
-	key: string;
-	title: string;
-	text: string;
-	today: string;
-	live: boolean;
-};
-
-export const GOAL = {
-	badge: "Ziel · braucht Erlaubnis",
-	title: "Das Ziel: ein Zahlungsweg",
-	lead: "both.money soll Geld annehmen, getrennt aufbewahren und an einer anderen Stelle auszahlen. Absender und Empfänger sind vorher geprüft. Das darf both.money erst mit Erlaubnis.",
-	steps: [
-		{
-			key: "pruefen",
-			title: "Beide Seiten geprüft",
-			text: "Bevor Geld fließt, kennt both.money Absender und Empfänger: Personen mit Ausweisprüfung, Unternehmen mit Registerauszug und den Menschen dahinter.",
-			today: "folgt mit Erlaubnis",
-			live: false,
-		},
-		{
-			key: "eingang",
-			title: "Geld kommt an",
-			text: "Euro auf ein Treuhandkonto, Kryptowerte in die Wallet. Jeder Eingang wird gegen Sanktionslisten geprüft.",
-			today: "Prüfung je Krypto-Eingang läuft",
-			live: true,
-		},
-		{
-			key: "verwahren",
-			title: "Getrennt aufbewahrt",
-			text: "Das Geld liegt getrennt vom Geld des Betreibers, bis der Eingang sicher bestätigt ist. Jeden Tag wird nachgezählt.",
-			today: "Tagesabschluss läuft",
-			live: true,
-		},
-		{
-			key: "auszahlen",
-			title: "Ausgezahlt beim Empfänger",
-			text: "Erst dann geht der Betrag an den geprüften Empfänger, mit den Angaben zu Absender und Empfänger. Jeder Schritt landet als Nachweis in Klick.",
-			today: "Freigabe bereit, Angaben folgen",
-			live: false,
-		},
-	] satisfies FlowStep[],
-	stagesTitle: "Der Weg dahin",
-	stagesText:
-		"Vier Stufen, jede ab der zweiten nur mit Erlaubnis. Im Fahrplan steht jeder Schritt mit der Pflicht, auf die er einzahlt.",
+// Das Ziel in einem Satz; die Stufen stehen im Fahrplan (lib/roadmap.ts)
+export const GOAL_NOTE = {
+	label: "Ziel · braucht Erlaubnis",
+	text: "Das Ziel ist ein Zahlungsweg zwischen geprüften Unternehmen. Dafür braucht both.money Erlaubnisse der Aufsicht, jede Stufe steht im Fahrplan.",
 	action: "Zum Fahrplan",
 } as const;
 
@@ -323,6 +284,14 @@ export const TERMS = {
 			text: "Ein Wert auf der Blockchain, der für etwas anderes steht, etwa für einen US-Dollar oder eine Menge Gold.",
 		},
 		{
+			term: "Prompt",
+			text: "Ein Auftrag in deinen eigenen Worten. Hier sagt er der KI, wie der Bot handeln soll.",
+		},
+		{
+			term: "KI",
+			text: "Ein Programm, das Sprache versteht. Hier macht es aus deinem Prompt feste Regeln, handeln darf es selbst nicht.",
+		},
+		{
 			term: "Testnetz",
 			text: "Eine Blockchain zum Üben. Die Werte darin haben keinen Geldwert.",
 		},
@@ -343,34 +312,11 @@ export const TERMS = {
 
 export const FAQ = {
 	title: "Häufige Fragen",
+	termsTitle: "Begriffe kurz erklärt",
 	items: [
 		{
 			q: "Ist both.money schon ein Zahlungsdienstleister?",
 			a: "Nein. Heute ist both.money eine Wallet für die eigenen Bestände, im Testnetz. Geld für andere annehmen und weiterleiten braucht Erlaubnisse. Die Sperre dafür ist eingebaut und bleibt zu, bis eine Erlaubnis vorliegt.",
-		},
-		{
-			q: "Handelt der Bot schon?",
-			a: "Nein, er ist geplant. Zuerst kommen der Ethereum-Knoten und der Tausch über dezentrale Börsen. Dann läuft der Bot im Testnetz, danach im echten Netz mit kleinen Grenzen.",
-		},
-		{
-			q: "Kann der Bot mein Geld verwalten?",
-			a: "Noch nicht. Für das Geld anderer zu handeln ist Portfolioverwaltung und braucht eine Erlaubnis. Bis dahin handelt der Bot nur mit den eigenen Beständen von both.money.",
-		},
-		{
-			q: "Kann der Bot Geld abziehen?",
-			a: "Nein. Er kann nur tauschen. Der Signer unterschreibt einen Tausch nur, wenn das Ergebnis in dieselbe Wallet zurückfließt.",
-		},
-		{
-			q: "Warum zuerst Gold gegen US-Dollar?",
-			a: "Für beides gibt es Token mit klarer Deckung und einen Goldpreis aus unabhängiger Quelle. So lässt sich jeder Tausch gegen einen Kurs prüfen. Weitere Paare kommen dazu, wenn das für sie genauso gilt.",
-		},
-		{
-			q: "Warum werden beide Seiten geprüft?",
-			a: "Bei einer Überweisung kennt meist jede Bank nur ihre eigene Seite. both.money soll Absender und Empfänger selbst prüfen. So lässt sich bei jeder Zahlung belegen, wer sie geschickt hat, wer sie bekommt und wofür.",
-		},
-		{
-			q: "Wie soll das in anderen Ländern gehen?",
-			a: "Je Land über eine eigene Einheit mit Erlaubnis oder einen Partner mit Erlaubnis vor Ort. Beide prüfen nach demselben Standard. Welche Länder zuerst kommen, hängt an den Erlaubnissen.",
 		},
 		{
 			q: "Läuft das schon mit echtem Geld?",
@@ -381,26 +327,41 @@ export const FAQ = {
 			a: "Niemand allein über die Website. Jede Auszahlung braucht die Freigabe mit Sicherheitsschlüssel. Der Signer prüft dabei Ziel, Grenzen je Auszahlung und Tag und die Gebühr.",
 		},
 		{
+			q: "Handelt der Bot schon, auch für mich?",
+			a: "Nein, er ist geplant und zuerst nur für die eigenen Bestände von both.money. Für das Geld anderer zu handeln ist Portfolioverwaltung und braucht eine Erlaubnis.",
+		},
+		{
+			q: "Was macht die KI, und was nicht?",
+			a: "Sie macht aus deinem Prompt Regeln, die du vor dem Bestätigen liest. Handeln, Regeln ändern oder Geld schicken kann sie nicht. Sie liest nur deinen Prompt und den Kurs aus eigener Quelle.",
+		},
+		{
 			q: "Wie bekommst du Zugang?",
-			a: "Nur per Einladung. Jemand aus deiner Organisation lädt dich ein, du legst einen Passkey an. Eine offene Registrierung gibt es nicht.",
-		},
-		{
-			q: "Wo laufen die Server?",
-			a: "Bei Hetzner in Deutschland. Die Knoten stehen auf einem eigenen Server und sind nur über einen verschlüsselten Tunnel erreichbar.",
-		},
-		{
-			q: "Ersetzt das eine Prüfung?",
-			a: "Nein. both.money hält Regeln technisch ein und liefert Nachweise. Ob das reicht, entscheiden Prüfer:in und Aufsicht. Diese Seite ist keine Rechtsberatung.",
+			a: "Stell unten eine Anfrage. Passt es, bekommst du eine Einladung und legst einen Passkey an. Eine offene Registrierung gibt es nicht.",
 		},
 	],
 } as const;
 
-export const MORE = {
-	text: "Mehr Technik, die Hardware der Knoten und alle Schritte stehen im Fahrplan.",
-	action: "Zum Fahrplan",
-} as const;
-
-export const CLOSE = {
-	sentence: "Du hast eine Einladung? Dann melde dich mit deinem Passkey an.",
-	action: "Anmelden",
+// Die eine Hauptaktion: Zugang anfragen (Formular, /api/access-request)
+export const ACCESS = {
+	title: "Zugang anfragen",
+	lead: "both.money ist im Test und nur per Einladung offen. Schreib kurz, wer du bist und wofür du es nutzen willst. Die Antwort kommt per E-Mail.",
+	fields: {
+		name: "Name",
+		company: "Unternehmen",
+		email: "E-Mail",
+		purpose: "Wofür",
+		message: "Nachricht (freiwillig)",
+		messageHint: "Etwa: welche Kryptowerte, wie viele Überweisungen im Monat.",
+		business: "Ich frage für ein Unternehmen an.",
+	},
+	privacy:
+		"Für die Antwort speichert both.money deine Angaben höchstens 12 Monate und gibt sie nicht weiter.",
+	privacyLink: "Datenschutz",
+	submit: "Zugang anfragen",
+	sending: "Wird gesendet …",
+	done: "Danke, deine Anfrage ist angekommen. Die Antwort kommt per E-Mail.",
+	error: "Das hat nicht geklappt. Bitte versuch es gleich noch einmal.",
+	tooMany: "Zu viele Anfragen von deinem Anschluss. Bitte versuch es später.",
+	invited: "Du hast schon eine Einladung?",
+	login: "Anmelden",
 } as const;

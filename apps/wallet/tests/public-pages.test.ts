@@ -69,8 +69,9 @@ describe("öffentliche Seiten", () => {
 	});
 
 	it("zeigen den Zahlungsweg als Ziel, nicht als Angebot", () => {
-		expect(landing.GOAL.badge).toMatch(/Ziel/);
-		expect(landing.GOAL.lead).toMatch(/erst mit Erlaubnis/);
+		expect(landing.GOAL_NOTE.label).toMatch(/Ziel/);
+		expect(landing.GOAL_NOTE.label).toMatch(/Erlaubnis/);
+		expect(landing.GOAL_NOTE.text).toMatch(/Erlaubnis/);
 		const goalRow = landing.STAND.rows.find((r) => r.key === "ziel");
 		expect(goalRow?.label).toMatch(/Ziel/);
 		expect(goalRow?.label).toMatch(/Erlaubnis/);
@@ -115,6 +116,31 @@ describe("öffentliche Seiten", () => {
 		it("kann nie auszahlen, nur tauschen", () => {
 			expect(trading.TRADING.never.items[0]).toMatch(/dieselbe Wallet/);
 		});
+
+		// Wunsch 03.11.: per Prompt gesteuert. Die KI macht nur Regeln daraus,
+		// ändert sie nie selbst, handelt nie frei und liest nichts Fremdes.
+		it("wird per Prompt gesteuert, die KI bleibt in ihren Grenzen", () => {
+			const never = trading.TRADING.never.items.join(" ");
+			const may = trading.TRADING.may.items.join(" ");
+			expect(trading.TRADING.lead).toMatch(/KI/);
+			expect(never).toMatch(/Auch die KI kann das nicht/);
+			expect(never).toMatch(/nur den Regeln, die du bestätigt hast/);
+			expect(may).toMatch(/Fremde Seiten und Nachrichten liest er nicht/);
+			expect(trading.TRADING.example.prompt.length).toBeGreaterThan(20);
+			const step = trading.TRADING_STEPS.find(
+				(s) => s.key === "handeln-prompt",
+			);
+			expect(step?.status).toBe("planned");
+			expect(step?.anchors.map((a) => a.framework)).toContain("AI Act");
+		});
+	});
+
+	// Wunsch 03.11.: eine Hauptaktion, wenige Fragen
+	it("hat eine Hauptaktion und höchstens sechs Fragen", () => {
+		expect(landing.HERO.action).toBe(landing.ACCESS.submit);
+		expect(landing.ACCESS.submit).toBe("Zugang anfragen");
+		expect(landing.FAQ.items.length).toBeLessThanOrEqual(6);
+		expect(landing.ACCESS.privacy).toMatch(/12 Monate/);
 	});
 
 	// Wunsch 03.11.: einfach zu verstehen. Startseite und Bot in kurzen Sätzen,
@@ -139,6 +165,8 @@ describe("öffentliche Seiten", () => {
 			"KYB",
 			"Travel Rule",
 			"Klick",
+			"KI",
+			"Prompt",
 		]) {
 			expect(terms, word).toContain(word);
 		}
