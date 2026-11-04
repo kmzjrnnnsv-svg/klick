@@ -1,0 +1,27 @@
+# /etc/systemd/system/klick.service.d/identity.conf — Konten aus Microsoft
+# Entra ID und Google Workspace lesen (Runbook „Identität anbinden“ in
+# deploy/README.md). Okta braucht nichts auf dem Server (Token der Kundin).
+# Ohne diese Datei sind Entra ID und Google aus; alles andere läuft wie bisher.
+#
+# Entra ID: eigene App-Registrierung „Klick Identität“ (mehrere Organisationen),
+# Anwendungsrechte User.Read.All, AuditLog.Read.All,
+# RoleManagement.Read.Directory, Organization.Read.All (optional
+# User-LifeCycleInfo.Read.All); Umleitung https://raza.work/api/identitaet/consent.
+# Zertifikat (Schlüssel + Zertifikat in einer PEM-Datei, nur das Zertifikat bei
+# Entra hochladen):
+#   systemd-creds encrypt --name=identity_ms_cert /root/klick-identity.pem /etc/credstore.encrypted/identity_ms_cert
+#   shred -u /root/klick-identity.pem
+# Notweg statt Zertifikat: Geheimnis als Credential identity_ms_client_secret,
+# nur mit PROD_ACCEPT_RISKS=identity_secret (Start-Prüfung).
+#
+# Google Workspace: Dienstkonto „Klick Identität“ (Google Cloud, keine Rollen im
+# Projekt, Admin SDK API eingeschaltet), JSON-Schlüssel als Credential:
+#   systemd-creds encrypt --name=identity_google_sa /root/klick-identity-google.json /etc/credstore.encrypted/identity_google_sa
+#   shred -u /root/klick-identity-google.json
+#
+# Nur einen der beiden Anbieter? Die Zeilen des anderen löschen: fehlt die
+# Credential-Datei, startet Klick nicht.
+[Service]
+Environment=IDENTITY_MS_CLIENT_ID=00000000-0000-0000-0000-000000000000
+LoadCredentialEncrypted=identity_ms_cert:/etc/credstore.encrypted/identity_ms_cert
+LoadCredentialEncrypted=identity_google_sa:/etc/credstore.encrypted/identity_google_sa

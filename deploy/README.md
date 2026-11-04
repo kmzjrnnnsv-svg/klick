@@ -649,6 +649,74 @@ Schritte hier ist Push aus und alles läuft wie bisher.
   Job `push-notify` selbst; nach drei Fehlversuchen je Benachrichtigung geht sie per Mail.
 - **Sofort abschalten:** Drop-in entfernen, Klick neu starten (Mails laufen weiter).
 
+## Identität anbinden
+Klick liest die Konten einer Kundin aus Microsoft Entra ID, Google Workspace oder Okta, nur lesend, und
+prüft jeden Tag MFA, Admins, Austritte und Rezertifizierung (CC-IAM-02…05). Entra ID und Google
+brauchen einmal etwas auf dem Server, Okta nicht (die Kundin trägt ihr eigenes Token ein). Ohne die
+Schritte hier sind Entra ID und Google aus; Okta, `/team/konten` und die Zugriffsprüfung gehen trotzdem.
+1. **Entra ID: App-Registrierung „Klick Identität“** im Entra Admin Center (eigene App, nicht die von
+   Teams), „Konten in einem beliebigen Organisationsverzeichnis“, Umleitung (Web)
+   `https://raza.work/api/identitaet/consent`. Anwendungsberechtigungen (nicht delegiert) für Microsoft
+   Graph: `User.Read.All`, `AuditLog.Read.All` (letzte Anmeldung, MFA-Stand; braucht bei der Kundin
+   Entra ID P1), `RoleManagement.Read.Directory`, `Organization.Read.All`, optional
+   `User-LifeCycleInfo.Read.All` (Austrittsdatum). Anwendungs-ID (Client-ID) notieren.
+2. **Entra ID: Zertifikat** (auf dem Server als root, der Schlüssel verlässt den Server nicht):
+   ```bash
+   umask 077
+   openssl req -x509 -newkey rsa:3072 -nodes -days 730 -subj "/CN=klick-identity" \
+     -keyout /root/klick-identity.key -out /root/klick-identity.crt
+   cat /root/klick-identity.key /root/klick-identity.crt > /root/klick-identity.pem
+   systemd-creds encrypt --name=identity_ms_cert /root/klick-identity.pem /etc/credstore.encrypted/identity_ms_cert
+   shred -u /root/klick-identity.key /root/klick-identity.pem
+   ```
+   Nur `klick-identity.crt` unter „Zertifikate und Geheimnisse“ hochladen, danach löschen. Ablauf
+   (730 Tage) vormerken. Ein Geheimnis statt Zertifikat geht nur als Credential
+   `identity_ms_client_secret` und mit `PROD_ACCEPT_RISKS=identity_secret`.
+3. **Google: Dienstkonto „Klick Identität“** in einem eigenen Google-Cloud-Projekt: Admin SDK API
+   einschalten, Dienstkonto ohne Rollen im Projekt anlegen, einen JSON-Schlüssel erzeugen und sofort
+   verschlüsseln:
+   ```bash
+   systemd-creds encrypt --name=identity_google_sa /root/klick-identity-google.json /etc/credstore.encrypted/identity_google_sa
+   shred -u /root/klick-identity-google.json
+   ```
+   Ein Schlüssel gilt für alle Kundinnen; jede gibt seine Client-ID in ihrer domänenweiten Delegierung
+   frei (Klick zeigt Client-ID und die drei `.readonly`-Bereiche zum Kopieren). Tauschen: neuen
+   Schlüssel anlegen, Credential ersetzen, Klick neu starten, alten Schlüssel im Projekt löschen; die
+   Client-ID bleibt, die Kundinnen merken nichts. Verbietet eine Organisationsrichtlinie Schlüssel
+   (`iam.disableServiceAccountKeyCreation`), das Projekt ausnehmen.
+4. **Drop-in:** `deploy/systemd/klick.service.d/identity.conf.example` nach
+   `/etc/systemd/system/klick.service.d/identity.conf`, Client-ID bei `IDENTITY_MS_CLIENT_ID=` eintragen;
+   nur ein Anbieter, dann die Zeilen des anderen löschen (fehlt eine Credential-Datei, startet Klick
+   nicht). `systemctl daemon-reload && systemctl restart klick`. `klick-start.sh` reicht die Credentials
+   als `IDENTITY_MS_CERT_FILE`, `IDENTITY_MS_CLIENT_SECRET` und `IDENTITY_GOOGLE_SA_FILE` weiter.
+5. **Je Kundin** (in Klick, Inhaber:in mit Step-up): Einstellungen > Integrationen > „Konten und
+   Anmeldungen“. Entra ID: Freigabe-Link an eine Person mit „Globaler Administrator“ bzw.
+   „Privilegierter Rollenadministrator“. Google: Delegierung in der Admin-Konsole, dann die Adresse einer
+   Super-Admin-Person. Okta: Token einer Person mit „Read-only Administrator“ und die Okta-Adresse.
+   Wirksam wird jede Verbindung erst mit der **Bindung**: eine Inhaber:in der Org hat dort ein eigenes,
+   aktives Konto mit derselben Adresse wie in Klick (bei Entra und Google aus einer bestätigten Domain);
+   ein Tenant, eine Kundennummer bzw. eine Okta-Adresse gehört nur einer Org.
+
+- **Ausgehend nötig (https/443):** `login.microsoftonline.com`, `graph.microsoft.com`,
+  `oauth2.googleapis.com`, `admin.googleapis.com` und die Okta-Adressen der Kundinnen
+  (`*.okta.com`, `*.oktapreview.com`, `*.okta-emea.com`; eigene Okta-Domains lehnt Klick ab). Die App
+  prüft Host, IP und Zertifikat selbst und folgt keiner Weiterleitung.
+- **Was Klick speichert:** je Konto Name, Adresse, aktiv, Admin-Rollen, MFA registriert, letzte
+  Anmeldung, Austrittsdatum; nie Telefonnummern, Anmeldeprotokolle, IP-Adressen oder Gruppen.
+  Verschwundene Konten löscht Klick nach 30 Tagen. Okta-Tokens liegen nur verschlüsselt
+  (`identity_sources.secret_enc`, nie im Org-Export).
+- **Abruf:** täglich 05:15 Berlin (Job `identity-sync`, Warteschlange `identity-sync-source`, höchstens
+  zwei gleichzeitig) und gleich nach dem Verbinden; „Jetzt abrufen“ in den Einstellungen.
+- **Prüfen:** `psql klick -c "select organization_id, provider, status, last_sync_at, account_count,
+  last_error from identity_sources"`; `last_error` = `consent_missing` (Freigabe, Delegierung oder
+  Okta-Token fehlt bzw. abgelaufen), `forbidden` (Rechte fehlen bzw. Admin-Adresse taugt nicht),
+  `token_failed` (Klicks eigener Zugang zu Microsoft/Google, Credential prüfen), `tenant_mismatch`
+  (Google-Admin-Adresse gehört jetzt zu einer anderen Kundin), `throttled` (nächster Lauf versucht es
+  wieder), `too_many` (über 50 000 Konten).
+- **Sofort abschalten:** je Org unter Einstellungen > Integrationen trennen (Vier-Augen); für Entra ID
+  und Google für alle den Drop-in entfernen und Klick neu starten. Die Freigabe im Tenant bzw. die
+  Delegierung nimmt die IT der Kundin dort zurück.
+
 ## Leistung im Betrieb (P4, Nov 2026)
 
 - **Zeitgrenzen** setzt die App selbst, beim Verbindungsaufbau (`lib/db/pool-options.ts`), nur im Server-Prozess. Seiten brechen eine einzelne Anweisung nach 30 s ab und warten höchstens 5 s auf eine Sperre. Jobs haben einen eigenen Pool mit vier Verbindungen und dürfen 10 min bzw. 30 s. Der Org-Export hebt die Grenze für seine Transaktion an (`longRunning`). Skripte am Terminal (Migrationen, KEK-Rotation, Seeds) laufen ohne Grenze. Im Journal zeigt sich ein Abbruch als `canceling statement due to statement timeout` bzw. `lock timeout`; die Seite meldet ihn mit Referenz.

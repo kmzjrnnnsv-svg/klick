@@ -100,10 +100,10 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 			},
 			{
 				key: "team",
-				name: "Team, Rollen und Externe",
+				name: "Team, Rollen, Konten und Externe",
 				summary:
-					"Grundrolle plus eigene Rollen je Abteilung; Prüfer:innen und Berater:innen nur befristet.",
-				where: "Team",
+					"Grundrolle plus eigene Rollen je Abteilung; Prüfer:innen und Berater:innen nur befristet; Konten aus eurem Verzeichnis prüft Klick jeden Tag.",
+				where: "Team, Team > Konten, Einstellungen > Integrationen",
 				trigger: "Jemand soll mitarbeiten oder prüfen.",
 				steps: [
 					"Team zeigt zuerst, wer überfällige oder bald fällige Punkte hat; „Erinnern“ schickt der Person einen Hinweis, höchstens einmal am Tag.",
@@ -111,9 +111,11 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Grundrolle wählen: Inhaber:in, Bearbeiter:in, Lesend, Mitarbeitende, Prüfer:in oder Berater:in.",
 					"Eigene Rollen wie Einkauf oder Recht ergänzen; ihre Rechte kommen zur Grundrolle hinzu.",
 					"Externe sehen vertrauliche Bereiche nur mit ausdrücklicher Freigabe; ihr Zugang läuft ab (42 bzw. 90 Tage).",
+					"Microsoft Entra ID, Google Workspace oder Okta nur lesend verbinden: Klick prüft jeden Tag MFA, Admins, Austritte und Rezertifizierung und schreibt das Ergebnis als Test an die Controls.",
+					"Notfall- und Dienstkonten begründet und befristet ausnehmen; die Zugriffsprüfung geht je Konto durch (bestätigen, anpassen, entziehen) und wird zum Nachweis.",
 				],
 				result:
-					"Jede Aktion prüft die Rechte der Person; Berater:innen wechseln zwischen ihren Mandanten.",
+					"Jede Aktion prüft die Rechte der Person; Berater:innen wechseln zwischen ihren Mandanten. Konten ohne MFA oder nach dem Austritt fallen auf, ohne dass Klick im Verzeichnis etwas ändert.",
 			},
 		],
 	},
