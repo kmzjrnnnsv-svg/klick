@@ -49,6 +49,7 @@ async function ProcessesPage({
 	const sp = await searchParams;
 	const tab = one(sp.tab) ?? "landkarte";
 	const t = await getTranslations("Processes");
+	const tc = await getTranslations("Common");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tf = await getTranslations("Functions");
@@ -210,7 +211,8 @@ async function ProcessesPage({
 							labels={{
 								assets: t("assets"),
 								providers: t("providers"),
-								none: "—",
+								noAssets: tc("noSystemsLinked"),
+								noProviders: tc("noProvidersLinked"),
 								concentration: t("concentration"),
 								concentrationLead: t("concentrationLead"),
 								criticalProcesses: t("criticalProcessesShort"),

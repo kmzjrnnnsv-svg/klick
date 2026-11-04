@@ -599,7 +599,11 @@
 		"error_mandate_per_payout": "Der Betrag liegt über dem Höchstbetrag je Auszahlung deiner Vollmacht.",
 		"error_mandate_total": "Der Betrag übersteigt, was von deiner Vollmacht noch frei ist.",
 		"error_mandate_signature": "Die Vollmacht ist nicht mehr gültig (Unterschrift oder Aussteller:in). Bitte um eine neue.",
-		"error_mandate_changed": "Deine Vollmacht hat sich gerade geändert. Versuch es noch einmal."
+		"error_mandate_changed": "Deine Vollmacht hat sich gerade geändert. Versuch es noch einmal.",
+		"detailAddressesEmpty": "Noch keine Adresse ausgegeben.",
+		"detailAddressesIssue": "Adresse zum Empfangen ausgeben",
+		"statAvgNone": "Noch keine Eingänge",
+		"statHoldingNone": "Kein Bestand"
 	},
 	"WalletIntro": {
 		"eyebrow": "Einführung",

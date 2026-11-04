@@ -84,6 +84,7 @@ async function ProcessDetailPage({
 	if (!/^P-\d{2,3}$/.test(code)) notFound();
 	const ctx = await requireOrgPage({ process: ["read"] });
 	const t = await getTranslations("Processes");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -247,7 +248,10 @@ async function ProcessDetailPage({
 						/>
 					</MetaItem>
 					<MetaItem label={t("deputy")}>
-						<UserChip name={names.get(p.deputyUserId ?? "")} />
+						<UserChip
+							name={names.get(p.deputyUserId ?? "")}
+							fallback={tc("noDeputy")}
+						/>
 					</MetaItem>
 				</>
 			}
@@ -297,7 +301,7 @@ async function ProcessDetailPage({
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
 											<p className="text-muted-foreground text-footnote">
-												{task.assigneeName ?? "—"}
+												{task.assigneeName ?? tc("nobody")}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
 													: ""}
@@ -328,22 +332,32 @@ async function ProcessDetailPage({
 						<dt className="font-medium text-footnote text-muted-foreground">
 							RTO
 						</dt>
-						<dd className="font-bold text-title-2">{p.rtoHours ?? "—"} h</dd>
+						<dd>
+							<Hours value={p.rtoHours} empty={tc("notSet")} />
+						</dd>
 					</div>
 					<div>
 						<dt className="font-medium text-footnote text-muted-foreground">
 							RPO
 						</dt>
-						<dd className="font-bold text-title-2">{p.rpoHours ?? "—"} h</dd>
+						<dd>
+							<Hours value={p.rpoHours} empty={tc("notSet")} />
+						</dd>
 					</div>
 					<div>
 						<dt className="font-medium text-footnote text-muted-foreground">
 							MTPD
 						</dt>
-						<dd className="font-bold text-title-2">{p.mtpdHours ?? "—"} h</dd>
+						<dd>
+							<Hours value={p.mtpdHours} empty={tc("notSet")} />
+						</dd>
 					</div>
 				</dl>
-				{(p.inputs || p.outputs || p.impactNotes) && (
+				{!p.inputs && !p.outputs && !p.impactNotes ? (
+					<p className="mt-4 text-muted-foreground text-subhead">
+						{t("biaTextEmpty")}
+					</p>
+				) : (
 					<dl className="mt-4 grid grid-cols-1 gap-3 text-subhead sm:grid-cols-2">
 						{p.inputs && (
 							<div>
@@ -441,7 +455,9 @@ async function ProcessDetailPage({
 							{t("controls")}
 						</p>
 						{controls.length === 0 ? (
-							<p className="text-muted-foreground text-subhead">—</p>
+							<p className="text-muted-foreground text-subhead">
+								{tc("noControlsLinked")}
+							</p>
 						) : (
 							<ul className="flex flex-col gap-1 text-subhead">
 								{controls.map((c) => (
@@ -476,7 +492,9 @@ async function ProcessDetailPage({
 							{t("assets")}
 						</p>
 						{linkedAssets.length === 0 ? (
-							<p className="text-muted-foreground text-subhead">—</p>
+							<p className="text-muted-foreground text-subhead">
+								{tc("noSystemsLinked")}
+							</p>
 						) : (
 							<ul className="flex flex-col gap-1 text-subhead">
 								{linkedAssets.map((a) => (
@@ -498,7 +516,9 @@ async function ProcessDetailPage({
 							{t("providers")}
 						</p>
 						{linkedProviders.length === 0 ? (
-							<p className="text-muted-foreground text-subhead">—</p>
+							<p className="text-muted-foreground text-subhead">
+								{tc("noProvidersLinked")}
+							</p>
 						) : (
 							<ul className="flex flex-wrap gap-1.5">
 								{linkedProviders.map((x) => (
@@ -527,7 +547,9 @@ async function ProcessDetailPage({
 							/>
 						</div>
 						{linkedRisks.length === 0 ? (
-							<p className="text-muted-foreground text-subhead">—</p>
+							<p className="text-muted-foreground text-subhead">
+								{tc("noRisksLinked")}
+							</p>
 						) : (
 							<ul className="flex flex-col gap-1 text-subhead">
 								{linkedRisks.map((r) => (
@@ -546,7 +568,9 @@ async function ProcessDetailPage({
 							{t("documents")}
 						</p>
 						{linkedDocs.length === 0 ? (
-							<p className="text-muted-foreground text-subhead">—</p>
+							<p className="text-muted-foreground text-subhead">
+								{tc("noDocumentsLinked")}
+							</p>
 						) : (
 							<ul className="flex flex-col gap-1 text-subhead">
 								{linkedDocs.map((d) => (
@@ -588,3 +612,12 @@ export default withMessages(ProcessDetailPage, [
 	"Status",
 	"Tasks",
 ]);
+
+// Stunden der BIA; ohne Wert ein Satz statt „— h“
+function Hours({ value, empty }: { value: number | null; empty: string }) {
+	return value == null ? (
+		<span className="text-muted-foreground text-subhead">{empty}</span>
+	) : (
+		<span className="font-bold text-title-2 tabular-nums">{value} h</span>
+	);
+}

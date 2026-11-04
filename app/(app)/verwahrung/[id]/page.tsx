@@ -53,6 +53,7 @@ async function WalletDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ crypto_asset: ["read"] });
 	const t = await getTranslations("Custody");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const canEdit = allows(ctx, { crypto_asset: ["update"] });
@@ -225,7 +226,7 @@ async function WalletDetailPage({
 									<li key={task.id} className="rounded-2xl bg-card p-2">
 										<p className="break-words">{task.title}</p>
 										<p className="text-muted-foreground text-footnote">
-											{task.assigneeName ?? "—"}
+											{task.assigneeName ?? tc("nobody")}
 											{task.dueAt ? ` · ${day(task.dueAt)}` : ""}
 										</p>
 									</li>

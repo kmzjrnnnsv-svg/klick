@@ -65,6 +65,7 @@ async function RiskDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ risk: ["read"] });
 	const t = await getTranslations("Risks");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const tw = await getTranslations("RiskWizard");
 	const te = await getTranslations("Entity");
@@ -255,7 +256,7 @@ async function RiskDetailPage({ params }: { params: Promise<{ id: string }> }) {
 								{t(`zone_${a.residual.zone}`)}
 							</>
 						) : (
-							"—"
+							<span className="text-muted-foreground">{t("residualNone")}</span>
 						)}
 					</MetaItem>
 					<MetaItem label={te("owner")}>
@@ -265,7 +266,11 @@ async function RiskDetailPage({ params }: { params: Promise<{ id: string }> }) {
 						/>
 					</MetaItem>
 					<MetaItem label={t("reviewAt")}>
-						{risk.reviewAt ? fmtDate.format(new Date(risk.reviewAt)) : "—"}
+						{risk.reviewAt ? (
+							fmtDate.format(new Date(risk.reviewAt))
+						) : (
+							<span className="text-muted-foreground">{tc("notPlanned")}</span>
+						)}
 					</MetaItem>
 					{data.source && (
 						<MetaItem label={trs("origin")}>
@@ -328,7 +333,7 @@ async function RiskDetailPage({ params }: { params: Promise<{ id: string }> }) {
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
 											<p className="text-muted-foreground text-footnote">
-												{task.assigneeName ?? "—"}
+												{task.assigneeName ?? tc("nobody")}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
 													: ""}
@@ -531,7 +536,9 @@ async function RiskDetailPage({ params }: { params: Promise<{ id: string }> }) {
 
 			<Section title={t("controls")}>
 				{linkedControls.length === 0 ? (
-					<p className="text-muted-foreground text-subhead">—</p>
+					<p className="text-muted-foreground text-subhead">
+						{tc("noControlsLinked")}
+					</p>
 				) : (
 					<ul className="flex flex-wrap gap-1.5">
 						{linkedControls.map((c) => (
@@ -540,6 +547,22 @@ async function RiskDetailPage({ params }: { params: Promise<{ id: string }> }) {
 									{c.code}
 								</Badge>
 							</Link>
+						))}
+					</ul>
+				)}
+			</Section>
+
+			<Section title={t("assets")}>
+				{linkedAssets.length === 0 ? (
+					<p className="text-muted-foreground text-subhead">
+						{tc("noSystemsLinked")}
+					</p>
+				) : (
+					<ul className="flex flex-wrap gap-1.5">
+						{linkedAssets.map((x) => (
+							<li key={x.id}>
+								<Badge variant="outline">{x.name}</Badge>
+							</li>
 						))}
 					</ul>
 				)}

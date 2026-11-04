@@ -75,6 +75,7 @@ async function NonconformityDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ nonconformity: ["read"] });
 	const t = await getTranslations("Nonconformities");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -205,7 +206,11 @@ async function NonconformityDetailPage({
 					</MetaItem>
 					<MetaItem label={t("dueAt")}>
 						<span className={state.overdue ? "text-destructive" : ""}>
-							{nc.dueAt ? fmtDate.format(new Date(nc.dueAt)) : "—"}
+							{nc.dueAt ? (
+								fmtDate.format(new Date(nc.dueAt))
+							) : (
+								<span className="text-muted-foreground">{tc("notSet")}</span>
+							)}
 						</span>
 					</MetaItem>
 					{nc.planDueAt && (
@@ -224,9 +229,13 @@ async function NonconformityDetailPage({
 					)}
 					<MetaItem label={t("effectivenessCheckAt")}>
 						<span className={state.effectivenessDue ? "text-warning" : ""}>
-							{nc.effectivenessCheckAt
-								? fmtDate.format(new Date(nc.effectivenessCheckAt))
-								: "—"}
+							{nc.effectivenessCheckAt ? (
+								fmtDate.format(new Date(nc.effectivenessCheckAt))
+							) : (
+								<span className="text-muted-foreground">
+									{tc("notPlanned")}
+								</span>
+							)}
 						</span>
 					</MetaItem>
 				</>
@@ -279,7 +288,7 @@ async function NonconformityDetailPage({
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
 											<p className="text-muted-foreground text-footnote">
-												{task.assigneeName ?? "—"}
+												{task.assigneeName ?? tc("nobody")}
 												{task.dueAt
 													? ` · ${fmtDate.format(new Date(task.dueAt))}`
 													: ""}
@@ -318,7 +327,13 @@ async function NonconformityDetailPage({
 						<dt className="font-medium text-footnote text-muted-foreground">
 							{t("correction")}
 						</dt>
-						<dd>{nc.correction ?? "—"}</dd>
+						<dd>
+							{nc.correction ?? (
+								<span className="text-muted-foreground">
+									{t("correctionNone")}
+								</span>
+							)}
+						</dd>
 					</div>
 					<div>
 						<dt className="font-medium text-footnote text-muted-foreground">

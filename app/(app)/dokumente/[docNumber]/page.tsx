@@ -121,6 +121,7 @@ async function DocumentDetailPage({
 		(f.classification === "confidential" || f.classification === "secret") &&
 		!ctx.stepUpFresh;
 	const t = await getTranslations("Documents");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const tr = await getTranslations("DocumentRetention");
@@ -573,9 +574,11 @@ async function DocumentDetailPage({
 						/>
 					</MetaItem>
 					<MetaItem label={t("nextReview")}>
-						{doc.nextReviewAt
-							? fmtDate.format(new Date(doc.nextReviewAt))
-							: "—"}
+						{doc.nextReviewAt ? (
+							fmtDate.format(new Date(doc.nextReviewAt))
+						) : (
+							<span className="text-muted-foreground">{tc("notPlanned")}</span>
+						)}
 					</MetaItem>
 				</>
 			}
@@ -610,7 +613,9 @@ async function DocumentDetailPage({
 					)}
 					<Section title={t("controls")}>
 						{controls.length === 0 ? (
-							<p className="text-muted-foreground text-subhead">—</p>
+							<p className="text-muted-foreground text-subhead">
+								{tc("noControlsLinked")}
+							</p>
 						) : (
 							<ul className="flex flex-wrap gap-1.5">
 								{controls.map((c) => (

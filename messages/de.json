@@ -49,7 +49,18 @@
 		"skipToContent": "Zum Inhalt springen",
 		"copyValue": "{label} kopieren",
 		"copied": "Kopiert.",
-		"copyFailed": "Kopieren ging nicht. Markier den Text und kopier ihn von Hand."
+		"copyFailed": "Kopieren ging nicht. Markier den Text und kopier ihn von Hand.",
+		"notSet": "Noch nicht festgelegt",
+		"notPlanned": "Noch nicht geplant",
+		"nobody": "Niemand zugewiesen",
+		"noDeputy": "Keine Stellvertretung",
+		"nothingLinked": "Noch nichts verknüpft.",
+		"noControlsLinked": "Noch keine Controls verknüpft.",
+		"noSystemsLinked": "Noch keine Systeme verknüpft.",
+		"noProvidersLinked": "Noch keine Dienstleister verknüpft.",
+		"noRisksLinked": "Noch keine Risiken verknüpft.",
+		"noDocumentsLinked": "Noch keine Dokumente verknüpft.",
+		"noComments": "Noch keine Kommentare."
 	},
 	"Nav": {
 		"policies": "Richtlinien",
@@ -1015,7 +1026,7 @@
 		"mentionHint": "@name benachrichtigt die Person",
 		"mentioned": "{n} Person(en) benachrichtigt.",
 		"tasks": "Aufgaben",
-		"tasksEmpty": "Keine Aufgaben zu dieser Entität.",
+		"tasksEmpty": "Noch keine Aufgaben.",
 		"links": "Verknüpfungen",
 		"watch": "Beobachten",
 		"unwatch": "Nicht mehr beobachten",
@@ -1547,7 +1558,8 @@
 		"treatmentStatus_dropped": "verworfen",
 		"descriptionField": "Beschreibung",
 		"editTitle": "Bearbeiten",
-		"guidedImpactHint": "Die Schadenshöhe kommt aus den Einzelwerten je Schadensart. Ändern über „Neu bewerten“."
+		"guidedImpactHint": "Die Schadenshöhe kommt aus den Einzelwerten je Schadensart. Ändern über „Neu bewerten“.",
+		"residualNone": "Noch nicht bewertet"
 	},
 	"Documents": {
 		"templatesAll": "Alle",
@@ -2153,7 +2165,8 @@
 		"mitigationSince": "Abhilfe verfügbar seit {at} — der Abschlussbericht ist 14 Tage danach fällig.",
 		"mitigationHint": "Sobald ein Fix oder eine Abhilfe bereitsteht, vermerke es hier: Dann läuft die 14-Tage-Frist für den Abschlussbericht.",
 		"reportApprovalRequested": "Freigabe der Meldung angefragt — die Frist läuft weiter. Nach der Freigabe vermerkst du hier die Abgabe.",
-		"reportApprovalPending": "Die Meldung wartet noch auf Freigabe — die Frist läuft weiter."
+		"reportApprovalPending": "Die Meldung wartet noch auf Freigabe — die Frist läuft weiter.",
+		"rootCauseNone": "Noch keine Ursache erfasst."
 	},
 	"Approvals": {
 		"title": "Freigaben",
@@ -2600,7 +2613,8 @@
 		"crit_important": "wichtig",
 		"crit_standard": "standard",
 		"changeApprovalRequested": "Gespeichert — die Änderung am aktiven Prozess wartet auf Freigabe.",
-		"activationRequested": "Angelegt — der Prozess bleibt Entwurf, bis die Aktivierung freigegeben ist."
+		"activationRequested": "Angelegt — der Prozess bleibt Entwurf, bis die Aktivierung freigegeben ist.",
+		"biaTextEmpty": "Eingaben, Ausgaben und Auswirkungen sind noch nicht beschrieben."
 	},
 	"Organisation": {
 		"title": "Organisation",
@@ -2954,7 +2968,8 @@
 		"approval_expired": "abgelaufen",
 		"empty": "Noch keine Beschlüsse",
 		"emptyLead": "Erfasse den ersten Beschluss der Leitung — oder starte bei den Pflichtbeschlüssen, die deine Rahmenwerke verlangen.",
-		"requiredBy": "Gefordert von CC-GOV-03 · DORA Art. 5(2) · ISO 27001 5.1 · ZAG-MaRisk AT 4.2"
+		"requiredBy": "Gefordert von CC-GOV-03 · DORA Art. 5(2) · ISO 27001 5.1 · ZAG-MaRisk AT 4.2",
+		"neverDecided": "Noch nie beschlossen"
 	},
 	"Audits": {
 		"title": "Audits",
@@ -3116,7 +3131,10 @@
 		"requestEyebrow": "Anfrage im Audit",
 		"overdue": "überfällig",
 		"answeredAt": "Beantwortet am {date}",
-		"noResponse": "Noch keine Antwort."
+		"noResponse": "Noch keine Antwort.",
+		"frameworksNone": "Noch kein Rahmenwerk zugeordnet.",
+		"auditorsNone": "Noch niemand benannt.",
+		"controlNone": "Kein Control zugeordnet"
 	},
 	"Nonconformities": {
 		"incidentSection": "Abweichung",
@@ -3202,7 +3220,8 @@
 		"planDueAt": "Maßnahmenplan bis",
 		"closeDueAt": "Umsetzung bis",
 		"followUpSettings": "Fristen und Audittermine je Rahmenwerk legst du fest unter",
-		"followUpSettingsLink": "Einstellungen > Audits & Fristen"
+		"followUpSettingsLink": "Einstellungen > Audits & Fristen",
+		"correctionNone": "Noch keine Sofortmaßnahme erfasst."
 	},
 	"ManagementReview": {
 		"title": "Managementbewertung",
@@ -3263,7 +3282,7 @@
 		"lead": "Alles, wofür du verantwortlich bist oder was bei dir liegt — Controls, Prozesse, Dokumente, Risiken, Aufgaben, Freigaben, Kenntnisnahmen, Abweichungen, Pflichten, Audits. Druckbar für die Managementbewertung.",
 		"memberLead": "Rechenschaftssicht dieses Teammitglieds (ohne persönliche Freigaben und Kenntnisnahmen).",
 		"print": "Drucken",
-		"none": "—",
+		"none": "Nichts zugeordnet.",
 		"overdue": "überfällig",
 		"total": "Einträge",
 		"controls": "Controls (verantwortlich / bearbeitet)",
@@ -4587,7 +4606,8 @@
 		"findingsLead": "Befunde aus Scans und Schnellchecks, die diesem Produkt zugeordnet sind — sie zählen für „Keine bekannten ausnutzbaren Schwachstellen“ (Anhang I).",
 		"findingsEmpty": "Keine Befunde zu diesem Produkt.",
 		"toSecurity": "Schnellcheck starten",
-		"tab_befunde": "Befunde"
+		"tab_befunde": "Befunde",
+		"docNone": "Noch kein Dokument verknüpft."
 	},
 	"Security": {
 		"title": "Sicherheit",

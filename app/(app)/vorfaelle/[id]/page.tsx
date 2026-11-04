@@ -76,6 +76,7 @@ async function IncidentDetailPage({
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 	const ctx = await requireOrgPage({ incident: ["read"] });
 	const t = await getTranslations("Incidents");
+	const tc = await getTranslations("Common");
 	const tNav = await getTranslations("Nav");
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
@@ -275,7 +276,10 @@ async function IncidentDetailPage({
 					)}
 					<MetaItem label={t("aware")}>{fmt.format(incident.awareAt)}</MetaItem>
 					<MetaItem label={t("owner")}>
-						<UserChip name={names.get(incident.ownerUserId ?? "")} />
+						<UserChip
+							name={names.get(incident.ownerUserId ?? "")}
+							fallback={tc("nobody")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("affectsPayments")}>
 						{incident.affectsPayments ? "ja" : "nein"}
@@ -349,7 +353,7 @@ async function IncidentDetailPage({
 										<div className="min-w-0">
 											<p className="truncate">{task.title}</p>
 											<p className="text-muted-foreground text-footnote">
-												{task.assigneeName ?? "—"}
+												{task.assigneeName ?? tc("nobody")}
 												{task.dueAt ? ` · ${task.dueAt}` : ""}
 											</p>
 										</div>
@@ -456,6 +460,11 @@ async function IncidentDetailPage({
 			)}
 
 			<Section title={t("updates")}>
+				{!incident.rootCause && !canEdit && (
+					<p className="text-muted-foreground text-subhead">
+						{t("rootCauseNone")}
+					</p>
+				)}
 				{incident.rootCause && (
 					<p className="text-subhead">
 						<span className="font-medium text-footnote mr-2 text-muted-foreground">

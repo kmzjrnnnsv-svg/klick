@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import type { FunctionKey } from "@/lib/compliance/function-key";
 import { useFunctionLabel } from "./responsible-context";
 import { UserChip } from "./user-chip";
@@ -14,7 +15,8 @@ export function OwnerChip({
 	name: string | null | undefined;
 }) {
 	const label = useFunctionLabel();
-	if (!ownerFunction) return <UserChip name={name} />;
+	const tc = useTranslations("Common");
+	if (!ownerFunction) return <UserChip name={name} fallback={tc("nobody")} />;
 	return (
 		<span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-x-1.5">
 			<span>{label(ownerFunction)}</span>

@@ -60,6 +60,7 @@ async function AuditRequestPage({
 	if (!uuid.test(id) || !uuid.test(requestId)) notFound();
 	const ctx = await requireOrgPage({ audit: ["read"] });
 	const t = await getTranslations("Audits");
+	const tc = await getTranslations("Common");
 	const te = await getTranslations("Entity");
 	const canRespond = allows(ctx, { audit_request: ["respond"] });
 	const canDecide = allows(ctx, { audit_request: ["decide"] });
@@ -131,7 +132,10 @@ async function AuditRequestPage({
 						/>
 					</MetaItem>
 					<MetaItem label={t("assignee")}>
-						<UserChip name={names.get(r.assigneeUserId ?? "")} fallback="—" />
+						<UserChip
+							name={names.get(r.assigneeUserId ?? "")}
+							fallback={tc("nobody")}
+						/>
 					</MetaItem>
 					<MetaItem label={t("dueAt")}>
 						<span className={overdue ? "text-destructive" : undefined}>
@@ -150,7 +154,7 @@ async function AuditRequestPage({
 								{control ? ` · ${control.title}` : ""}
 							</Link>
 						) : (
-							"—"
+							<span className="text-muted-foreground">{t("controlNone")}</span>
 						)}
 					</MetaItem>
 				</>

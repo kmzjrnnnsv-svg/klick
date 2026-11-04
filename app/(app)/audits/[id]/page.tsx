@@ -383,13 +383,17 @@ async function AuditCockpitPage({
 						{t("frameworks")}
 					</dt>
 					<dd className="flex flex-wrap gap-1">
-						{slugs.length === 0
-							? "—"
-							: slugs.map((s) => (
-									<Badge key={s} variant="muted" className="">
-										{shortFrameworkName(s)}
-									</Badge>
-								))}
+						{slugs.length === 0 ? (
+							<span className="text-muted-foreground">
+								{t("frameworksNone")}
+							</span>
+						) : (
+							slugs.map((s) => (
+								<Badge key={s} variant="muted" className="">
+									{shortFrameworkName(s)}
+								</Badge>
+							))
+						)}
 					</dd>
 				</div>
 				<div>
@@ -401,9 +405,9 @@ async function AuditCockpitPage({
 							<UserChip key={u} name={names.get(u)} />
 						))}
 						{audit.externalAuditor && <span>{audit.externalAuditor}</span>}
-						{audit.auditorMemberIds.length === 0 &&
-							!audit.externalAuditor &&
-							"—"}
+						{audit.auditorMemberIds.length === 0 && !audit.externalAuditor && (
+							<span className="text-muted-foreground">{t("auditorsNone")}</span>
+						)}
 					</dd>
 				</div>
 				<div>
@@ -825,7 +829,9 @@ async function AuditCockpitPage({
 														);
 													})}
 													{edges.length === 0 && (
-														<li className="text-muted-foreground">—</li>
+														<li className="text-muted-foreground">
+															{t("controlNone")}
+														</li>
 													)}
 												</ul>
 											</TableCell>

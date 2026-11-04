@@ -239,12 +239,14 @@ export async function WalletHome() {
 					<h2 id="wallet-quotes" className="font-semibold text-title-3">
 						{t("homeQuotesTitle")}
 					</h2>
-					<Link
-						href="/prices"
-						className="text-primary text-subhead underline-offset-4 hover:underline"
-					>
-						{t("homeAllQuotes")}
-					</Link>
+					{quotes.some((q) => q.price !== null) && (
+						<Link
+							href="/prices"
+							className="text-primary text-subhead underline-offset-4 hover:underline"
+						>
+							{t("homeAllQuotes")}
+						</Link>
+					)}
 				</div>
 				{quotes.some((q) => q.price !== null) ? (
 					<ul className="list-inset overflow-hidden rounded-2xl bg-card">
@@ -287,12 +289,14 @@ export async function WalletHome() {
 					<h2 id="wallet-recent" className="font-semibold text-title-3">
 						{t("homeRecentTitle")}
 					</h2>
-					<Link
-						href="/activity"
-						className="text-primary text-subhead underline-offset-4 hover:underline"
-					>
-						{t("homeAllMovements")}
-					</Link>
+					{recent.rows.length > 0 && (
+						<Link
+							href="/activity"
+							className="text-primary text-subhead underline-offset-4 hover:underline"
+						>
+							{t("homeAllMovements")}
+						</Link>
+					)}
 				</div>
 				<TransferList rows={recent.rows} />
 			</section>

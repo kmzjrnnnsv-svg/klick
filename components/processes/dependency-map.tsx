@@ -19,7 +19,8 @@ export function DependencyMap({
 	labels: {
 		assets: string;
 		providers: string;
-		none: string;
+		noAssets: string;
+		noProviders: string;
 		concentration: string;
 		concentrationLead: string;
 		criticalProcesses: string;
@@ -67,7 +68,7 @@ export function DependencyMap({
 							</p>
 							{n.assets.length === 0 ? (
 								<p className="text-muted-foreground text-footnote">
-									{labels.none}
+									{labels.noAssets}
 								</p>
 							) : (
 								<ul className="flex flex-col gap-0.5 text-footnote">
@@ -90,7 +91,7 @@ export function DependencyMap({
 							</p>
 							{n.providers.length === 0 ? (
 								<p className="text-muted-foreground text-footnote">
-									{labels.none}
+									{labels.noProviders}
 								</p>
 							) : (
 								<ul className="flex flex-wrap gap-1">

@@ -223,7 +223,11 @@ async function TodayPage({
 				/>
 				<TodayCard
 					title={t("approvals")}
-					link={{ href: "/heute/freigaben", label: t("showAll") }}
+					link={
+						approvals.length > 0
+							? { href: "/heute/freigaben", label: t("showAll") }
+							: undefined
+					}
 				>
 					{approvals.length === 0 ? (
 						<TodayEmpty>{t("approvalsEmpty")}</TodayEmpty>
@@ -263,7 +267,11 @@ async function TodayPage({
 
 				<TodayCard
 					title={t("tasks")}
-					link={{ href: "/heute/aufgaben", label: t("showAll") }}
+					link={
+						tasks.length > 0
+							? { href: "/heute/aufgaben", label: t("showAll") }
+							: undefined
+					}
 				>
 					{tasks.length === 0 ? (
 						<TodayEmpty>{t("tasksEmpty")}</TodayEmpty>
