@@ -2,7 +2,7 @@
 
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useRef } from "react";
 import {
@@ -46,7 +46,8 @@ export function SidebarNav({
 }) {
 	const t = useTranslations("Nav");
 	const pathname = usePathname();
-	const activeKey = activeNavKey(groups, pathname);
+	const search = useSearchParams();
+	const activeKey = activeNavKey(groups, pathname, search.toString());
 	const activeGroup = groups.find((g) =>
 		g.items.some((i) => i.key === activeKey),
 	)?.key;

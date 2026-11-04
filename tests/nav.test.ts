@@ -168,9 +168,9 @@ describe("buildNav", () => {
 			.flatMap((i) => (i.sections ? NAV_SECTIONS[i.sections] : []))
 			.map((sec) => sec.href);
 		expect(new Set(shared).size).toBe(shared.length);
-		// Prüfer:innen: Aktivität bleibt eigener Eintrag (kein Team)
+		// Prüfer:innen: kurzes Menü ohne Team und Aktivität
 		const auditor = buildNav({ ...input, role: "auditor" });
-		expect(activeNavKey(auditor, "/aktivitaet")).toBe("activity");
+		expect(activeNavKey(auditor, "/aktivitaet")).toBeNull();
 	});
 });
 
@@ -273,16 +273,68 @@ describe("Tab-Leiste (Apple HIG)", () => {
 		expect(activeNavTab(groups, "/onboarding")).toBeNull();
 	});
 
-	it("Prüfer:innen: höchstens fünf Tabs, Register bleibt", () => {
-		const auditor = navTabs(
-			buildNav({
-				frameworks: iso,
-				licenceStage: "0_vorbereitung",
-				caspServices: [],
-				role: "auditor",
-			}),
+	it("Prüfer:innen: Audit · Anfragen · Nachweise · Suche", () => {
+		const input = {
+			frameworks: iso,
+			licenceStage: "0_vorbereitung" as const,
+			caspServices: [],
+			role: "auditor" as const,
+		};
+		const id = "00000000-0000-4000-8000-000000000001";
+		const mine = buildNav({ ...input, auditId: id });
+		expect(navTabs(mine).map((t) => t.key)).toEqual([
+			"audit",
+			"anfragen",
+			"nachweise",
+			"suche",
+		]);
+		expect(navTabs(mine)[1]?.href).toBe(`/audits/${id}?tab=anfragen`);
+		// ohne eigenes Audit: zur Liste, keine Anfragen
+		const none = buildNav(input);
+		expect(navTabs(none).map((t) => t.key)).toEqual([
+			"audit",
+			"nachweise",
+			"suche",
+		]);
+		expect(navTabs(none)[0]?.href).toBe("/audits");
+		// aktiver Tab folgt dem Reiter des Audits
+		expect(activeNavTab(mine, `/audits/${id}`, "")).toBe("audit");
+		expect(
+			activeNavTab(mine, `/audits/${id}`, "tab=anfragen&ansicht=offen"),
+		).toBe("anfragen");
+		expect(activeNavTab(mine, `/audits/${id}`, "tab=pruefpfad")).toBe("audit");
+		expect(activeNavTab(mine, `/audits/${id}/anfragen/x`)).toBe("anfragen");
+		expect(activeNavTab(mine, "/nachweise/abc")).toBe("nachweise");
+		expect(activeNavTab(mine, "/dokumente")).toBeNull();
+	});
+
+	it("Prüfer:innen: kurzes Menü um ihr Audit", () => {
+		const id = "00000000-0000-4000-8000-000000000002";
+		const groups = buildNav({
+			frameworks: casp,
+			licenceStage: "2_casp_zag",
+			caspServices: ["custody"],
+			role: "auditor",
+			walletLinked: true,
+			auditId: id,
+		});
+		const keys = groups.flatMap((g) => g.items.map((i) => i.key));
+		expect(keys).toEqual([
+			"audits",
+			"auditRequests",
+			"auditTrail",
+			"evidence",
+			"documents",
+			"risks",
+			"settings",
+			"help",
+		]);
+		expect(activeNavKey(groups, `/audits/${id}`, "tab=pruefpfad")).toBe(
+			"auditTrail",
 		);
-		expect(auditor.map((t) => t.key)).toContain("register");
-		expect(auditor.length).toBeLessThanOrEqual(5);
+		expect(activeNavKey(groups, `/audits/${id}`, "tab=findings")).toBe(
+			"audits",
+		);
+		expect(activeNavKey(groups, "/audits")).toBe("audits");
 	});
 });

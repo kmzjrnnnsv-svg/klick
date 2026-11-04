@@ -55,9 +55,14 @@ export type NavLabelKey =
 	| "policies"
 	| "help"
 	| "frameworks"
-	| "planning";
+	| "planning"
+	| "myAudit"
+	| "auditRequests"
+	| "auditTrail"
+	| "account";
 
 export type NavGroupKey =
+	| "audit"
 	| "today"
 	| "overview"
 	| "implement"
@@ -273,7 +278,8 @@ export type NavGroup = {
 		| "groupImplement"
 		| "groupRegisters"
 		| "groupGovernance"
-		| "groupCasp";
+		| "groupCasp"
+		| "groupRecords";
 	items: NavItem[];
 };
 
@@ -285,6 +291,8 @@ export type NavInput = {
 	counts?: { today?: number };
 	// Verbindung zu both.money aktiv → Eintrag „Krypto (both.money)“
 	walletLinked?: boolean;
+	// Prüfer:innen: das Audit, in dem sie prüfen (myAuditId), sonst null
+	auditId?: string | null;
 };
 
 const FINANCE_SLUGS = new Set([
@@ -317,7 +325,80 @@ const HELP_ITEM: NavItem = {
 	icon: "circle-help",
 };
 
+// Prüfer:innen (E, Nov 2026): ein kurzes Menü für die Prüfung — ihr Audit
+// mit Anfragen und Prüfpfad, dann Nachweise, Dokumente, Risiken, unten Konto
+// und Hilfe. Alles andere bleibt über die Suche erreichbar, soweit das Recht
+// es erlaubt. Mit mehreren Audits führt der erste Eintrag zur Liste.
+function auditorNav(auditId: string | null): NavGroup[] {
+	const base = auditId ? `/audits/${auditId}` : "/audits";
+	const audit: NavItem[] = [
+		{
+			key: "audits",
+			labelKey: auditId ? "myAudit" : "audits",
+			href: base,
+			match: ["/audits"],
+			icon: "clipboard-check",
+		},
+	];
+	if (auditId)
+		audit.push(
+			{
+				key: "auditRequests",
+				labelKey: "auditRequests",
+				href: `${base}?tab=anfragen`,
+				match: [`${base}/anfragen`],
+				icon: "message-square",
+			},
+			{
+				key: "auditTrail",
+				labelKey: "auditTrail",
+				href: `${base}?tab=pruefpfad`,
+				icon: "list-checks",
+			},
+		);
+	return [
+		{ key: "audit", items: audit },
+		{
+			key: "registers",
+			labelKey: "groupRecords",
+			items: [
+				{
+					key: "evidence",
+					labelKey: "evidence",
+					href: "/nachweise",
+					icon: "file-check",
+				},
+				{
+					key: "documents",
+					labelKey: "documents",
+					href: "/dokumente",
+					icon: "file-text",
+				},
+				{
+					key: "risks",
+					labelKey: "risks",
+					href: "/risiken",
+					icon: "triangle-alert",
+				},
+			],
+		},
+		{
+			key: "bottom",
+			items: [
+				{
+					key: "settings",
+					labelKey: "account",
+					href: "/einstellungen",
+					icon: "settings",
+				},
+				HELP_ITEM,
+			],
+		},
+	];
+}
+
 export function buildNav(input: NavInput): NavGroup[] {
+	if (input.role === "auditor") return auditorNav(input.auditId ?? null);
 	// Mitarbeitende sehen nur ihre Richtlinien (Kenntnisnahme dort)
 	if (input.role === "employee")
 		return [
@@ -338,7 +419,6 @@ export function buildNav(input: NavInput): NavGroup[] {
 	const hasFinance = [...slugs].some((s) => FINANCE_SLUGS.has(s));
 	const hasAml = [...slugs].some((s) => AML_SLUGS.has(s));
 	const stage = STAGE_INDEX[input.licenceStage];
-	const isAuditor = input.role === "auditor";
 	// Verwahrung: Wallet-Register und Abstimmung bei Verwahrdienst oder CCSS
 	const hasCustody =
 		input.caspServices.includes("custody") || slugs.has("ccss");
@@ -548,7 +628,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 		},
 	];
 
-	if ((hasFinance || hasAml || hasCustody || stage >= 1) && !isAuditor) {
+	if (hasFinance || hasAml || hasCustody || stage >= 1) {
 		const items: NavItem[] = [];
 		if (hasAml || hasFinance) {
 			items.push({
@@ -612,7 +692,7 @@ export function buildNav(input: NavInput): NavGroup[] {
 			});
 		if (items.length > 0)
 			groups.push({ key: "casp", labelKey: "groupCasp", items });
-	} else if (input.walletLinked && !isAuditor)
+	} else if (input.walletLinked)
 		groups.push({
 			key: "casp",
 			labelKey: "groupCasp",
@@ -621,23 +701,15 @@ export function buildNav(input: NavInput): NavGroup[] {
 			],
 		});
 
-	// Aktivität steht unter Team; Prüfer:innen sehen kein Team, für sie
-	// bleibt Aktivität ein eigener Eintrag
+	// Aktivität steht unter Team (Umschalter oben auf der Seite)
 	const bottom: NavItem[] = [
-		isAuditor
-			? {
-					key: "activity",
-					labelKey: "activity",
-					href: "/aktivitaet",
-					icon: "activity",
-				}
-			: {
-					key: "team",
-					labelKey: "team",
-					href: "/team",
-					icon: "users",
-					sections: "team",
-				},
+		{
+			key: "team",
+			labelKey: "team",
+			href: "/team",
+			icon: "users",
+			sections: "team",
+		},
 		{
 			key: "settings",
 			labelKey: "settings",
@@ -648,48 +720,28 @@ export function buildNav(input: NavInput): NavGroup[] {
 	];
 	groups.push({ key: "bottom", items: bottom });
 
-	if (isAuditor) {
-		// Prüfer:innen: reduzierte Nav — Steuerung/Register nur lesend relevante Teile.
-		const allowed = new Set([
-			"today",
-			"overview",
-			"gapAnalysis",
-			"controls",
-			"evidence",
-			"security",
-			"documents",
-			"risks",
-			"processes",
-			"providers",
-			"incidents",
-			"products",
-			"audits",
-			"frameworks",
-			"settings",
-			"activity",
-			"help",
-		]);
-		return groups
-			.map((g) => ({
-				...g,
-				items: g.items.filter((i) => allowed.has(i.key)),
-			}))
-			.filter((g) => g.items.length > 0);
-	}
 	return groups;
 }
 
 // Aktiver Eintrag: der spezifischste Pfad gewinnt — /heute/aufgaben markiert
-// „Aufgaben“, nicht zusätzlich „Heute“
+// „Aufgaben“, nicht zusätzlich „Heute“. Ein Eintrag mit Query (Prüfer:innen:
+// „Anfragen“ = /audits/<id>?tab=anfragen) gilt nur auf genau dieser Seite und
+// nur, wenn jeder seiner Parameter in `search` steht.
 export function activeNavKey(
 	groups: NavGroup[],
 	pathname: string,
+	search = "",
 ): string | null {
+	const params = new URLSearchParams(search);
 	let best: { key: string; len: number } | null = null;
 	for (const item of groups.flatMap((g) => g.items))
 		for (const href of navItemHrefs(item)) {
-			const hit =
-				pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+			const [path = href, query] = href.split("?");
+			const hit = query
+				? pathname === path &&
+					[...new URLSearchParams(query)].every(([k, v]) => params.get(k) === v)
+				: pathname === path ||
+					(path !== "/" && pathname.startsWith(`${path}/`));
 			if (hit && (!best || href.length > best.len))
 				best = { key: item.key, len: href.length };
 		}
@@ -710,12 +762,16 @@ export type NavTabKey =
 	| "umsetzen"
 	| "register"
 	| "steuerung"
-	| "suche";
+	| "suche"
+	// Prüfer:innen: Audit · Anfragen · Nachweise · Suche
+	| "audit"
+	| "anfragen"
+	| "nachweise";
 
 export type NavTab = {
 	key: NavTabKey;
 	labelKey:
-		| "today"
+		| NavLabelKey
 		| "groupImplement"
 		| "groupRegisters"
 		| "groupGovernance"
@@ -766,9 +822,41 @@ const TAB_DEFS: (Omit<NavTab, "groups"> & { groupKeys: NavGroupKey[] })[] = [
 export const LIST_TABS = ["umsetzen", "register", "steuerung"] as const;
 export type ListTabKey = (typeof LIST_TABS)[number];
 
+// Prüfer:innen: Tabs führen direkt zu Seiten, keine Bereichslisten
+const AUDITOR_TABS: { key: NavTabKey; item: string }[] = [
+	{ key: "audit", item: "audits" },
+	{ key: "anfragen", item: "auditRequests" },
+	{ key: "nachweise", item: "evidence" },
+];
+const isAuditorNav = (groups: NavGroup[]) =>
+	groups.some((g) => g.key === "audit");
+
 // Tabs aus der abgeleiteten Navigation; Tabs ohne Einträge entfallen, die
 // Suche gibt es nur zusammen mit anderen Tabs.
 export function navTabs(groups: NavGroup[]): NavTab[] {
+	if (isAuditorNav(groups)) {
+		const items = groups.flatMap((g) => g.items);
+		const tabs: NavTab[] = [];
+		for (const def of AUDITOR_TABS) {
+			const item = items.find((i) => i.key === def.item);
+			if (item?.labelKey)
+				tabs.push({
+					key: def.key,
+					labelKey: item.labelKey,
+					icon: item.icon,
+					href: item.href,
+					groups: [],
+				});
+		}
+		tabs.push({
+			key: "suche",
+			labelKey: "search",
+			icon: "search",
+			href: "/suche",
+			groups: [],
+		});
+		return tabs;
+	}
 	const tabs = TAB_DEFS.map(({ groupKeys, ...tab }) => ({
 		...tab,
 		groups: groups.filter(
@@ -788,8 +876,15 @@ export function navTabs(groups: NavGroup[]): NavTab[] {
 export function activeNavTab(
 	groups: NavGroup[],
 	pathname: string,
+	search = "",
 ): NavTabKey | null {
 	if (pathname === "/suche" || pathname.startsWith("/suche/")) return "suche";
+	if (isAuditorNav(groups)) {
+		const key = activeNavKey(groups, pathname, search);
+		// der Prüfpfad gehört zum Audit
+		const item = key === "auditTrail" ? "audits" : key;
+		return AUDITOR_TABS.find((t) => t.item === item)?.key ?? null;
+	}
 	const list = pathname.match(/^\/bereich\/([^/]+)/)?.[1];
 	if (list && (LIST_TABS as readonly string[]).includes(list))
 		return list as ListTabKey;

@@ -171,25 +171,58 @@ export function auditorMayComment(role: string, entityType: string): boolean {
 	return (AUDITOR_COMMENT_KINDS as readonly string[]).includes(entityType);
 }
 
-/**
- * Einstieg für Prüfer:innen: genau ein laufendes Audit, in dem die Person
- * prüft → direkt dorthin, sonst die Audit-Liste.
- */
-export function auditorLanding(
-	audits: readonly {
-		id: string;
-		status: AuditDates["status"];
-		auditorMemberIds: readonly string[];
-		auditorUserId: string | null;
-	}[],
+type AuditAssignment = {
+	id: string;
+	status: AuditDates["status"];
+	auditorMemberIds: readonly string[];
+	auditorUserId: string | null;
+};
+
+/** Ist die Person Prüfer:in dieses Audits (leitend oder im Team)? */
+export function auditsAsAuditor<T extends AuditAssignment>(
+	audits: readonly T[],
 	userId: string,
-): string {
-	const mine = audits.filter(
+): T[] {
+	return audits.filter(
 		(a) => a.auditorUserId === userId || a.auditorMemberIds.includes(userId),
 	);
+}
+
+/**
+ * Prüfungspaket eines Audits: mit Export-Recht immer, sonst nur für
+ * Prüfer:innen genau dieses Audits (E, Nov 2026).
+ */
+export function auditPackageAllowed(
+	canExport: boolean,
+	audit: AuditAssignment | null,
+	userId: string,
+): boolean {
+	if (canExport) return true;
+	return audit !== null && auditsAsAuditor([audit], userId).length > 0;
+}
+
+/**
+ * „Mein Audit“ für Prüfer:innen: genau ein laufendes Audit, in dem die Person
+ * prüft, sonst ihr einziges Audit, sonst keins (dann die Audit-Liste).
+ */
+export function myAuditId(
+	audits: readonly AuditAssignment[],
+	userId: string,
+): string | null {
+	const mine = auditsAsAuditor(audits, userId);
 	const running = mine.filter((a) => a.status === "in_progress");
-	if (running.length === 1) return `/audits/${running[0]?.id}`;
-	if (running.length === 0 && mine.length === 1)
-		return `/audits/${mine[0]?.id}`;
-	return "/audits";
+	if (running.length === 1) return running[0]?.id ?? null;
+	if (running.length === 0 && mine.length === 1) return mine[0]?.id ?? null;
+	return null;
+}
+
+/**
+ * Einstieg für Prüfer:innen: „Mein Audit“ (myAuditId), sonst die Audit-Liste.
+ */
+export function auditorLanding(
+	audits: readonly AuditAssignment[],
+	userId: string,
+): string {
+	const id = myAuditId(audits, userId);
+	return id ? `/audits/${id}` : "/audits";
 }

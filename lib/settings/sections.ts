@@ -146,10 +146,14 @@ export const DEFAULT_SETTINGS_SECTION: SettingsSectionKey = "security";
 export function visibleSettingsSections(can: {
 	settings: boolean;
 	integrations: boolean;
+	// Mitarbeitende: nur „Dein Konto“
 	accountOnly?: boolean;
+	// Prüfer:innen: „Dein Konto“ und der Verlauf zum Prüfen der Kette
+	auditor?: boolean;
 }): SettingsSectionKey[] {
 	return SETTINGS_SECTIONS.filter((s) => {
 		if (can.accountOnly) return s.group === "account";
+		if (can.auditor) return s.group === "account" || s.key === "verlauf";
 		const needs = "needs" in s ? s.needs : undefined;
 		if (needs === "settings") return can.settings;
 		if (needs === "integrations") return can.integrations;

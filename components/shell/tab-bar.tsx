@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { activeNavTab, type NavGroup, navTabs } from "@/lib/nav";
 import { cn } from "@/lib/utils";
@@ -13,9 +13,10 @@ import { NavIcon } from "./nav-icon";
 export function TabBar({ groups }: { groups: NavGroup[] }) {
 	const t = useTranslations("Nav");
 	const pathname = usePathname();
+	const search = useSearchParams();
 	const tabs = navTabs(groups);
 	if (tabs.length === 0) return null;
-	const active = activeNavTab(groups, pathname);
+	const active = activeNavTab(groups, pathname, search.toString());
 	return (
 		<nav
 			data-tab-bar
