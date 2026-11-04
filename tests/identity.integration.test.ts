@@ -9,6 +9,7 @@ import {
 	controlTests,
 	identityAccounts,
 	identityCheckResults,
+	identityExceptions,
 	identitySources,
 	nonconformities,
 	orgSettings,
@@ -16,6 +17,15 @@ import {
 import { ensureControlImplementations } from "@/lib/compliance/initialize-org";
 import { generateDek, wrapDek } from "@/lib/crypto/envelope";
 import type { OrgTx } from "@/lib/db/with-org";
+import {
+	addIdentityException,
+	revokeIdentityException,
+	setIdentityAccountLeft,
+	setIdentityAccountMatch,
+	writeIdentityPolicy,
+} from "@/lib/identity/manage";
+import { identityPolicyOf } from "@/lib/identity/policy";
+import { addMonthsIso } from "@/lib/identity/rules";
 import {
 	applySnapshot,
 	completeEntraConsent,
@@ -310,6 +320,199 @@ d("Identität (Postgres)", () => {
 		// je fail-Prüfung genau eine (mfa, recert), beim zweiten Lauf keine neue
 		expect(titles.filter((t) => t.startsWith("CC-IAM-03"))).toHaveLength(1);
 		expect(titles.filter((t) => t.startsWith("CC-IAM-05"))).toHaveLength(1);
+	});
+
+	// ── I1b: Ausnahmen, ausgeschieden, Zuordnung, Schwellen ─────────────
+	const accountId = async (ext: string) => {
+		const [row] = await inOrg(org.a, (tx) =>
+			tx
+				.select({ id: identityAccounts.id })
+				.from(identityAccounts)
+				.where(
+					and(
+						eq(identityAccounts.organizationId, org.a),
+						eq(identityAccounts.externalId, ext),
+					),
+				),
+		);
+		return row?.id as string;
+	};
+	const checkResult = async (key: string) => {
+		const [row] = await inOrg(org.a, (tx) =>
+			tx
+				.select({
+					result: identityCheckResults.result,
+					affected: identityCheckResults.affected,
+				})
+				.from(identityCheckResults)
+				.where(
+					and(
+						eq(identityCheckResults.organizationId, org.a),
+						eq(identityCheckResults.checkKey, key as "mfa"),
+					),
+				),
+		);
+		return row;
+	};
+	// Abruf frisch zu einem Zeitpunkt (sonst „nicht bewertbar“)
+	const freshAt = (at: Date) =>
+		inOrg(org.a, (tx) =>
+			tx
+				.update(identitySources)
+				.set({ lastSyncAt: at })
+				.where(eq(identitySources.organizationId, org.a)),
+		);
+	const later = new Date(Date.now() + 70 * 86_400_000);
+	const day = (d: Date) => d.toISOString().slice(0, 10);
+	const ctxA = () => ({ orgId: org.a, userId: owner });
+
+	it("Ausnahme nimmt das Admin-Konto ohne MFA aus der Prüfung", async () => {
+		await freshAt(later);
+		const anna = await accountId("anna");
+		const r = await inOrg(org.a, (tx) =>
+			addIdentityException(tx, ctxA(), {
+				accountId: anna,
+				kind: "emergency",
+				reason: "Notfallkonto, liegt im Tresor",
+				expiresAt: addMonthsIso(day(later), 3) as string,
+				now: later,
+			}),
+		);
+		expect(r.ok).toBe(true);
+		expect((await checkResult("mfa"))?.result).toBe("pass");
+		expect((await checkResult("privileged"))?.result).toBe("pass");
+	});
+
+	it("keine Ausnahme für das eigene Konto, Admins höchstens 6 Monate", async () => {
+		const olga = await accountId("olga");
+		const own = await inOrg(org.a, (tx) =>
+			addIdentityException(tx, ctxA(), {
+				accountId: olga,
+				kind: "other",
+				reason: "Ich nehme mich selbst aus",
+				expiresAt: addMonthsIso(day(later), 1) as string,
+				now: later,
+			}),
+		);
+		expect(own).toEqual({ ok: false, error: "identity_own_account" });
+		const anna = await accountId("anna");
+		const long = await inOrg(org.a, (tx) =>
+			addIdentityException(tx, ctxA(), {
+				accountId: anna,
+				kind: "service",
+				reason: "Dienstkonto für die Datensicherung",
+				expiresAt: addMonthsIso(day(later), 9) as string,
+				now: later,
+			}),
+		);
+		expect(long).toEqual({ ok: false, error: "identity_expiry_too_long" });
+	});
+
+	it("Ausnahme zurückgenommen: MFA schlägt wieder an", async () => {
+		const [exc] = await inOrg(org.a, (tx) =>
+			tx
+				.select({ id: identityExceptions.id })
+				.from(identityExceptions)
+				.where(eq(identityExceptions.organizationId, org.a)),
+		);
+		const r = await inOrg(org.a, (tx) =>
+			revokeIdentityException(tx, ctxA(), {
+				exceptionId: exc?.id as string,
+				now: later,
+			}),
+		);
+		expect(r.ok).toBe(true);
+		expect((await checkResult("mfa"))?.result).toBe("fail");
+	});
+
+	it("ausgeschieden markiert: nach der Frist schlägt „Austritte“ an", async () => {
+		const bob = await accountId("bob");
+		await inOrg(org.a, (tx) =>
+			setIdentityAccountLeft(tx, ctxA(), {
+				accountId: bob,
+				left: true,
+				now: later,
+			}),
+		);
+		const after = new Date(later.getTime() + 5 * 86_400_000);
+		await freshAt(after);
+		await inOrg(org.a, (tx) =>
+			evaluateIdentityChecks(tx, { orgId: org.a }, after),
+		);
+		const leavers = await checkResult("leavers");
+		expect(leavers?.result).toBe("fail");
+		expect(leavers?.affected).toContain(bob);
+		await inOrg(org.a, (tx) =>
+			setIdentityAccountLeft(tx, ctxA(), {
+				accountId: bob,
+				left: false,
+				now: after,
+			}),
+		);
+		expect((await checkResult("leavers"))?.result).not.toBe("fail");
+	});
+
+	it("Zuordnung von Hand: niemand bleibt, automatisch findet die Person wieder", async () => {
+		const olga = await accountId("olga");
+		const read = () =>
+			inOrg(org.a, async (tx) => {
+				const [row] = await tx
+					.select({
+						user: identityAccounts.matchedUserId,
+						mode: identityAccounts.matchMode,
+					})
+					.from(identityAccounts)
+					.where(eq(identityAccounts.id, olga));
+				return row;
+			});
+		await inOrg(org.a, (tx) =>
+			setIdentityAccountMatch(tx, ctxA(), {
+				accountId: olga,
+				match: "none",
+				now: later,
+			}),
+		);
+		expect(await read()).toEqual({ user: null, mode: "manual" });
+		const stranger = await inOrg(org.a, (tx) =>
+			setIdentityAccountMatch(tx, ctxA(), {
+				accountId: olga,
+				match: "00000000-0000-4000-8000-000000000000",
+				now: later,
+			}),
+		);
+		expect(stranger).toEqual({ ok: false, error: "identity_not_member" });
+		await inOrg(org.a, (tx) =>
+			setIdentityAccountMatch(tx, ctxA(), {
+				accountId: olga,
+				match: "auto",
+				now: later,
+			}),
+		);
+		expect(await read()).toEqual({ user: owner, mode: "auto" });
+	});
+
+	it("Schwellen speichern und lesen (ohne die feste Grenze)", async () => {
+		const next = { ...identityPolicyOf({}), maxTopAdmins: 2 };
+		await inOrg(org.a, (tx) =>
+			writeIdentityPolicy(
+				tx,
+				{ orgId: org.a },
+				{
+					before: {},
+					next,
+					now: later,
+				},
+			),
+		);
+		const stored = await inOrg(org.a, async (tx) => {
+			const [row] = await tx
+				.select({ p: orgSettings.identityPolicy })
+				.from(orgSettings)
+				.where(eq(orgSettings.organizationId, org.a));
+			return row?.p;
+		});
+		expect(stored).not.toHaveProperty("staleHours");
+		expect(identityPolicyOf(stored).maxTopAdmins).toBe(2);
 	});
 
 	it("eine andere Org sieht weder Quelle noch Konten", async () => {

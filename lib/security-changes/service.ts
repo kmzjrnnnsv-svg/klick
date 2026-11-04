@@ -288,6 +288,7 @@ const APPLY_COLUMN = {
 	network_policy: "networkPolicy",
 	ai_policy: "aiPolicy",
 	signature_policy: "signaturePolicy",
+	identity_policy: "identityPolicy",
 } as const satisfies Record<
 	Exclude<ApplyKind, "sso_saml_cert">,
 	keyof typeof orgSettings.$inferSelect

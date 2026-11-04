@@ -1,12 +1,24 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import type { z } from "zod";
+import { orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
 import { AuthError } from "@/lib/auth/session-rules";
-import { mutateOrg, readOrg } from "@/lib/db/with-org";
+import { mutateOrg, type OrgTx, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
 import { identityMsConfig } from "@/lib/identity/config";
+import {
+	addIdentityException,
+	type ManageResult,
+	revokeIdentityException,
+	setIdentityAccountLeft,
+	setIdentityAccountMatch,
+	writeIdentityPolicy,
+} from "@/lib/identity/manage";
+import { identityPolicyOf, identityPolicyRelaxed } from "@/lib/identity/policy";
 import {
 	disconnectSource,
 	identitySourcesOf,
@@ -17,10 +29,18 @@ import { enqueue } from "@/lib/jobs/boss";
 import { IDENTITY_SYNC_SOURCE_JOB } from "@/lib/jobs/identity-sync";
 import { adminConsentUrl, newNonce, sealState } from "@/lib/microsoft/consent";
 import { getOrgLimiter } from "@/lib/rate-limit";
-import { requirePermit } from "@/lib/security-changes/service";
+import {
+	requestApplyChange,
+	requirePermit,
+} from "@/lib/security-changes/service";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
-	entraTenantSchema,
+	entraConsentSchema,
+	identityExceptionIdSchema,
+	identityExceptionSchema,
+	identityLeftSchema,
+	identityMatchSchema,
+	identityPolicySchema,
 	identitySourceIdSchema,
 } from "@/lib/validation/identity";
 
@@ -30,6 +50,7 @@ import {
 // steht in IMPERSONATION_READ_ONLY).
 
 const PATH = "/einstellungen";
+const ACCOUNTS = "/team/konten";
 
 async function ownerStepUp(): Promise<
 	| { ok: true; ctx: Awaited<ReturnType<typeof requireStepUp>> }
@@ -55,7 +76,8 @@ async function startEntraConsentImpl(
 	const c = g.ctx;
 	const config = identityMsConfig();
 	if (!config) return { ok: false, error: "identity_not_configured" };
-	const parsed = entraTenantSchema.safeParse(input);
+	// Hinweis zu Datenschutz und Betriebsrat muss bestätigt sein
+	const parsed = entraConsentSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const e = env();
 	const nonce = newNonce();
@@ -135,6 +157,150 @@ async function disconnectIdentitySourceImpl(
 	return { ok: true, data: undefined };
 }
 
+// ── /team/konten: Ausnahmen, Zuordnung, ausgeschieden ──────────────────
+
+// Guard zuerst (Step-up nur, wo es lockert), dann Eingabe prüfen, dann
+// Dienst in einer Transaktion mit Audit
+async function manage<T>(
+	opts: { stepUp: boolean; schema: z.ZodType<T>; input: unknown },
+	run: (
+		tx: OrgTx,
+		ctx: { orgId: string; userId: string },
+		data: T,
+	) => Promise<ManageResult>,
+	accountOf?: (data: T) => string,
+): Promise<ActionResult> {
+	let c: Awaited<ReturnType<typeof requireOrg>>;
+	try {
+		c = opts.stepUp
+			? await requireStepUp({ identity: ["update"] })
+			: await requireOrg({ identity: ["update"] });
+	} catch (e) {
+		if (e instanceof AuthError && e.code === "step_up_required")
+			return { ok: false, error: "step_up_required" };
+		throw e;
+	}
+	const parsed = opts.schema.safeParse(opts.input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const data = parsed.data;
+	const r = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const res = await run(tx, { orgId: c.orgId, userId: c.userId }, data);
+		return { result: res, audit: res.ok ? res.audit : [] };
+	});
+	if (!r.ok) return r;
+	revalidatePath(ACCOUNTS);
+	if (accountOf) revalidatePath(`${ACCOUNTS}/${accountOf(data)}`);
+	return { ok: true, data: undefined };
+}
+
+const now = () => new Date();
+
+// Ausnahme: Step-up, nie für das eigene Konto (exceptionError)
+async function addIdentityExceptionImpl(input: unknown): Promise<ActionResult> {
+	return manage(
+		{ stepUp: true, schema: identityExceptionSchema, input },
+		(tx, ctx, d) => addIdentityException(tx, ctx, { ...d, now: now() }),
+		(d) => d.accountId,
+	);
+}
+
+// Zurücknehmen macht die Prüfung strenger: ohne Step-up
+async function revokeIdentityExceptionImpl(
+	input: unknown,
+): Promise<ActionResult> {
+	return manage(
+		{ stepUp: false, schema: identityExceptionIdSchema, input },
+		(tx, ctx, d) =>
+			revokeIdentityException(tx, ctx, {
+				exceptionId: d.exceptionId,
+				now: now(),
+			}),
+	);
+}
+
+async function setIdentityMatchImpl(input: unknown): Promise<ActionResult> {
+	return manage(
+		{ stepUp: false, schema: identityMatchSchema, input },
+		(tx, ctx, d) => setIdentityAccountMatch(tx, ctx, { ...d, now: now() }),
+		(d) => d.accountId,
+	);
+}
+
+async function markIdentityAccountLeftImpl(
+	input: unknown,
+): Promise<ActionResult> {
+	return manage(
+		{ stepUp: false, schema: identityLeftSchema, input },
+		(tx, ctx, d) => setIdentityAccountLeft(tx, ctx, { ...d, now: now() }),
+		(d) => d.accountId,
+	);
+}
+
+// Schwellen: Inhaber:in mit Step-up; strenger wirkt sofort, Lockern über
+// Vier-Augen bzw. 24 h Wartezeit (Art identity_policy, ADR-028)
+async function saveIdentityPolicyImpl(
+	input: unknown,
+): Promise<ActionResult<{ status: "saved" }>> {
+	const g = await ownerStepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = identityPolicySchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const raw = await readOrg(toOrgCtx(c), async (tx) => {
+		const [row] = await tx
+			.select({ policy: orgSettings.identityPolicy })
+			.from(orgSettings)
+			.where(eq(orgSettings.organizationId, c.orgId))
+			.limit(1);
+		return row?.policy ?? {};
+	});
+	const current = identityPolicyOf(raw);
+	const next = identityPolicyOf(parsed.data);
+	if (JSON.stringify(next) === JSON.stringify(current))
+		return { ok: true, data: { status: "saved" } };
+	// Antwort ist ein Hinweis-Code four_eyes_* (UI: isFourEyesNotice)
+	if (identityPolicyRelaxed(current, next)) {
+		const { staleHours: _fixed, ...value } = next;
+		return requestApplyChange(c, {
+			kind: "identity_policy",
+			targetKey: null,
+			summary: "Konten und Anmeldungen: Schwellen der Prüfungen lockern",
+			payload: { value },
+			before: raw,
+		});
+	}
+	await mutateOrg(toOrgCtx(c), async (tx) => ({
+		result: null,
+		audit: await writeIdentityPolicy(tx, c, {
+			before: raw,
+			next,
+			now: new Date(),
+		}),
+	}));
+	revalidatePath(PATH);
+	return { ok: true, data: { status: "saved" } };
+}
+
+export const addIdentityExceptionAction = safeAction(
+	"addIdentityException",
+	addIdentityExceptionImpl,
+);
+export const revokeIdentityExceptionAction = safeAction(
+	"revokeIdentityException",
+	revokeIdentityExceptionImpl,
+);
+export const setIdentityMatch = safeAction(
+	"setIdentityMatch",
+	setIdentityMatchImpl,
+);
+export const markIdentityAccountLeft = safeAction(
+	"markIdentityAccountLeft",
+	markIdentityAccountLeftImpl,
+);
+export const saveIdentityPolicy = safeAction(
+	"saveIdentityPolicy",
+	saveIdentityPolicyImpl,
+);
 export const startEntraConsent = safeAction(
 	"startEntraConsent",
 	startEntraConsentImpl,

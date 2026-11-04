@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+	IDENTITY_POLICY_BOUNDS,
+	type IdentityPolicyKey,
+} from "@/lib/identity/policy";
+import { EXCEPTION_KINDS } from "@/lib/identity/types";
 
 // Identität anbinden (Teil D): Eingaben der Einstellungen
 
@@ -17,3 +22,52 @@ export const entraTenantSchema = z.object({
 export const identitySourceIdSchema = z.object({
 	sourceId: z.uuid(),
 });
+
+// Freigabe-Link nur nach dem Hinweis zu Datenschutz und Betriebsrat
+export const entraConsentSchema = entraTenantSchema.extend({
+	acknowledged: z.literal(true, { error: "identity_ack_required" }),
+});
+
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+export const identityExceptionSchema = z.object({
+	accountId: z.uuid(),
+	kind: z.enum(EXCEPTION_KINDS),
+	reason: z.string().trim().min(10).max(1000),
+	expiresAt: z.string().regex(ISO_DAY),
+});
+
+export const identityExceptionIdSchema = z.object({
+	exceptionId: z.uuid(),
+});
+
+export const identityMatchSchema = z.object({
+	accountId: z.uuid(),
+	// Person (Konto-ID), „none“ = niemand, „auto“ = automatisch
+	match: z.union([z.literal("auto"), z.literal("none"), z.uuid()]),
+});
+
+export const identityLeftSchema = z.object({
+	accountId: z.uuid(),
+	left: z.boolean(),
+});
+
+const bounded = (key: IdentityPolicyKey) => {
+	const [min, max] = IDENTITY_POLICY_BOUNDS[key];
+	return z.coerce.number().int().min(min).max(max);
+};
+
+export const identityPolicySchema = z
+	.object({
+		mfaFailBelow: bounded("mfaFailBelow"),
+		maxTopAdmins: bounded("maxTopAdmins"),
+		leaverGraceDays: bounded("leaverGraceDays"),
+		inactiveDays: bounded("inactiveDays"),
+		neverSignedInDays: bounded("neverSignedInDays"),
+		recertPassDays: bounded("recertPassDays"),
+		recertFailDays: bounded("recertFailDays"),
+	})
+	.refine((v) => v.recertFailDays >= v.recertPassDays, {
+		path: ["recertFailDays"],
+		message: "identity_recert_order",
+	});
