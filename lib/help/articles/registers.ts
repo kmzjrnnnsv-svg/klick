@@ -278,6 +278,17 @@ export const REGISTERS: HelpArticle[] = [
 				],
 				tip: "Liegt ein Wiederanlauf-Schritt über dem RTO des Prozesses, markiert Klick ihn rot. Änderst du einen freigegebenen Plan, ist er bis zur nächsten Freigabe wieder ein Entwurf.",
 			},
+			{
+				id: "uebungen",
+				heading: "Notfallübungen",
+				steps: [
+					"Am Prozess unter „Notfallübungen“ oder im Testprogramm bei einem kritischen Prozess oder Standort „Übung anlegen“ wählen. Das Drehbuch kommt aus dem Notfallplan: Sofortmaßnahmen, Alarmierung mit Soll-Minuten, Wiederanlauf mit Soll-Zeit.",
+					"Art festlegen: Planspiel, Begehung, Trockenlauf, Wiederherstellungstest, Umschalttest oder Vollübung. Szenario beschreiben, Termin setzen, Teilnehmende eintragen.",
+					"Bei der Übung je Schritt die Ist-Minuten und den Stand eintragen. Bei echten Tests messen: Minuten bis der Prozess wieder lief, Minuten Datenverlust.",
+					"Klick rechnet das Ergebnis mit: RTO oder RPO überschritten = nicht bestanden; ein Schritt zu spät, offen oder nicht in Ordnung = teilweise; sonst bestanden.",
+					"„Übung abschließen“ trägt das Ergebnis als Test ins Testprogramm ein (Wiederherstellungstest an der Datensicherung, Umschalttest an der Redundanz, sonst an den Notfallübungen). Der Prozess gilt damit für das Jahr als geübt. Maßnahmen werden Aufgaben am Prozess, „nicht bestanden“ eröffnet eine Abweichung.",
+				],
+			},
 		],
 		automation: [
 			"Aktivieren und wesentliche Änderungen eines Prozesses können eine Freigabe verlangen (im individuellen Modus gestaltbar). Übernommene Zielzeiten aus der BIA zählen als Änderung.",

@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { CreateExerciseButton } from "@/components/bcm/create-exercise-button";
 import { ControlTestForm } from "@/components/entity/control-test-form";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { UserChip } from "@/components/entity/user-chip";
@@ -238,14 +239,7 @@ async function TestProgrammePage({
 											{gap ? t("bcmOpen") : t("bcmDone")}
 										</Badge>
 										{gap && canPlan && (
-											<PlanTestForm
-												controls={controlOptions}
-												processes={processOptions}
-												sites={siteOptions}
-												defaultMethod="bcm_exercise"
-												defaultProcessId={p.id}
-												triggerLabel={t("planShort")}
-											/>
+											<CreateExerciseButton processId={p.id} />
 										)}
 									</span>
 								</li>
@@ -281,16 +275,7 @@ async function TestProgrammePage({
 										<Badge variant={gap ? "warning" : "success"}>
 											{gap ? t("bcmOpen") : t("bcmDone")}
 										</Badge>
-										{gap && canPlan && (
-											<PlanTestForm
-												controls={controlOptions}
-												processes={processOptions}
-												sites={siteOptions}
-												defaultMethod="bcm_exercise"
-												defaultSiteId={x.id}
-												triggerLabel={t("planShort")}
-											/>
-										)}
+										{gap && canPlan && <CreateExerciseButton siteId={x.id} />}
 									</span>
 								</li>
 							);
@@ -414,6 +399,7 @@ async function TestProgrammePage({
 }
 
 export default withMessages(TestProgrammePage, [
+	"Bcm",
 	"Auth",
 	"Common",
 	"Entity",

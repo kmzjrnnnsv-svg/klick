@@ -821,3 +821,15 @@ export const ALERT_CHANNELS = [
 	"other",
 ] as const;
 export type AlertChannel = (typeof ALERT_CHANNELS)[number];
+
+// Notfallübungen (N4): Planspiel, Begehung, Trockenlauf, Wiederherstellungs-
+// test, Umschalttest, Vollübung (BSI 200-4 Kap. 9, ISO 22301 8.5)
+export const EXERCISE_KINDS = [
+	"tabletop",
+	"walkthrough",
+	"dry_run",
+	"restore_test",
+	"failover",
+	"full",
+] as const;
+export type ExerciseKind = (typeof EXERCISE_KINDS)[number];
