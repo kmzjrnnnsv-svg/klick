@@ -48,7 +48,7 @@ export function LevelChoice({
 					<label
 						key={o.value}
 						className={cn(
-							"flex cursor-pointer flex-col gap-1 rounded-2xl bg-card p-2.5 text-footnote transition-colors hover:border-foreground/40",
+							"flex cursor-pointer flex-col justify-center gap-1 rounded-2xl bg-card p-2.5 text-footnote transition-colors hover:border-foreground/40 pointer-coarse:min-h-11",
 							"has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring/50",
 							disabled && "cursor-default opacity-70",
 						)}

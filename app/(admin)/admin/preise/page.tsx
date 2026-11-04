@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { PriceGroupEditor } from "@/components/admin/price-group-editor";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { requirePlatformAdminPage } from "@/lib/auth/gates";
 import {
 	listPriceGroups,
@@ -54,7 +55,7 @@ export default async function AdminPricesPage({
 				<Link
 					href="/admin/preise?gruppe=neu"
 					scroll={false}
-					className="text-subhead underline-offset-4 hover:underline"
+					className={buttonVariants({ variant: "outline", size: "sm" })}
 				>
 					Neue Gruppe
 				</Link>
