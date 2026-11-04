@@ -6,7 +6,8 @@ import { type Resolver, resolvePublic } from "@/lib/security/quick-check/ssrf";
 // Liste des Aufrufers): Adresse beim Auflösen geprüft und angeheftet,
 // Port 443, TLS-Prüfung an, keine Weiterleitung, Frist und Größengrenze.
 // Fehler sind Codes; Kopfzeilen (Token, Schlüssel) tauchen nie darin auf.
-// Genutzt von Teams (lib/teams/http.ts) und Web Push (lib/push/http.ts).
+// Genutzt von Microsoft (lib/microsoft/http.ts: Teams, Identität), Web Push
+// (lib/push/http.ts) und Okta/Google (lib/identity/http.ts).
 
 export type PinnedError =
 	| "blocked_address"
@@ -15,7 +16,15 @@ export type PinnedError =
 	| "network"
 	| "too_large";
 
-export type PinnedResponse = { status: number; body: string };
+// headers: nur ausgewählte Kopfzeilen (Retry-After bei 429, Link fürs
+// Blättern), klein geschrieben; nie Set-Cookie oder Token
+export type PinnedResponse = {
+	status: number;
+	body: string;
+	headers?: Record<string, string>;
+};
+
+const KEPT_HEADERS = ["retry-after", "link"] as const;
 
 const defaultResolver: Resolver = (host) =>
 	dnsLookup(host, { all: true, verbatim: true });
@@ -92,15 +101,21 @@ export async function pinnedHttpsRequest(
 					}
 					chunks.push(c);
 				});
-				res.on("end", () =>
+				res.on("end", () => {
+					const headers: Record<string, string> = {};
+					for (const name of KEPT_HEADERS) {
+						const v = res.headers[name];
+						if (typeof v === "string") headers[name] = v.slice(0, 2000);
+					}
 					finish({
 						ok: true,
 						res: {
 							status: res.statusCode ?? 0,
 							body: Buffer.concat(chunks).toString("utf8"),
+							headers,
 						},
-					}),
-				);
+					});
+				});
 				res.on("error", () => finish({ ok: false, error: "network" }));
 			},
 		);
