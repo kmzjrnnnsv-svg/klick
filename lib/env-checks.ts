@@ -18,6 +18,8 @@ export const PROD_RISKS = {
 		"PARSER_SOCKET fehlt: fremde Dateien parst ein Kindprozess mit den Rechten der App",
 	query_log:
 		"KLICK_QUERY_LOG=true: jede SQL-Anweisung steht im Log (ohne Parameter)",
+	identity_secret:
+		"IDENTITY_MS_CLIENT_SECRET ohne IDENTITY_MS_CERT_FILE: die App „Klick Identität“ meldet sich mit einem Geheimnis statt mit Zertifikat an",
 } as const;
 
 export type ProdRisk = keyof typeof PROD_RISKS;
@@ -42,6 +44,8 @@ type Input = Pick<
 	| "PROD_ACCEPT_RISKS"
 	| "PASSKEY_RP_ID"
 	| "KLICK_QUERY_LOG"
+	| "IDENTITY_MS_CLIENT_SECRET"
+	| "IDENTITY_MS_CERT_FILE"
 >;
 
 const LOCAL_HOSTS = new Set(["127.0.0.1", "::1", "localhost"]);
@@ -112,5 +116,10 @@ export function productionConfigReport(
 	risk("mail_us", env.MAIL_ALLOW_RESEND);
 	risk("parser_in_app", !env.PARSER_SOCKET);
 	risk("query_log", env.KLICK_QUERY_LOG);
+	risk(
+		"identity_secret",
+		Boolean(env.IDENTITY_MS_CLIENT_SECRET?.trim()) &&
+			!env.IDENTITY_MS_CERT_FILE,
+	);
 	return { fatal, warnings };
 }

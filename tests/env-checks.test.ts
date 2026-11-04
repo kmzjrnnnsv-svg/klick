@@ -76,6 +76,25 @@ describe("productionConfigReport", () => {
 		).toEqual([]);
 	});
 
+	it("Identität: Geheimnis statt Zertifikat nur mit Vermerk", () => {
+		const secret = { IDENTITY_MS_CLIENT_SECRET: "geheim" };
+		expect(productionConfigReport(prod(secret), local).fatal).toEqual([
+			expect.stringContaining("PROD_ACCEPT_RISKS=identity_secret"),
+		]);
+		expect(
+			productionConfigReport(
+				prod({ ...secret, IDENTITY_MS_CERT_FILE: "/run/credentials/x.pem" }),
+				local,
+			).fatal,
+		).toEqual([]);
+		expect(
+			productionConfigReport(
+				prod({ ...secret, PROD_ACCEPT_RISKS: "identity_secret" }),
+				local,
+			),
+		).toMatchObject({ fatal: [], warnings: [expect.any(String)] });
+	});
+
 	it("offene Registrierung und US-Mail nur mit Vermerk", () => {
 		const r = productionConfigReport(
 			prod({ AUTH_ALLOW_SIGNUP: "true", MAIL_ALLOW_RESEND: "true" }),
