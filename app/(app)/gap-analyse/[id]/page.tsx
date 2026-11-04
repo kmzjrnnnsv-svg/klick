@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { ChapterPane } from "@/components/assessments/chapter-pane";
 import { ExtendButton } from "@/components/assessments/extend-button";
 import { FocusQuestion } from "@/components/assessments/focus-question";
+import { ImplementationPlanSection } from "@/components/assessments/implementation-plan";
 import { MeasuresForm } from "@/components/assessments/measures-form";
 import { QuestionCard } from "@/components/assessments/question-card";
 import {
@@ -33,7 +34,7 @@ import {
 	catalogQuestions,
 	sectionsOf,
 } from "@/lib/assessments/catalog-template";
-import { productMeasures, proposeMeasures } from "@/lib/assessments/measures";
+import { productMeasures } from "@/lib/assessments/measures";
 import {
 	type NaConfirmation,
 	naAllowed,
@@ -42,6 +43,7 @@ import {
 	naOpenShare,
 } from "@/lib/assessments/na";
 import { naConfirmations } from "@/lib/assessments/na-approval";
+import { berlinToday, implementationPlan } from "@/lib/assessments/plan-server";
 import {
 	effectiveAnswer,
 	questionVerdict,
@@ -55,9 +57,9 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { CONTROL_EXPLAINERS } from "@/lib/compliance/catalog/control-explainers";
-import { synergyCatalogFor } from "@/lib/compliance/catalog-view";
 import { deriveCoverage } from "@/lib/compliance/coverage";
 import { exclusionAllowedForKey, naImpact } from "@/lib/compliance/exclusions";
+import { type FunctionKey, functionLabel } from "@/lib/compliance/function-key";
 import { STATIC_CATALOG } from "@/lib/compliance/org-catalog";
 import {
 	fmtDate,
@@ -67,8 +69,8 @@ import {
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { getAssessmentDetail } from "@/lib/compliance/queries-assessments";
 import { relationHint } from "@/lib/compliance/relation-hints";
-import { prioritizePlan } from "@/lib/compliance/synergy";
 import { readOrg } from "@/lib/db/with-org";
+import { orgRoleNames } from "@/lib/org/roles";
 import { cn } from "@/lib/utils";
 
 // Zwei Schritte (Wunsch 03.11.): Fragen, dann Ergebnis mit Übernehmen,
@@ -131,6 +133,7 @@ async function AssessmentPage({
 			...detail,
 			// Weitergeben und Maßnahmen nur an Personen, die mitarbeiten können
 			members: await listMembersForPicker(tx, ctx.orgId, { workers: true }),
+			roleNames: await orgRoleNames(tx, ctx.orgId),
 			// „Nicht relevant“: Stand der Bestätigung je Frage
 			naConfirmations:
 				detail.assessment.kind === "self"
@@ -206,6 +209,43 @@ async function AssessmentPage({
 		];
 	});
 	const after = applyChanges(data.implStatus, changes);
+	// Umsetzungsplan (Teil C): dieselbe Rechnung wie „Plan übernehmen“
+	const implPlan =
+		cov && !subjectScoped
+			? await readOrg(toOrgCtx(ctx), (tx) =>
+					implementationPlan(tx, ctx.orgId, {
+						assessment: a,
+						answers: data.answers,
+						controlEvidence: data.controlEvidence,
+						implStatus: data.implStatus,
+						naConfirmed,
+						plan: a.plan,
+						profile: cov.profile,
+						catalog,
+					}),
+				)
+			: null;
+	const tf = await getTranslations("Functions");
+	const tcl = await getTranslations("Controls");
+	const memberName = new Map(data.members.map((m) => [m.userId, m.name]));
+	const laneLabel = (lane: string): string => {
+		if (lane.startsWith("f:"))
+			return functionLabel(
+				lane.slice(2) as FunctionKey,
+				(fn) => tf(fn),
+				data.roleNames,
+			);
+		if (lane.startsWith("u:"))
+			return memberName.get(lane.slice(2)) ?? t("planPerson");
+		const area = lane.slice(2);
+		return t("planNoOwner", {
+			area: tcl.has(`domain_${area}` as "domain_risk")
+				? tcl(`domain_${area}` as "domain_risk")
+				: area === "privacy"
+					? t("planAreaPrivacy")
+					: area,
+		});
+	};
 	const alreadyExcluded = new Set(
 		[...(cov?.applicabilityDetail ?? [])]
 			.filter(([, d]) => d.source === "manual" && !d.applicable)
@@ -896,37 +936,20 @@ async function AssessmentPage({
 							)}
 						</div>
 					</div>
+					{implPlan && (
+						<ImplementationPlanSection
+							assessmentId={a.id}
+							plan={implPlan}
+							editable={canTasks && !closed}
+							today={berlinToday()}
+							laneLabel={laneLabel}
+							frameworkName={(slug) => fwNames[slug] ?? slug}
+						/>
+					)}
 					{(() => {
-						const plan =
-							cov && !subjectScoped
-								? prioritizePlan(
-										a.frameworks,
-										synergyCatalogFor({
-											sector: cov.profile.sector,
-											licenceStage: cov.profile.licenceStage,
-											caspServices: cov.profile.caspServices,
-											frameworks: a.frameworks,
-											tlptDesignated: cov.profile.tlptDesignated,
-											frameworkVariants: cov.profile.frameworkVariants,
-											issuesTokens: cov.profile.issuesTokens,
-											productRoles: cov.profile.productRoles,
-										}),
-										a.appliedAt ? data.implStatus : after,
-										300,
-									)
-								: {
-										steps: [],
-										applicable: 0,
-										baselineCoveragePct: null,
-										baselineProgressPct: null,
-									};
 						const measures = subjectScoped
 							? productMeasures({ questions: a.questions, answers: states })
-							: proposeMeasures({
-									questions: a.questions,
-									answers: states,
-									plan,
-								});
+							: (implPlan?.measures ?? []);
 						return (
 							<section id="massnahmen" className="flex flex-col gap-4">
 								<h2 className="font-semibold text-title-3">
@@ -942,6 +965,16 @@ async function AssessmentPage({
 									defaultAssignee={ctx.userId}
 									frameworkNames={fwNames}
 									readOnly={!canTasks}
+									planned={
+										implPlan
+											? Object.fromEntries(
+													implPlan.schedule.items.map((i) => [
+														i.controlCode,
+														{ start: i.start, end: i.end },
+													]),
+												)
+											: undefined
+									}
 								/>
 							</section>
 						);

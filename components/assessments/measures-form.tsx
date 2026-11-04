@@ -13,6 +13,14 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/toast";
 import type { Measure } from "@/lib/assessments/measures";
 
+const dayFmt = new Intl.DateTimeFormat("de-DE", {
+	day: "numeric",
+	month: "short",
+	year: "numeric",
+	timeZone: "UTC",
+});
+const fmtDay = (d: string) => dayFmt.format(new Date(`${d}T00:00:00Z`));
+
 const KIND_TONE = {
 	implement: "warning",
 	clarify: "outline",
@@ -20,7 +28,9 @@ const KIND_TONE = {
 } as const;
 
 // Maßnahmenplan: priorisierte Liste, Auswahl, Verantwortliche und Frist →
-// Aufgaben am jeweiligen Control.
+// Aufgaben am jeweiligen Control. Mit Umsetzungsplan (Teil C) kommen Beginn,
+// Ende und Zuständige standardmäßig aus dem Plan; der Server rechnet ihn
+// dafür selbst neu.
 export function MeasuresForm({
 	assessmentId,
 	measures,
@@ -28,6 +38,7 @@ export function MeasuresForm({
 	defaultAssignee,
 	frameworkNames,
 	readOnly = false,
+	planned,
 }: {
 	assessmentId: string;
 	measures: Measure[];
@@ -36,6 +47,8 @@ export function MeasuresForm({
 	frameworkNames: Record<string, string>;
 	// ohne Recht „Aufgaben anlegen“: Vorschläge lesen, nicht übernehmen
 	readOnly?: boolean;
+	// Beginn und Ende je Control aus dem Umsetzungsplan
+	planned?: Record<string, { start: string; end: string }>;
 }) {
 	const t = useTranslations("Assessment");
 	const tc = useTranslations("Common");
@@ -46,7 +59,14 @@ export function MeasuresForm({
 	);
 	const [assignee, setAssignee] = useState(defaultAssignee);
 	const [dueAt, setDueAt] = useState("");
+	const [fromPlan, setFromPlan] = useState(Boolean(planned));
 	const [pending, start] = useTransition();
+	const dates = (code: string) => {
+		const p = planned?.[code];
+		return p
+			? t("planDates", { from: fmtDay(p.start), to: fmtDay(p.end) })
+			: null;
+	};
 
 	if (measures.length === 0)
 		return <p className="text-subhead">{t("measuresEmpty")}</p>;
@@ -93,7 +113,8 @@ export function MeasuresForm({
 						assessmentId,
 						items,
 						assigneeUserId: assignee || null,
-						dueAt: dueAt || null,
+						dueAt: fromPlan ? null : dueAt || null,
+						fromPlan: fromPlan && Boolean(planned),
 					});
 					if (!res.ok) return void toast.error(errorText(tc, res));
 					// weiter geht es in den Aufgaben (Als Nächstes zeigt sie auch)
@@ -156,6 +177,9 @@ export function MeasuresForm({
 									</span>
 									<span className="flex flex-wrap gap-x-3 text-muted-foreground text-footnote">
 										<span>{t("effort", { effort: m.effort })}</span>
+										{fromPlan && dates(m.controlCode) && (
+											<span>{dates(m.controlCode)}</span>
+										)}
 										{m.requirements > 0 && (
 											<span>
 												{t("covers", {
@@ -185,9 +209,30 @@ export function MeasuresForm({
 					);
 				})}
 			</ol>
+			{planned && (
+				<label
+					htmlFor="m-from-plan"
+					className="flex cursor-pointer items-start gap-2 text-subhead"
+				>
+					<Checkbox
+						id="m-from-plan"
+						className="mt-0.5"
+						checked={fromPlan}
+						onCheckedChange={(v) => setFromPlan(Boolean(v))}
+					/>
+					<span className="flex flex-col">
+						<span className="font-medium">{t("measuresFromPlan")}</span>
+						<span className="text-muted-foreground text-footnote">
+							{t("measuresFromPlanHint")}
+						</span>
+					</span>
+				</label>
+			)}
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-end">
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="m-assignee">{t("assignTo")}</Label>
+					<Label htmlFor="m-assignee">
+						{fromPlan ? t("assignFallback") : t("assignTo")}
+					</Label>
 					<select
 						id="m-assignee"
 						className={nativeSelectCompactClass}
@@ -201,16 +246,18 @@ export function MeasuresForm({
 						))}
 					</select>
 				</div>
-				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="m-due">{t("dueAt")}</Label>
-					<Input
-						id="m-due"
-						name="dueAt"
-						type="date"
-						value={dueAt}
-						onChange={(e) => setDueAt(e.target.value)}
-					/>
-				</div>
+				{!fromPlan && (
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="m-due">{t("dueAt")}</Label>
+						<Input
+							id="m-due"
+							name="dueAt"
+							type="date"
+							value={dueAt}
+							onChange={(e) => setDueAt(e.target.value)}
+						/>
+					</div>
+				)}
 				<Button type="submit" disabled={pending || picked.size === 0}>
 					{t("createMeasures", { count: picked.size })}
 				</Button>
