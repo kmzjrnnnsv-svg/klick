@@ -14,7 +14,7 @@ import {
 	REQUIREMENT_BY_KEY,
 } from "@/lib/compliance/catalog";
 import { readOrg } from "@/lib/db/with-org";
-import { articleBySlug, articleVisible } from "@/lib/help";
+import { articleBySlug, articleVisible, sectionsFor } from "@/lib/help";
 import { HELP_ICONS } from "@/lib/help/icons";
 import { routesForArticle } from "@/lib/help/routes";
 import type { HelpSection } from "@/lib/help/types";
@@ -105,8 +105,9 @@ export default async function HelpArticlePage({
 			(r): r is NonNullable<typeof r> =>
 				r !== undefined && articleVisible(r, ctx.orgRole),
 		);
+	const sections = sectionsFor(a, ctx.orgRole);
 	const toc = [
-		...a.sections.map((s) => ({ id: s.id, label: s.heading })),
+		...sections.map((s) => ({ id: s.id, label: s.heading })),
 		...(a.roles?.length ? [{ id: "rollen", label: t("roles") }] : []),
 		...(a.automation?.length
 			? [{ id: "automatik", label: t("automation") }]
@@ -132,7 +133,7 @@ export default async function HelpArticlePage({
 					main
 					className="flex max-w-prose flex-col gap-10 lg:pr-2 lg:pb-6"
 				>
-					{a.sections.map((s) => (
+					{sections.map((s) => (
 						<Section key={s.id} section={s} tip={t("tip")} />
 					))}
 					{a.roles?.length ? (

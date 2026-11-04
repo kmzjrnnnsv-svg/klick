@@ -30,6 +30,9 @@ export type HelpSection = {
 	list?: string[];
 	// Hinweis am Ende des Abschnitts
 	tip?: string;
+	// „staff“ = nur für Mitarbeitende, „team“ = nicht für Mitarbeitende
+	// (z. B. Einrichtung und Gap-Analyse in „Erste Schritte“)
+	only?: "staff" | "team";
 };
 
 export type HelpNorm = {

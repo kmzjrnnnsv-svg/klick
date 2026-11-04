@@ -10,6 +10,7 @@ import {
 	articlesFor,
 	HELP_ARTICLES,
 	searchHelp,
+	sectionsFor,
 } from "@/lib/help";
 import { HELP_ICONS } from "@/lib/help/icons";
 import {
@@ -175,6 +176,24 @@ describe("Hilfe für Mitarbeitende", () => {
 		expect(helpTarget("/richtlinien/RL-01", allowed)).toBe("richtlinien");
 		// ohne Liste (alle anderen Rollen) wie bisher
 		expect(helpTarget("/einstellungen")).toBe("einstellungen");
+	});
+
+	it("„Erste Schritte“ zeigt Mitarbeitenden ihren Weg, nicht Einrichtung und Gap-Analyse", () => {
+		const a = articleBySlug("erste-schritte");
+		if (!a) throw new Error("erste-schritte fehlt");
+		const staff = sectionsFor(a, "employee").map((s) => s.id);
+		const team = sectionsFor(a, "owner").map((s) => s.id);
+		expect(staff).toContain("mitarbeitende");
+		expect(staff).not.toContain("start");
+		expect(team).toContain("start");
+		expect(team).not.toContain("mitarbeitende");
+		// jeder Artikel behält für jede Rolle mindestens einen Abschnitt
+		for (const role of ORG_ROLES)
+			for (const x of articlesFor(role))
+				expect(
+					sectionsFor(x, role).length,
+					`${x.slug}/${role}`,
+				).toBeGreaterThan(0);
 	});
 
 	it("Hilfe steht für jede Rolle in der Navigation", () => {

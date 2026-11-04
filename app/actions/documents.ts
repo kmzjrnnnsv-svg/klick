@@ -2,6 +2,7 @@
 
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { member } from "@/db/auth-schema";
 import {
 	controls,
 	documentAcknowledgements,
@@ -15,6 +16,7 @@ import { safeAction } from "@/lib/actions/safe";
 import { requestApproval, withdrawOpenRequests } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { normalizeRole } from "@/lib/auth/session-rules";
 import { restrictedView } from "@/lib/auth/visibility";
 import {
 	defaultApproverFunction,
@@ -26,9 +28,12 @@ import {
 	ownerColumns,
 	resolveResponsible,
 } from "@/lib/compliance/function-holders-service";
-import { listMembersForPicker } from "@/lib/compliance/queries";
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
-import { inDistribution } from "@/lib/documents/distribution";
+import {
+	acknowledgementAudience,
+	acknowledgementLink,
+	inDistribution,
+} from "@/lib/documents/distribution";
 import {
 	bumpVersion,
 	guessDocType,
@@ -535,15 +540,29 @@ async function transitionDocumentImpl(
 						isNull(documentVersions.publishedAt),
 					),
 				);
-			const members = await listMembersForPicker(tx, c.orgId);
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: members.map((m) => m.userId),
-				actorUserId: c.userId,
-				kind: "acknowledgement_due",
-				title: `Zur Kenntnis nehmen: ${doc.docNumber} ${doc.title} v${doc.version}`,
-				link: `/dokumente/${encodeURIComponent(doc.docNumber)}`,
-			});
+			// Kenntnisnahme nur laut Verteiler, ohne Externe; Mitarbeitende
+			// bestätigen auf /richtlinien
+			const roles = await tx
+				.select({ userId: member.userId, role: member.role })
+				.from(member)
+				.where(eq(member.organizationId, c.orgId));
+			const assignments = await loadAssignments(tx, c.orgId);
+			const audience = acknowledgementAudience(
+				doc.distribution,
+				roles.map((m) => ({ userId: m.userId, role: normalizeRole(m.role) })),
+				(u) => functionsOf(assignments, u).map((f) => f.function as string),
+			);
+			for (const employee of [false, true])
+				await notify(tx, {
+					orgId: c.orgId,
+					recipients: audience
+						.filter((a) => a.employee === employee)
+						.map((a) => a.userId),
+					actorUserId: c.userId,
+					kind: "acknowledgement_due",
+					title: `Zur Kenntnis nehmen: ${doc.docNumber} ${doc.title} v${doc.version}`,
+					link: acknowledgementLink(doc.docNumber, employee),
+				});
 			return {
 				result: {
 					ok: true,

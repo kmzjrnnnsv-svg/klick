@@ -29,6 +29,17 @@ export function articleVisible(a: HelpArticle, role: OrgRole): boolean {
 	return role !== "employee" || a.audience === "employee";
 }
 
+// Abschnitte eines Artikels für eine Rolle (`only` an HelpSection)
+export function sectionsFor(
+	a: HelpArticle,
+	role: OrgRole,
+): HelpArticle["sections"] {
+	const staff = role === "employee";
+	return a.sections.filter((s) =>
+		s.only === "staff" ? staff : s.only === "team" ? !staff : true,
+	);
+}
+
 export function articlesFor(role: OrgRole): HelpArticle[] {
 	return HELP_ARTICLES.filter((a) => articleVisible(a, role));
 }

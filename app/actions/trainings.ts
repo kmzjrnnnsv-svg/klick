@@ -275,7 +275,8 @@ async function assignTrainingImpl(
 async function completeMyTrainingImpl(
 	input: unknown,
 ): Promise<ActionResult<{ nextDueAt: string | null }>> {
-	const c = await requireOrg();
+	// auch Mitarbeitende: nur die eigene Zuweisung (Prüfung unten)
+	const c = await requireOrg(undefined, { employees: true });
 	const parsed = completeTrainingSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
@@ -334,6 +335,7 @@ async function completeMyTrainingImpl(
 	);
 	revalidatePath(PATH);
 	revalidatePath("/heute");
+	revalidatePath("/richtlinien");
 	return res;
 }
 
