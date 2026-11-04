@@ -99,6 +99,13 @@ async function ensureExportStepUpImpl(): Promise<ActionResult> {
 	return { ok: true, data: undefined };
 }
 
+// Step-up ohne eigenes Recht: die Route prüft das Recht selbst (Prüfungspaket
+// des eigenen Audits und Verlauf für Prüfer:innen, die kein Export-Recht haben)
+async function ensureStepUpImpl(): Promise<ActionResult> {
+	await requireStepUp();
+	return { ok: true, data: undefined };
+}
+
 async function revokeSessionImpl(token: string): Promise<ActionResult> {
 	const ctx = await getSessionCtx();
 	if (!ctx) throw new AuthError("unauthenticated");
@@ -136,6 +143,7 @@ export const ensureExportStepUp = safeAction(
 	"ensureExportStepUp",
 	ensureExportStepUpImpl,
 );
+export const ensureStepUp = safeAction("ensureStepUp", ensureStepUpImpl);
 export const revokeSession = safeAction("revokeSession", revokeSessionImpl);
 export const revokeOtherSessions = safeAction(
 	"revokeOtherSessions",

@@ -31,6 +31,14 @@ describe("Einstellungen als Liste", () => {
 				accountOnly: true,
 			}),
 		).toEqual(["security", "notifications"]);
+		// Prüfer:innen: das eigene Konto und der Verlauf zum Prüfen der Kette
+		expect(
+			visibleSettingsSections({
+				settings: false,
+				integrations: false,
+				auditor: true,
+			}),
+		).toEqual(["security", "notifications", "verlauf"]);
 	});
 
 	it("gruppiert in fester Reihenfolge", () => {

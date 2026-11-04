@@ -50,6 +50,9 @@ export async function EntityEvidence({
 			};
 		},
 	);
+	// ohne Nachweis und ohne Recht, ihn zu erzeugen (z. B. Prüfer:innen):
+	// nichts zeigen statt „noch nicht erzeugt“
+	if (!latest && !allows(ctx, { evidence: ["create"] })) return null;
 	// eigene Rolle (`role:<id>`, ADR-024) mit Namen, sonst Katalog-Funktion
 	const fnLabel = (f: string) => {
 		const roleId = ownRoleIdOf(f);

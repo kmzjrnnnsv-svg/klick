@@ -240,6 +240,7 @@ async function SettingsPage({
 		settings: canEditSettings,
 		integrations: canReadIntegrations,
 		accountOnly: ctx.orgRole === "employee",
+		auditor: ctx.orgRole === "auditor",
 	});
 	const { key: section, chosen } = resolveSettingsSection(tab, visible);
 	const t = await getTranslations("Settings");
@@ -1076,10 +1077,7 @@ async function renderSection(
 				<LedgerPanel
 					entries={stats?.n ?? 0}
 					lastEntryAt={stats?.last ? new Date(stats.last).toISOString() : null}
-					canExport={
-						allows(ctx, { export: ["create"] }) &&
-						ledgerExportAllowed(ctx.orgRole)
-					}
+					canExport={ledgerExportAllowed(ctx.orgRole)}
 					anchors={ledger.heads.flatMap((h) =>
 						h.anchor
 							? [

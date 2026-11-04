@@ -176,6 +176,13 @@ describe("Hilfe für Mitarbeitende", () => {
 		expect(helpTarget("/richtlinien/RL-01", allowed)).toBe("richtlinien");
 		// ohne Liste (alle anderen Rollen) wie bisher
 		expect(helpTarget("/einstellungen")).toBe("einstellungen");
+		// Prüfer:innen: Audit-Seiten führen auf „Prüfen mit Klick“
+		expect(helpTarget("/audits/abc", undefined, true)).toBe(
+			"pruefen-mit-klick",
+		);
+		expect(helpTarget("/audits", undefined, true)).toBe("pruefen-mit-klick");
+		expect(helpTarget("/audits/abc")).toBe("audits");
+		expect(helpTarget("/nachweise", undefined, true)).toBe("nachweise");
 	});
 
 	it("„Erste Schritte“ zeigt Mitarbeitenden ihren Weg, nicht Einrichtung und Gap-Analyse", () => {

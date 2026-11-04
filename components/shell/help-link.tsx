@@ -11,12 +11,19 @@ import { helpTarget } from "@/lib/help/routes";
 // (Zuordnung in lib/help/routes.ts), im Wiki selbst das Inhaltsverzeichnis.
 // `allowed` = Artikel, die die Person sehen darf (Mitarbeitende); ein anderer
 // Artikel führt dann auf „Erste Schritte“ statt auf eine leere Seite.
-export function HelpLink({ allowed }: { allowed?: readonly string[] }) {
+export function HelpLink({
+	allowed,
+	auditor = false,
+}: {
+	allowed?: readonly string[];
+	// Prüfer:innen: Audit-Seiten führen auf „Prüfen mit Klick“
+	auditor?: boolean;
+}) {
 	const t = useTranslations("Help");
 	const pathname = usePathname() ?? "/";
 	const href = pathname.startsWith("/hilfe")
 		? "/hilfe"
-		: `/hilfe/${helpTarget(pathname, allowed)}`;
+		: `/hilfe/${helpTarget(pathname, allowed, auditor)}`;
 	return (
 		<Button variant="ghost" size="icon" asChild>
 			<Link href={href} aria-label={t("pageHelp")} title={t("pageHelp")}>

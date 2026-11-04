@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
 	auditorLanding,
 	auditorMayComment,
+	auditPackageAllowed,
 	auditPhases,
 	matchesRequest,
+	myAuditId,
 	requestCounterparts,
 	requestCounts,
 	requestOverdue,
@@ -224,5 +226,41 @@ describe("Prüfer:innen", () => {
 				"u",
 			),
 		).toBe("/audits/9");
+	});
+});
+
+describe("Prüfer:innen (E): Paket und „Mein Audit“", () => {
+	const audit = (
+		id: string,
+		status: "planned" | "in_progress" | "closed",
+		members: string[],
+		lead: string | null = null,
+	) => ({ id, status, auditorMemberIds: members, auditorUserId: lead });
+
+	it("Paket: mit Export-Recht immer, sonst nur Prüfer:innen des Audits", () => {
+		const a = audit("1", "in_progress", ["u"], "lead");
+		expect(auditPackageAllowed(true, null, "x")).toBe(true);
+		expect(auditPackageAllowed(false, a, "u")).toBe(true);
+		expect(auditPackageAllowed(false, a, "lead")).toBe(true);
+		// andere Prüfer:in, Lesende ohne Export, kein Audit
+		expect(auditPackageAllowed(false, a, "x")).toBe(false);
+		expect(auditPackageAllowed(false, null, "u")).toBe(false);
+	});
+
+	it("Mein Audit: genau ein laufendes, sonst das einzige, sonst keins", () => {
+		expect(
+			myAuditId(
+				[audit("1", "closed", ["u"]), audit("2", "in_progress", ["u"])],
+				"u",
+			),
+		).toBe("2");
+		expect(myAuditId([audit("1", "planned", [], "u")], "u")).toBe("1");
+		expect(
+			myAuditId(
+				[audit("1", "in_progress", ["u"]), audit("2", "in_progress", ["u"])],
+				"u",
+			),
+		).toBeNull();
+		expect(myAuditId([audit("1", "in_progress", ["x"])], "u")).toBeNull();
 	});
 });

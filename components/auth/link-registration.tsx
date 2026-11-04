@@ -24,6 +24,8 @@ type InviteInfo = {
 	role: string;
 	inviter: string;
 	accountExists: boolean;
+	accessDays?: number | null;
+	auditor?: boolean;
 };
 type RecoverInfo = { kind: "recover"; email: string; name: string };
 type ActivateInfo = {
@@ -275,6 +277,12 @@ export function LinkRegistration({
 			{info.kind === "invite" && (
 				<>
 					<p className="text-subhead">{t("forEmail", { email: info.email })}</p>
+					{info.accessDays ? (
+						<p className="text-subhead text-muted-foreground">
+							{t("accessDays", { days: info.accessDays })}
+							{info.auditor ? ` ${t("auditorFirstStep")}` : ""}
+						</p>
+					) : null}
 					<div className="grid gap-2">
 						<Label htmlFor="reg-name">{t("yourName")}</Label>
 						<Input

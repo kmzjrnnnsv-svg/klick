@@ -18,7 +18,8 @@ export const dynamic = "force-dynamic";
 // alle Pakete; die Kette enthält dieselben Angaben wie das Protokoll, darum
 // nur Inhaber:innen und Prüfer:innen (ledgerExportAllowed).
 export async function GET(req: Request) {
-	const ctx = await exportStepUpGuard(req);
+	// Prüfer:innen haben kein Export-Recht: hier zählt nur ledgerExportAllowed
+	const ctx = await exportStepUpGuard(req, { settings: ["read"] });
 	if (ctx instanceof NextResponse) return ctx;
 	if (!ledgerExportAllowed(ctx.orgRole))
 		return new NextResponse(null, { status: 403 });

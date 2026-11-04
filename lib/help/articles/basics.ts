@@ -291,6 +291,75 @@ export const BASICS: HelpArticle[] = [
 		related: ["rollen-rechte", "einstellungen"],
 	},
 	{
+		slug: "pruefen-mit-klick",
+		area: "basics",
+		title: "Prüfen mit Klick",
+		summary:
+			"Für Prüfer:innen: Zugang mit Passkey, Anfragen stellen und entscheiden, Prüfpfad, Prüfungspaket laden und wie lange dein Zugang gilt.",
+		sections: [
+			{
+				id: "zugang",
+				heading: "Dein Zugang",
+				steps: [
+					"Öffne den Einladungslink der Organisation und lege deinen Passkey an. Ein Passwort gibt es nicht.",
+					"Nach der Anmeldung landest du direkt in deinem Audit. Prüfst du mehrere, siehst du zuerst die Liste.",
+					"Links im Menü stehen nur die Seiten für die Prüfung: dein Audit, Anfragen, Prüfpfad, Nachweise, Dokumente und Risiken. Alles andere findest du über die Suche.",
+				],
+				tip: "Dein Zugang ist befristet. Das Ende steht unter deinem Namen in der Seitenleiste und oben im Audit. Für eine Verlängerung fragst du die Inhaber:in der Organisation.",
+			},
+			{
+				id: "anfragen",
+				heading: "Anfragen stellen und entscheiden",
+				steps: [
+					"Öffne im Audit den Reiter „Anfragen“ und tipp auf „Neue Anfrage“. Nenn, was du sehen willst, und bis wann.",
+					"Die verantwortliche Person bekommt eine Aufgabe und antwortet mit Text und Nachweisen.",
+					"Öffne die Anfrage. Du akzeptierst die Antwort oder lehnst sie mit Begründung ab. Rückfragen stellst du als Kommentar an der Anfrage.",
+				],
+			},
+			{
+				id: "pruefpfad",
+				heading: "Prüfpfad",
+				body: [
+					"Der Prüfpfad zeigt je Anforderung, welche Controls sie erfüllen, wie weit diese umgesetzt sind und welche Nachweise daran hängen. Du filterst nach Rahmenwerk und Stand oder suchst nach einer Anforderung.",
+					"Klapp bei einem Control die Nachweise auf, um sie zu öffnen oder zu laden. Fehlt etwas, stellst du mit „Rückfrage“ direkt eine Anfrage zu diesem Control.",
+				],
+			},
+			{
+				id: "feststellungen",
+				heading: "Feststellungen",
+				body: [
+					"Unter „Feststellungen“ hältst du fest, was du gefunden hast, mit Schwere von Beobachtung bis kritisch. Ab „leicht“ eröffnet Klick bei der Organisation eine Abweichung mit Frist.",
+				],
+			},
+			{
+				id: "paket",
+				heading: "Prüfungspaket und Verlauf laden",
+				steps: [
+					"Tipp im Audit oben auf „Prüfungspaket (ZIP)“ und bestätige mit deinem Passkey.",
+					"Das Paket enthält die Unterlagen für den Prüfzeitraum: Erklärung zur Anwendbarkeit, Controls, Risiken, die gültigen Dokumentfassungen, den Nachweis-Index, Anfragen und Feststellungen. Jede Datei ist über eine Prüfsumme im Manifest gesichert.",
+					"Den Verlauf mit Bitcoin-Anker lädst du unter Einstellungen > Verlauf. Das Prüfskript darin prüft die Kette ohne Klick.",
+				],
+				tip: "Vertrauliche Nachweise öffnen sich erst nach einer frischen Bestätigung mit deinem Passkey. Streng geheime Unterlagen siehst du nur, wenn die Organisation dir den Zugang dafür gibt.",
+			},
+		],
+		roles: [
+			"Prüfer:innen lesen, stellen Anfragen, entscheiden über Antworten und halten Feststellungen fest.",
+			"Prüfer:innen kommentieren nur am Audit, an Anfragen und an Feststellungen.",
+			"Entwürfe, ersetzte Fassungen und den Verlauf eines Dokuments sehen Prüfer:innen nicht.",
+		],
+		faq: [
+			{
+				q: "Warum sehe ich einen Entwurf nicht?",
+				a: "Du siehst immer die gültige Fassung, damit du nichts bewertest, was noch nicht freigegeben ist. Frag nach der Freigabe, wenn du eine neuere Fassung brauchst.",
+			},
+			{
+				q: "Was passiert, wenn mein Zugang endet?",
+				a: "Du kannst dich in dieser Organisation nicht mehr anmelden. Geladene Pakete bleiben bei dir, die Anfragen und Feststellungen bleiben in Klick.",
+			},
+		],
+		related: ["rollen-rechte", "fassungen"],
+	},
+	{
 		slug: "rollen-rechte",
 		area: "basics",
 		title: "Rollen und Rechte",
@@ -305,7 +374,7 @@ export const BASICS: HelpArticle[] = [
 					"Bearbeiter:in: arbeitet in allen Bereichen, gibt aber nicht frei und ändert keine Einstellungen.",
 					"Lesend: sieht alles und kommentiert, ändert nichts.",
 					"Mitarbeitende: sehen nur die Richtlinien, die für sie gelten, bestätigen die Kenntnisnahme und laden freigegebene Nachweise.",
-					"Prüfer:in (extern, befristet): liest, stellt Nachweisanfragen und Findings; sieht nur gültige Fassungen.",
+					"Prüfer:in (extern, befristet): liest, stellt Anfragen und hält Feststellungen fest; sieht nur gültige Fassungen.",
 					"Berater:in (extern, befristet): arbeitet wie Bearbeiter:in ohne Löschen, Freigaben und Einstellungen; sieht Entwürfe und Verlauf.",
 				],
 			},
@@ -633,7 +702,7 @@ export const BASICS: HelpArticle[] = [
 					"Asset: ein Wert, den du schützt (System, Anwendung, Daten, Schlüssel, Standort).",
 					"Beschluss: eine dokumentierte Entscheidung der Geschäftsleitung.",
 					"Control: eine harmonisierte Maßnahme, die Anforderungen mehrerer Rahmenwerke erfüllt.",
-					"Finding: eine Feststellung aus einem Audit; ab Schwere „leicht“ wird daraus eine Abweichung.",
+					"Feststellung: ein Ergebnis aus einem Audit; ab Schwere „leicht“ wird daraus eine Abweichung.",
 					"Kenntnisnahme: Bestätigung, eine Richtlinie in einer bestimmten Fassung gelesen zu haben.",
 					"Nachweisbogen: Prüffragen und Nachweis-Positionen je Control, einmal beantwortet für alle Rahmenwerke.",
 					"Prüfungsreife: abgeleitete Kennzahl, wie gut du zu einem Stichtag auf ein Audit vorbereitet bist.",

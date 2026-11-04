@@ -18,6 +18,7 @@ import { RequestEvidence } from "@/components/entity/request-evidence";
 import { StatusBadge } from "@/components/entity/status-badge";
 import { StatusButton } from "@/components/entity/status-button";
 import { WatchButton } from "@/components/entity/watch-button";
+import { EvidenceFileLink } from "@/components/evidence/evidence-file-link";
 import { SheetView } from "@/components/evidence-studio/sheet-view";
 import { withMessages } from "@/components/i18n/with-messages";
 import {
@@ -67,10 +68,14 @@ async function ControlDetailPage({
 	searchParams,
 }: {
 	params: Promise<{ code: string }>;
-	searchParams: Promise<{ alle?: string }>;
+	searchParams: Promise<{ alle?: string; audit?: string }>;
 }) {
 	const { code } = await params;
-	const showAll = (await searchParams).alle === "1";
+	const sp = await searchParams;
+	const showAll = sp.alle === "1";
+	// aus dem Prüfpfad eines Audits: zurück dorthin
+	const fromAudit =
+		sp.audit && /^[0-9a-f-]{36}$/i.test(sp.audit) ? sp.audit : null;
 	const ctx = await requireOrgPage();
 	const control = CONTROL_BY_CODE.get(code);
 	if (!control) notFound();
@@ -183,7 +188,14 @@ async function ControlDetailPage({
 
 	return (
 		<EntityLayout
-			back={{ href: "/controls", label: tNav("controls") }}
+			back={
+				fromAudit
+					? {
+							href: `/audits/${fromAudit}?tab=pruefpfad`,
+							label: tNav("auditTrail"),
+						}
+					: { href: "/controls", label: tNav("controls") }
+			}
 			eyebrow={`${control.code} · ${t(`domain_${control.domain}`)}`}
 			title={control.title}
 			subtitle={control.description}
@@ -421,12 +433,13 @@ async function ControlDetailPage({
 									{fmtDate.format(ev.createdAt)}
 								</span>
 								{ev.storageKey ? (
-									<a
-										href={`/api/nachweise/${ev.id}`}
-										className="text-primary text-footnote hover:underline"
+									<EvidenceFileLink
+										id={ev.id}
+										classification={ev.classification}
+										className="hit-area text-primary text-footnote hover:underline"
 									>
 										{ev.fileName}
-									</a>
+									</EvidenceFileLink>
 								) : ev.url ? (
 									<a
 										href={ev.url}

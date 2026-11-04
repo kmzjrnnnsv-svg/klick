@@ -689,7 +689,7 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 				trigger: "Geplantes internes oder externes Audit.",
 				steps: [
 					"Programm planen; Klick prüft, ob alle Bereiche abgedeckt sind.",
-					"Die Übersicht des Audits zeigt Prüfzeitraum, Termin und fällige Anfragen auf einer Zeitleiste, dazu den Stand der Anfragen, offene Findings und die Prüfungsreife.",
+					"Die Übersicht des Audits zeigt Prüfzeitraum, Termin und fällige Anfragen auf einer Zeitleiste, dazu den Stand der Anfragen, offene Feststellungen und die Prüfungsreife.",
 					"Im Prüfpfad von der Anforderung über das Control zum Nachweis; eine Rückfrage legt die Anfrage mit dem Control schon an.",
 					"Prüfer:innen landen nach der Anmeldung direkt in ihrem Audit. Jede Anfrage hat eine eigene Seite mit Antwort, Nachweisen und Kommentaren; die Gegenseite erfährt jeden Kommentar.",
 					"Anfragen werden Aufgaben; Feststellungen werden Abweichungen mit den Fristen des jeweiligen Rahmenwerks (Haupt- und Nebenabweichung).",
