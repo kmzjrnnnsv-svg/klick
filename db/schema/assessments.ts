@@ -49,6 +49,10 @@ export const assessments = pgTable(
 		score: integer(),
 		rating: text(),
 		result: json<Record<string, unknown>>(),
+		// Umsetzungsplan (Teil C): nur Einstellungen — Beginn, Kapazität,
+		// eigene Dauern; der Plan selbst wird immer neu gerechnet
+		// (lib/assessments/schedule.ts, planSettingsOf)
+		plan: json<Record<string, unknown>>(),
 		ownerUserId: userRef(),
 		ownerFunction: ownerFunction(),
 		reviewerUserId: userRef(),

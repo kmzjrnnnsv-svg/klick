@@ -966,6 +966,8 @@ export const tasks = pgTable(
 		description: text(),
 		assigneeUserId: userRef(),
 		createdByUserId: userRef(),
+		// Beginn aus dem Umsetzungsplan der Gap-Analyse (Migration 0069)
+		startAt: date(),
 		dueAt: date(),
 		status: text({ enum: ["todo", "doing", "blocked", "done"] })
 			.notNull()
