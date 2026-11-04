@@ -12,6 +12,9 @@ import {
 	CONTROL_ADDITIONS,
 	type KlickPlace,
 } from "@/lib/compliance/catalog/control-additions";
+import { PART_A } from "@/lib/compliance/catalog/control-additions-a";
+import { PART_B } from "@/lib/compliance/catalog/control-additions-b";
+import { PART_C } from "@/lib/compliance/catalog/control-additions-c";
 import { TEMPLATE_BY_CODE } from "@/lib/compliance/catalog/document-templates";
 import {
 	additionLines,
@@ -62,11 +65,17 @@ describe("Kern und Zusätze je Maßnahme", () => {
 		).toEqual([]);
 	});
 
-	it("deckt die meistgeteilten Maßnahmen ab", () => {
-		expect(SHARED.length).toBe(60);
-		const covered = SHARED.filter((c) => CONTROL_ADDITIONS[c]);
-		// K1: die 15 meistgeteilten; K2 hebt auf alle 60
-		expect(covered.length).toBeGreaterThanOrEqual(15);
+	it("deckt jede Maßnahme mit mindestens zehn Rahmenwerken ab", () => {
+		expect(SHARED.length).toBeGreaterThanOrEqual(60);
+		expect(SHARED.filter((c) => !CONTROL_ADDITIONS[c])).toEqual([]);
+	});
+
+	it("kein Teil überschreibt einen anderen", () => {
+		const parts = [PART_A, PART_B, PART_C];
+		const codes = parts.flatMap((p) => Object.keys(p));
+		expect(new Set(codes).size).toBe(codes.length);
+		for (const own of ["CC-HR-03", "CC-IAM-03"])
+			expect(codes, own).not.toContain(own);
 	});
 
 	it.each(ENTRIES)("%s: Fundstellen sind Kanten dieser Maßnahme", (code, e) => {
