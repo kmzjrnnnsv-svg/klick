@@ -1,4 +1,5 @@
 import { CONTROL_EXPLAINERS } from "./catalog/control-explainers";
+import { additionLines, controlAdditions } from "./control-additions";
 import { controlRelations, type RelationOptions } from "./control-relations";
 import { shortFrameworkName } from "./framework-names";
 import { formatParam, type ParamTopic } from "./params";
@@ -18,7 +19,14 @@ export type RelationHint = {
 	// Gleiche Maßnahme, andere Strenge: nur Themen, die sich unterscheiden
 	strictest: { topic: string; names: string[]; value: string }[];
 	conflicts: string[];
+	// Kern und Zusätze (Teil K): was einzelne Rahmenwerke der Org dazu wollen,
+	// höchstens HINT_ADDITIONS; der Rest steht auf der Seite der Maßnahme
+	control: string;
+	additions: { text: string; names: string[] }[];
+	moreAdditions: number;
 };
+
+export const HINT_ADDITIONS = 6;
 
 export function relationHint(
 	control: string,
@@ -36,7 +44,13 @@ export function relationHint(
 				value: first ? formatParam(first.param) : "",
 			};
 		});
+	const lines = additionLines(controlAdditions(control, opts));
 	return {
+		control,
+		additions: lines
+			.slice(0, HINT_ADDITIONS)
+			.map((l) => ({ text: l.text, names: l.names })),
+		moreAdditions: Math.max(0, lines.length - HINT_ADDITIONS),
 		simple: CONTROL_EXPLAINERS[control]?.what ?? null,
 		frameworks: rel.frameworks.map((f) =>
 			shortFrameworkName(f.slug, opts.catalog),

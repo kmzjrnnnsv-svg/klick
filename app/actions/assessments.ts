@@ -41,6 +41,10 @@ import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import type { AuditInput } from "@/lib/audit";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
+import {
+	additionLines,
+	controlAdditions,
+} from "@/lib/compliance/control-additions";
 import { excludeRequirements } from "@/lib/compliance/exclusion-service";
 import { exclusionAllowedForKey } from "@/lib/compliance/exclusions";
 import { ensureControlImplementations } from "@/lib/compliance/initialize-org";
@@ -764,6 +768,7 @@ async function createMeasuresImpl(
 			c.orgId,
 			d.items.map((i) => i.controlCode),
 		);
+		const catalog = await loadOrgCatalog(tx, c.orgId);
 		// keine Doppelten: offene Aufgaben aus diesem Fragebogen je Control
 		const open = await tx
 			.select({ entityId: tasks.entityId, title: tasks.title })
@@ -808,6 +813,12 @@ async function createMeasuresImpl(
 			const rec =
 				meta.recommendations?.find((r) => r.level === "must")?.text ??
 				meta.recommendations?.[0]?.text;
+			// Kern und Zusätze (Teil K): was alle wollen, was die Rahmenwerke
+			// dieser Gap-Analyse zusätzlich verlangen, und wo in Klick
+			const extra = controlAdditions(item.controlCode, {
+				frameworks: a.frameworks,
+				catalog,
+			});
 			await tx.insert(tasks).values({
 				organizationId: c.orgId,
 				title,
@@ -816,6 +827,13 @@ async function createMeasuresImpl(
 					notes.get(item.controlCode)
 						? `Was fehlt: ${notes.get(item.controlCode)}`
 						: null,
+					extra.core
+						? `Kern: ${extra.core}${extra.where ? ` In Klick: ${extra.where.href}` : ""}`
+						: null,
+					...additionLines(extra).map(
+						(l) =>
+							`Dazu kommt (${l.names.join(", ")}): ${l.text}${l.where ? ` In Klick: ${l.where.href}` : ""}`,
+					),
 					rec ? `Empfehlung: ${rec}` : null,
 					meta.evidenceHints?.length
 						? `Nachweise: ${meta.evidenceHints.join(", ")}`
