@@ -4,6 +4,8 @@ import { getTranslations } from "next-intl/server";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+// showLogin = Website: „Anmelden“ als Textlink und die Hauptaktion
+// „Gespräch anfragen“; auf den Anmeldeseiten beides aus.
 export async function MarketingHeader({
 	showLogin = true,
 }: {
@@ -56,14 +58,33 @@ export async function MarketingHeader({
 									{l.label}
 								</a>
 							))}
+							{showLogin && (
+								<a
+									href="/login"
+									className="flex min-h-11 items-center rounded-lg px-3 text-body hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:hidden"
+								>
+									{t("login")}
+								</a>
+							)}
 						</nav>
 					</details>
+					{/* Eine Hauptaktion auf der ganzen Website: das Gespräch.
+					    Anmelden ist für Kund:innen, die schon ein Konto haben. */}
 					{showLogin && (
 						<Link
 							href="/login"
-							className={cn(buttonVariants({ size: "sm" }), "ml-1")}
+							className="hit-area mx-2 hidden text-muted-foreground text-subhead transition-colors hover:text-foreground sm:inline"
 						>
 							{t("login")}
+						</Link>
+					)}
+					{showLogin && (
+						<Link
+							href="/leistungen#anfrage"
+							className={cn(buttonVariants({ size: "sm" }), "ml-1")}
+						>
+							<span className="sm:hidden">{tf("contactShort")}</span>
+							<span className="hidden sm:inline">{tf("contact")}</span>
 						</Link>
 					)}
 				</div>

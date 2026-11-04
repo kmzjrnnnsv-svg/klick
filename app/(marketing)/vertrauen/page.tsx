@@ -1,3 +1,4 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { SectionDivider } from "@/components/marketing/landing-decor";
@@ -36,7 +37,7 @@ export default async function TrustPage() {
 						planned: counts.planned ?? 0,
 					})}
 				</p>
-				<div className="mt-8 flex flex-wrap gap-3">
+				<div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3">
 					<a
 						href="/vertrauen/paket.md"
 						className={cn(buttonVariants({ size: "lg" }))}
@@ -45,7 +46,7 @@ export default async function TrustPage() {
 					</a>
 					<Link
 						href="/login"
-						className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+						className="hit-area text-primary text-subhead hover:underline"
 					>
 						{t("baselineLink")}
 					</Link>
@@ -93,66 +94,83 @@ export default async function TrustPage() {
 					{t("supplierLead")}
 				</p>
 
-				<h3 className="mt-10 font-semibold text-title-3">
-					{t("registerTitle")}
-				</h3>
-				<p className="mt-2 text-muted-foreground text-subhead">{p.role}</p>
-				<div className="mt-4 overflow-x-auto rounded-2xl bg-card">
-					<table className="w-full text-subhead">
-						<tbody className="divide-y divide-border/60">
-							{p.registerSheet.map((r) => (
-								<tr key={r.field}>
-									<th
-										scope="row"
-										className="w-1/2 px-3 py-2 text-left font-mono text-muted-foreground text-footnote"
-									>
-										{r.field}
-									</th>
-									<td className="px-3 py-2">{r.value}</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+				{/* Register und Klauseln zugeklappt: lang, aber nur für die Prüfung */}
+				<details className="group mt-10">
+					<summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 font-semibold text-title-3 [&::-webkit-details-marker]:hidden">
+						<ChevronRight
+							aria-hidden="true"
+							className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+						/>
+						{t("registerTitle")}
+					</summary>
+					<p className="mt-2 text-muted-foreground text-subhead">{p.role}</p>
+					<div className="mt-4 overflow-x-auto rounded-2xl bg-card">
+						<table className="w-full text-subhead">
+							<tbody className="divide-y divide-border/60">
+								{p.registerSheet.map((r) => (
+									<tr key={r.field}>
+										<th
+											scope="row"
+											className="w-1/2 px-3 py-2 text-left font-mono text-muted-foreground text-footnote"
+										>
+											{r.field}
+										</th>
+										<td className="px-3 py-2">{r.value}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</details>
 
-				<h3 className="mt-10 font-semibold text-title-3">{t("art30Title")}</h3>
-				<p className="mt-2 text-muted-foreground text-subhead">
-					{t("art30Lead")}
-				</p>
-				<div className="mt-4 overflow-x-auto rounded-2xl bg-card">
-					<table className="w-full text-subhead">
-						<thead>
-							<tr className="text-left">
-								<th className="px-3 py-2 font-medium">{t("colClause")}</th>
-								<th className="px-3 py-2 font-medium">{t("colContent")}</th>
-								<th className="px-3 py-2 font-medium">{t("colCommitment")}</th>
-							</tr>
-						</thead>
-						<tbody className="divide-y divide-border/60">
-							{ART30_CLAUSES.map((c) => (
-								<tr key={c.code} className="align-top">
-									<td className="whitespace-nowrap px-3 py-2 font-mono text-footnote">
-										{c.code}
-										{c.criticalOnly && (
-											<span className="ml-1 text-muted-foreground">
-												{t("criticalOnly")}
-											</span>
-										)}
-									</td>
-									<td className="px-3 py-2">
-										<p className="font-medium">{c.title}</p>
-										<p className="text-muted-foreground text-footnote">
-											{c.text}
-										</p>
-									</td>
-									<td className="px-3 py-2 text-muted-foreground">
-										{p.commitments[c.code]}
-									</td>
+				<details className="group mt-6">
+					<summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 font-semibold text-title-3 [&::-webkit-details-marker]:hidden">
+						<ChevronRight
+							aria-hidden="true"
+							className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+						/>
+						{t("art30Title")}
+					</summary>
+					<p className="mt-2 text-muted-foreground text-subhead">
+						{t("art30Lead")}
+					</p>
+					<div className="mt-4 overflow-x-auto rounded-2xl bg-card">
+						<table className="w-full text-subhead">
+							<thead>
+								<tr className="text-left">
+									<th className="px-3 py-2 font-medium">{t("colClause")}</th>
+									<th className="px-3 py-2 font-medium">{t("colContent")}</th>
+									<th className="px-3 py-2 font-medium">
+										{t("colCommitment")}
+									</th>
 								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
+							</thead>
+							<tbody className="divide-y divide-border/60">
+								{ART30_CLAUSES.map((c) => (
+									<tr key={c.code} className="align-top">
+										<td className="whitespace-nowrap px-3 py-2 font-mono text-footnote">
+											{c.code}
+											{c.criticalOnly && (
+												<span className="ml-1 text-muted-foreground">
+													{t("criticalOnly")}
+												</span>
+											)}
+										</td>
+										<td className="px-3 py-2">
+											<p className="font-medium">{c.title}</p>
+											<p className="text-muted-foreground text-footnote">
+												{c.text}
+											</p>
+										</td>
+										<td className="px-3 py-2 text-muted-foreground">
+											{p.commitments[c.code]}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</details>
 
 				<div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-2">
 					<div>
