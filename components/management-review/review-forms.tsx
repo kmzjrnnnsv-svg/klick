@@ -187,8 +187,7 @@ export function ReviewInputsChecklist({
 								<span className="min-w-0 flex-1">
 									<span className="font-medium">{i.title}</span>
 									<span className="block text-muted-foreground text-footnote">
-										{i.hint}{" "}
-										<span className="opacity-70">({i.legalBasis})</span>
+										{i.hint} <span>({i.legalBasis})</span>
 									</span>
 								</span>
 								{i.href && (

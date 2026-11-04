@@ -141,7 +141,7 @@ export async function SheetView({
 								<SourceChips sources={q.sources} />
 								{q.sources.length > 1 && (
 									<details className="text-muted-foreground text-footnote">
-										<summary className="cursor-pointer">
+										<summary className="hit-area cursor-pointer">
 											{t("mergedFrom", { count: q.sources.length })}
 										</summary>
 										<ul className="mt-1 flex flex-col gap-1">

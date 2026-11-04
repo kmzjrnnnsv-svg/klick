@@ -321,7 +321,7 @@ export function StatusButton({
 									size="sm"
 									variant="default"
 									disabled={pending}
-									className="rounded-l-none border-primary-foreground/20 border-l px-2"
+									className="rounded-l-none border-primary-foreground/20 border-l px-2 pointer-coarse:min-w-11"
 									aria-label={t("moreTransitions")}
 								>
 									<ChevronDown />

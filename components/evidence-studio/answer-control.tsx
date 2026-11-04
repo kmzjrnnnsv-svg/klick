@@ -56,7 +56,7 @@ export function AnswerControl({
 						disabled={disabled || pending}
 						onClick={() => setAnswer(answer === a ? null : a)}
 						className={cn(
-							"rounded-full bg-muted px-3 py-1 font-medium text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
+							"inline-flex h-(--control-h-sm) items-center justify-center rounded-full bg-muted px-3 font-medium pointer-coarse:min-w-11 text-footnote transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50",
 							answer === a
 								? a === "yes"
 									? "border-success bg-success/10 text-foreground"
