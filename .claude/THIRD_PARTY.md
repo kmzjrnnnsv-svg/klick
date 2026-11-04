@@ -10,6 +10,7 @@
 | `skills/{auditing-code-for-vulnerabilities,reviewing-cryptography,auditing-supply-chain,hunting-web-backdoors,reviewing-code-changes,attacking-saml,testing-web-applications,testing-apis,exploiting-ssrf}/` | https://github.com/trilwu/secskills (`secskills-core/skills`, `secskills-offense/skills`) | `ca53957bcd8e3b83b5d4d190bb3ad008a4f15c84` | MIT |
 | `skills/15-blue-team-defense/` | https://github.com/Masriyan/Claude-Code-CyberSecurity-Skill (`skills/15-blue-team-defense`) | `3aa77d84fb64cf07b550f6be4544bb91292db89f` | MIT (mit NOTICE) |
 | `skills/auditing-supply-chain/references/package-evaluation-criteria.md` | https://github.com/snyk/studio-recipes (`command_directives/synchronous_remediation/skills/secure-dependency-health-check/references`) | `3752dd05a462184dcce44af3c247f287b41e35de` | Apache-2.0 |
+| `skills/{emil-design-eng,animate-expo,find-animation-opportunities,apple-design,pick-ui-library,mobile-native}/` | https://github.com/emilkowalski/skill (`skills/<name>`) | `c8a79627b59d72d764d6ab6f2c87c09a48169833` | MIT |
 
 ## vercel-labs/web-interface-guidelines
 
@@ -156,3 +157,29 @@ Autor: Riyan Pratama (Masriyan / sudo3rs). MIT-Lizenz und NOTICE liegen unverän
 
 Quelle: Snyk (snyk/studio-recipes). Lizenz: Apache License 2.0, Volltext in `.claude/licenses/Apache-2.0.txt`.
 `package-evaluation-criteria.md` ist unverändert.
+
+## emilkowalski/skill
+
+```
+MIT License
+
+Copyright (c) 2026 Emil Kowalski
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
