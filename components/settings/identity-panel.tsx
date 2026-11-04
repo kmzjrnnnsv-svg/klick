@@ -478,7 +478,7 @@ function EntraSection({
 						spellCheck={false}
 						autoComplete="off"
 						disabled={pending}
-						className="sm:w-96"
+						className="sm:max-w-96"
 					/>
 					<PrivacyAck id="identity-ack" checked={ack} onChange={setAck} />
 					<div>
@@ -632,7 +632,7 @@ function GoogleSection({
 						spellCheck={false}
 						autoComplete="off"
 						disabled={pending}
-						className="sm:w-96"
+						className="sm:max-w-96"
 					/>
 					<PrivacyAck
 						id="identity-google-ack"
@@ -734,7 +734,7 @@ function OktaSection({
 						autoComplete="off"
 						inputMode="url"
 						disabled={pending}
-						className="sm:w-96"
+						className="sm:max-w-96"
 					/>
 					<Label htmlFor="identity-okta-token">{t("oktaTokenField")}</Label>
 					<Input
@@ -751,7 +751,7 @@ function OktaSection({
 						spellCheck={false}
 						autoComplete="off"
 						disabled={pending}
-						className="sm:w-96"
+						className="sm:max-w-96"
 					/>
 					<PrivacyAck id="identity-okta-ack" checked={ack} onChange={setAck} />
 					<div>

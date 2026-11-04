@@ -164,7 +164,7 @@ async function AccountsPage({
 							: t("syncedNever")}
 					</span>
 				</p>
-				<ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-subhead">
+				<ul className="grid grid-cols-[repeat(auto-fill,minmax(min(11rem,100%),1fr))] gap-x-4 gap-y-1 text-subhead">
 					{(Object.keys(chipCount) as AccountChip[]).map((chip) => (
 						<li key={chip}>
 							<Link

@@ -78,7 +78,7 @@ export function MatchForm({
 					})
 				}
 			>
-				<SelectTrigger id="identity-match" className="sm:w-96">
+				<SelectTrigger id="identity-match" className="w-full sm:max-w-96">
 					<SelectValue />
 				</SelectTrigger>
 				<SelectContent>

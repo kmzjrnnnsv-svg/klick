@@ -159,7 +159,10 @@ export function ItDataStep({
 			<fieldset className="flex flex-col gap-2 text-subhead">
 				<legend className="mb-1.5 font-medium">{t("itOperation")}</legend>
 				{IT.map((x) => (
-					<label key={x} className="flex items-center gap-2">
+					<label
+						key={x}
+						className="flex items-center gap-2 min-h-7 pointer-coarse:min-h-11"
+					>
 						<input
 							type="radio"
 							name="it"
@@ -252,7 +255,7 @@ export function ItDataStep({
 									</SelectContent>
 								</Select>
 							</div>
-							<label className="flex items-center gap-2 pb-2 text-subhead">
+							<label className="flex items-center gap-2 min-h-7 pointer-coarse:min-h-11 pb-2 text-subhead">
 								<Checkbox
 									checked={r.critical}
 									onCheckedChange={(v) =>
@@ -306,7 +309,10 @@ export function ItDataStep({
 				<legend className="mb-1.5 font-medium">{t("personalData")}</legend>
 				<div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
 					{PERSONAL_DATA.map((p) => (
-						<label key={p} className="flex items-center gap-2">
+						<label
+							key={p}
+							className="flex items-center gap-2 min-h-7 pointer-coarse:min-h-11"
+						>
 							<Checkbox
 								checked={pd.includes(p)}
 								onCheckedChange={(v) =>
@@ -317,7 +323,7 @@ export function ItDataStep({
 						</label>
 					))}
 				</div>
-				<label className="mt-1 flex items-center gap-2">
+				<label className="mt-1 flex items-center gap-2 min-h-7 pointer-coarse:min-h-11">
 					<Checkbox
 						checked={special}
 						onCheckedChange={(v) => setSpecial(Boolean(v))}
@@ -332,7 +338,10 @@ export function ItDataStep({
 					{t("cardDataHint")}
 				</p>
 				{CARD_DATA.map((v) => (
-					<label key={v} className="flex items-center gap-2">
+					<label
+						key={v}
+						className="flex items-center gap-2 min-h-7 pointer-coarse:min-h-11"
+					>
 						<input
 							type="radio"
 							name="card-data"
@@ -350,7 +359,10 @@ export function ItDataStep({
 				<legend className="mb-1.5 font-medium">{t("aiUse")}</legend>
 				<p className="text-muted-foreground text-footnote">{t("aiUseHint")}</p>
 				{AI_USE.map((v) => (
-					<label key={v} className="flex items-center gap-2">
+					<label
+						key={v}
+						className="flex items-center gap-2 min-h-7 pointer-coarse:min-h-11"
+					>
 						<input
 							type="radio"
 							name="ai-use"
@@ -367,7 +379,10 @@ export function ItDataStep({
 			<fieldset className="flex flex-col gap-2 text-subhead">
 				<legend className="mb-1.5 font-medium">{t("moreTitle")}</legend>
 				{MORE.map((k) => (
-					<label key={k} className="flex items-start gap-2">
+					<label
+						key={k}
+						className="flex items-start gap-2 min-h-7 pointer-coarse:min-h-11"
+					>
 						<Checkbox
 							className="mt-0.5"
 							checked={more[k]}
@@ -412,7 +427,10 @@ export function ItDataStep({
 				<legend className="mb-1.5 font-medium">{t("aiQuestion")}</legend>
 				<p className="text-footnote text-muted-foreground">{t("aiLead")}</p>
 				{AI_ANSWERS.map((x) => (
-					<label key={x} className="flex items-center gap-2">
+					<label
+						key={x}
+						className="flex items-center gap-2 min-h-7 pointer-coarse:min-h-11"
+					>
 						<input
 							type="radio"
 							name="ai"
