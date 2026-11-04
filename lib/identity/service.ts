@@ -16,6 +16,7 @@ import {
 } from "@/db/schema";
 import type { AuditInput } from "@/lib/audit";
 import { insertControlTest } from "@/lib/compliance/control-test-service";
+import { decryptJson, encryptJson, fieldAad } from "@/lib/crypto/org-dek";
 import { isUniqueViolation } from "@/lib/db/errors";
 import type { OrgTx } from "@/lib/db/with-org";
 import { nonceHash } from "@/lib/microsoft/consent";
@@ -346,6 +347,118 @@ export async function completeEntraConsent(
 				target,
 				before: { status: row.status },
 				after: { provider: "entra", tenant: tenantKey },
+			},
+		],
+	};
+}
+
+// ── Okta: API-Token mit Leserechten ────────────────────────────────────
+
+export const oktaTokenAad = (sourceId: string) =>
+	fieldAad("identity_sources", sourceId, "secret_enc");
+
+// Letzte vier Zeichen für die Anzeige („…abcd“)
+export const tokenHint = (token: string) => token.slice(-4);
+
+export async function oktaTokenOf(
+	tx: OrgTx,
+	orgId: string,
+	source: Pick<IdentitySource, "id" | "secretEnc">,
+): Promise<string | null> {
+	return decryptJson<string>(
+		tx,
+		orgId,
+		source.secretEnc,
+		oktaTokenAad(source.id),
+	);
+}
+
+export type OktaConnectResult = "active" | "taken" | "other_org";
+
+// Verbinden nach geprüftem Token und Bindung (Netz vorher, ohne
+// Transaktion). Schlüssel = Okta-Domain; eine Okta-Org gehört nur einer
+// Klick-Org (Index identity_sources_tenant_uq). Eine andere Okta-Domain an
+// derselben Org geht erst nach dem Trennen. Das Token liegt nur
+// verschlüsselt in secret_enc (nie im Export), im Audit steht es nie.
+export async function connectOktaSource(
+	tx: OrgTx,
+	ctx: { orgId: string; userId: string | null },
+	input: { domain: string; token: string; domains: string[]; now: Date },
+): Promise<{
+	result: OktaConnectResult;
+	sourceId: string | null;
+	audit: AuditInput[];
+}> {
+	const target = `organization:${ctx.orgId}`;
+	const existing = await identitySourceOf(tx, ctx.orgId, "okta");
+	if (
+		existing &&
+		existing.status !== "pending_consent" &&
+		existing.tenantKey.toLowerCase() !== input.domain
+	)
+		return { result: "other_org", sourceId: null, audit: [] };
+	const id = existing?.id ?? crypto.randomUUID();
+	const secretEnc = await encryptJson(
+		tx,
+		ctx.orgId,
+		input.token,
+		oktaTokenAad(id),
+	);
+	const values = {
+		tenantKey: input.domain,
+		status: "active" as const,
+		settings: { tokenHint: tokenHint(input.token) },
+		secretEnc,
+		domains: input.domains,
+		lastError: null,
+		lastErrorAt: null,
+		updatedAt: input.now,
+	};
+	try {
+		await tx.transaction(async (sp) => {
+			if (existing)
+				await sp
+					.update(identitySources)
+					.set({ ...values, connectedAt: existing.connectedAt ?? input.now })
+					.where(eq(identitySources.id, existing.id));
+			else
+				await sp.insert(identitySources).values({
+					...values,
+					id,
+					organizationId: ctx.orgId,
+					provider: "okta",
+					connectedAt: input.now,
+					createdBy: ctx.userId,
+				});
+		});
+	} catch (e) {
+		if (!isUniqueViolation(e)) throw e;
+		return {
+			result: "taken",
+			sourceId: null,
+			audit: [
+				{
+					action: "identity.consent_taken",
+					target,
+					after: { provider: "okta" },
+					outcome: "failure",
+				},
+			],
+		};
+	}
+	return {
+		result: "active",
+		sourceId: id,
+		audit: [
+			{
+				action: "identity.connected",
+				target,
+				before: existing ? { status: existing.status } : undefined,
+				after: {
+					provider: "okta",
+					tenant: input.domain,
+					...(existing ? { tokenReplaced: true } : {}),
+				},
 			},
 		],
 	};
