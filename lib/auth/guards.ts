@@ -135,6 +135,8 @@ export type OrgContext = {
 	// allows(ctx, …) aus lib/auth/permissions.ts
 	permissions: RolePermissions;
 	customRoles: { id: string; name: string }[];
+	// befristeter Zugang (Prüfer:innen, Berater:innen; ADR-018), sonst null
+	accessUntil?: Date | null;
 };
 
 export type Permission = Partial<Record<Resource, readonly string[]>>;
@@ -238,6 +240,7 @@ const orgBase = cache(
 				hasPasskey: Boolean(ctx.user.hasPasskey),
 				permissions,
 				customRoles: roles.map((r) => ({ id: r.id, name: r.name })),
+				accessUntil: access?.accessUntil ?? null,
 			},
 		};
 	},

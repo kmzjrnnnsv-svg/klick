@@ -1,6 +1,8 @@
+import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ensureStepUp } from "@/app/actions/security";
 import {
 	AdoptFindingsButton,
 	AuditForm,
@@ -18,6 +20,7 @@ import { RegisterFilters } from "@/components/entity/register-filters";
 import { SummaryCard, SummaryGrid } from "@/components/entity/summary-card";
 import { UrlTabs } from "@/components/entity/url-tabs";
 import { UserChip } from "@/components/entity/user-chip";
+import { EvidenceFileLink } from "@/components/evidence/evidence-file-link";
 import { EntityEvidence } from "@/components/evidence-studio/entity-evidence";
 import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
@@ -38,11 +41,13 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { isExternal } from "@/lib/auth/memberships";
 import { allows } from "@/lib/auth/permissions";
 import { maskSecret } from "@/lib/auth/visibility";
 import { independenceIssues } from "@/lib/compliance/audit-programme";
 import {
 	auditPhases,
+	auditsAsAuditor,
 	matchesRequest,
 	REQUEST_VIEWS,
 	type RequestView,
@@ -212,11 +217,12 @@ async function AuditCockpitPage({
 		evidenceLinks,
 	} = data;
 	// streng geheime Nachweise ohne Grant: ohne Titel (Prüfer-Sicht)
-	const evidence = maskSecret(
-		ctx,
-		data.evidence,
-		(await getTranslations("Evidence"))("secretTitle"),
-	);
+	const secretTitle = (await getTranslations("Evidence"))("secretTitle");
+	const evidence = maskSecret(ctx, data.evidence, secretTitle);
+	// Prüfer:innen dieses Audits laden das Paket auch ohne Export-Recht
+	const auditorHere = auditsAsAuditor([audit], ctx.userId).length > 0;
+	const canPackage = canExport || auditorHere;
+	const isAuditor = ctx.orgRole === "auditor";
 
 	const adoptable = findings.filter(
 		(f) =>
@@ -225,9 +231,14 @@ async function AuditCockpitPage({
 			findingNeedsNonconformity(f.severity),
 	).length;
 	const evidenceCount = new Map<string, number>();
-	for (const e of evidenceLinks)
-		for (const code of e.controlCodes)
+	const evidenceByControl = new Map<string, typeof evidenceLinks>();
+	for (const e of maskSecret(ctx, evidenceLinks, secretTitle))
+		for (const code of e.controlCodes) {
 			evidenceCount.set(code, (evidenceCount.get(code) ?? 0) + 1);
+			const list = evidenceByControl.get(code) ?? [];
+			list.push(e);
+			evidenceByControl.set(code, list);
+		}
 	const controlByCode = new Map(controls.map((c) => [c.code, c]));
 	const slugs = audit.frameworkIds.filter((s) => FRAMEWORK_BY_SLUG.has(s));
 	const path = slugs.flatMap((slug) => {
@@ -241,6 +252,19 @@ async function AuditCockpitPage({
 			return { slug, r, status, edges };
 		});
 	});
+	// Prüfpfad als eine Stelle: Filter nach Rahmenwerk, Stand und Suche
+	const pathFw = one(sp.rahmenwerk);
+	const pathStand = one(sp.stand);
+	const pathQ = (one(sp.q) ?? "").trim().toLowerCase();
+	const shownPath = path.filter(
+		({ slug, r, status, edges }) =>
+			(!pathFw || slug === pathFw) &&
+			(!pathStand || status === pathStand) &&
+			(!pathQ ||
+				`${r.code} ${r.title} ${edges.map((e) => e.control).join(" ")}`
+					.toLowerCase()
+					.includes(pathQ)),
+	);
 	const independence = independenceIssues(audit.auditorMemberIds, [
 		...controls.map((c) => ({
 			kind: "control" as const,
@@ -303,13 +327,17 @@ async function AuditCockpitPage({
 				lead={audit.scope ?? undefined}
 				actions={
 					<div className="flex flex-wrap items-center gap-2">
-						{canExport && (
+						{canPackage && (
 							<ExportLink
 								href={`/api/export/pruefungspaket.zip?audit=${audit.id}`}
 								className={cn(
-									buttonVariants({ variant: "outline", size: "sm" }),
+									buttonVariants({
+										variant: isAuditor ? "default" : "outline",
+										size: "sm",
+									}),
 								)}
 								title={t("exportPackageHint")}
+								ensure={canExport ? undefined : ensureStepUp}
 							>
 								{t("exportPackage")}
 							</ExportLink>
@@ -427,17 +455,34 @@ async function AuditCockpitPage({
 					</ul>
 				</div>
 			)}
+			{isExternal(ctx.orgRole) && ctx.accessUntil && (
+				<p className="text-footnote text-muted-foreground">
+					{t("accessUntil", { date: fmtDate.format(ctx.accessUntil) })}
+				</p>
+			)}
 			<UrlTabs
 				base={`/audits/${audit.id}`}
 				active={tab}
+				// Prüfer:innen arbeiten zuerst mit den Anfragen
 				tabs={[
 					{ value: "uebersicht", label: t("tabOverview") },
-					{ value: "pruefpfad", label: t("tabPath"), count: path.length },
-					{
-						value: "anfragen",
-						label: t("tabRequests"),
-						count: openCount || undefined,
-					},
+					...(isAuditor
+						? [
+								{
+									value: "anfragen",
+									label: t("tabRequests"),
+									count: openCount || undefined,
+								},
+								{ value: "pruefpfad", label: t("tabPath"), count: path.length },
+							]
+						: [
+								{ value: "pruefpfad", label: t("tabPath"), count: path.length },
+								{
+									value: "anfragen",
+									label: t("tabRequests"),
+									count: openCount || undefined,
+								},
+							]),
 					{
 						value: "findings",
 						label: t("tabFindings"),
@@ -606,8 +651,39 @@ async function AuditCockpitPage({
 			{tab === "pruefpfad" && (
 				<section className="flex flex-col gap-3">
 					<p className="text-muted-foreground text-subhead">{t("pathLead")}</p>
+					{path.length > 0 && (
+						<RegisterFilters
+							filters={[
+								...(slugs.length > 1
+									? [
+											{
+												key: "rahmenwerk",
+												label: t("pathFramework"),
+												options: slugs.map((s) => ({
+													value: s,
+													label: shortFrameworkName(s),
+												})),
+											},
+										]
+									: []),
+								{
+									key: "stand",
+									label: t("status"),
+									options: (["covered", "partial", "open"] as const).map(
+										(s) => ({ value: s, label: t(`pathStatus_${s}`) }),
+									),
+								},
+							]}
+							searchPlaceholder={t("pathSearch")}
+							ignore={["tab"]}
+						/>
+					)}
 					{path.length === 0 ? (
 						<p className="text-subhead">{t("pathEmpty")}</p>
+					) : shownPath.length === 0 ? (
+						<p className="text-muted-foreground text-subhead">
+							{t("pathNoMatch")}
+						</p>
 					) : (
 						<div className="overflow-x-auto rounded-2xl bg-card">
 							<Table>
@@ -620,7 +696,7 @@ async function AuditCockpitPage({
 									</TableRow>
 								</TableHeader>
 								<TableBody>
-									{path.map(({ slug, r, status, edges }) => (
+									{shownPath.map(({ slug, r, status, edges }) => (
 										<TableRow key={`${slug}:${r.code}`}>
 											<TableCell className="align-top">
 												<Link
@@ -634,7 +710,9 @@ async function AuditCockpitPage({
 												{r.title}
 											</TableCell>
 											<TableCell className="align-top">
-												<Badge variant={TONE[status]}>{status}</Badge>
+												<Badge variant={TONE[status]}>
+													{t(`pathStatus_${status}`)}
+												</Badge>
 											</TableCell>
 											<TableCell className="align-top">
 												<ul className="flex flex-col gap-1 text-footnote">
@@ -670,16 +748,62 @@ async function AuditCockpitPage({
 																	)}
 																</Badge>
 																<UserChip name={c?.ownerName} fallback="—" />
-																<Link
-																	href={`/controls/${e.control}#nachweise`}
-																	className={
-																		ev === 0
-																			? "text-destructive"
-																			: "text-muted-foreground"
-																	}
-																>
-																	{ev} {t("evidenceShort")}
-																</Link>
+																{ev === 0 ? (
+																	<Link
+																		href={`/controls/${e.control}?audit=${audit.id}#nachweise`}
+																		className="text-destructive hover:underline"
+																	>
+																		{t("evidenceNone")}
+																	</Link>
+																) : (
+																	<details className="group w-full">
+																		<summary className="hit-area inline-flex cursor-pointer list-none items-center gap-1 text-muted-foreground hover:text-foreground [&::-webkit-details-marker]:hidden">
+																			<ChevronRight
+																				aria-hidden="true"
+																				className="size-3.5 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+																			/>
+																			{t("evidenceCount", { n: ev })}
+																		</summary>
+																		<ul className="mt-1 flex flex-col gap-1 pl-4">
+																			{(evidenceByControl.get(e.control) ?? [])
+																				.slice(0, 5)
+																				.map((x) => (
+																					<li
+																						key={x.id}
+																						className="flex flex-wrap items-center gap-x-2"
+																					>
+																						<Link
+																							href={`/nachweise/${x.id}?audit=${audit.id}`}
+																							className="min-w-0 truncate hover:underline"
+																						>
+																							{x.title}
+																						</Link>
+																						{x.storageKey && (
+																							<EvidenceFileLink
+																								id={x.id}
+																								classification={
+																									x.classification
+																								}
+																								className="hit-area text-primary hover:underline"
+																							>
+																								{t("evidenceDownload")}
+																							</EvidenceFileLink>
+																						)}
+																					</li>
+																				))}
+																			{ev > 5 && (
+																				<li>
+																					<Link
+																						href={`/controls/${e.control}?audit=${audit.id}#nachweise`}
+																						className="text-primary hover:underline"
+																					>
+																						{t("evidenceAll", { n: ev })}
+																					</Link>
+																				</li>
+																			)}
+																		</ul>
+																	</details>
+																)}
 																{canRequest && (
 																	<Link
 																		href={`/audits/${audit.id}?${new URLSearchParams(
@@ -836,13 +960,14 @@ async function AuditCockpitPage({
 													{r.responseEvidenceIds.map((eid) => {
 														const ev = evidence.find((x) => x.id === eid);
 														return (
-															<a
+															<EvidenceFileLink
 																key={eid}
-																href={`/api/nachweise/${eid}`}
+																id={eid}
+																classification={ev?.classification ?? "secret"}
 																className="rounded-sm border px-1.5 py-0.5 hover:bg-muted"
 															>
 																{ev?.title ?? eid.slice(0, 8)}
-															</a>
+															</EvidenceFileLink>
 														);
 													})}
 												</p>

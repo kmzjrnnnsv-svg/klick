@@ -71,11 +71,23 @@ const size = (bytes: number) =>
 // (vertraulich und geheim nur nach Step-up).
 async function EvidenceDetailPage({
 	params,
+	searchParams,
 }: {
 	params: Promise<{ id: string }>;
+	searchParams: Promise<{ audit?: string }>;
 }) {
 	const { id } = await params;
 	if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+	// aus dem Prüfpfad eines Audits: zurück dorthin
+	const fromAudit = (await searchParams).audit;
+	const tNav = await getTranslations("Nav");
+	const back =
+		fromAudit && /^[0-9a-f-]{36}$/i.test(fromAudit)
+			? {
+					href: `/audits/${fromAudit}?tab=pruefpfad`,
+					label: tNav("auditTrail"),
+				}
+			: { href: "/nachweise", label: "" };
 	const ctx = await requireOrgPage({ evidence: ["read"] });
 	const t = await getTranslations("Evidence");
 	const td = await getTranslations("Dlp");
@@ -200,7 +212,7 @@ async function EvidenceDetailPage({
 	if (hidesSecret(ctx, row))
 		return (
 			<>
-				<BackLink href="/nachweise" label={t("back")} />
+				<BackLink href={back.href} label={back.label || t("back")} />
 				<PageHeader title={t("secretTitle")} lead={t("secretLead")} />
 			</>
 		);
@@ -252,7 +264,7 @@ async function EvidenceDetailPage({
 			: null;
 	return (
 		<>
-			<BackLink href="/nachweise" label={t("back")} />
+			<BackLink href={back.href} label={back.label || t("back")} />
 			<PageHeader
 				eyebrow={
 					authored

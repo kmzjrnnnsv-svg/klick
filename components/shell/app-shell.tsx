@@ -20,6 +20,12 @@ import { SidebarSearch } from "./sidebar-search";
 import { TabBar } from "./tab-bar";
 import { UserMenu } from "./user-menu";
 
+// Zugangsende Externer (ADR-018) in der Seitenleiste
+const fmtAccess = new Intl.DateTimeFormat("de-DE", {
+	dateStyle: "medium",
+	timeZone: "Europe/Berlin",
+});
+
 export async function AppShell({
 	ctx,
 	orgName,
@@ -85,7 +91,12 @@ export async function AppShell({
 						)}
 						{isExternal(ctx.orgRole) && (
 							<p className="mt-1 text-footnote text-muted-foreground">
-								{t("externalAccess", { role: ROLE_LABEL[ctx.orgRole] })}
+								{ctx.accessUntil
+									? t("externalAccessUntil", {
+											role: ROLE_LABEL[ctx.orgRole],
+											date: fmtAccess.format(ctx.accessUntil),
+										})
+									: t("externalAccess", { role: ROLE_LABEL[ctx.orgRole] })}
 							</p>
 						)}
 					</div>
@@ -113,6 +124,7 @@ export async function AppShell({
 									? articlesFor(ctx.orgRole).map((a) => a.slug)
 									: undefined
 							}
+							auditor={ctx.orgRole === "auditor"}
 						/>
 						<NotificationBell items={bell.items} unread={bell.unread} />
 						<UserMenu
