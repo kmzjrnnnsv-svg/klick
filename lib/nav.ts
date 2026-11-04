@@ -41,6 +41,7 @@ export type NavLabelKey =
 	| "testProgramme"
 	| "calendar"
 	| "roadmap"
+	| "ismsPlan"
 	| "aml"
 	| "ownFunds"
 	| "cryptoAssets"
@@ -212,6 +213,13 @@ export const NAV_SECTIONS: Record<NavSectionGroup, NavSection[]> = {
 			href: "/roadmap",
 			icon: "map",
 			perm: { milestone: ["read"] },
+		},
+		{
+			key: "ismsPlan",
+			labelKey: "ismsPlan",
+			href: "/jahresplan",
+			icon: "clipboard-check",
+			perm: { obligation: ["read"] },
 		},
 	],
 	review: [
