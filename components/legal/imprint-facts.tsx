@@ -65,7 +65,7 @@ export async function ImprintFacts() {
 				<p className="mt-2 text-muted-foreground text-subhead">
 					<Link
 						href="/leistungen#anfrage"
-						className="underline underline-offset-4"
+						className="hit-area underline underline-offset-4"
 					>
 						{t("contactForm")}
 					</Link>
