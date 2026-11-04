@@ -11,25 +11,35 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
+// sidebar: in der Seitenleiste klein und grau wie in Klick (Name der Org
+// über dem Menü), sonst im Kopf
 export function OrgMenu({
 	current,
 	orgs,
+	sidebar = false,
 }: {
 	current: { id: string; name: string };
 	orgs: { id: string; name: string }[];
+	sidebar?: boolean;
 }) {
 	const t = useTranslations("Shell");
 	const router = useRouter();
+	const text = sidebar
+		? "font-medium text-footnote text-muted-foreground"
+		: "font-medium text-subhead";
 	if (orgs.length < 2)
-		return (
-			<span className="block truncate font-medium text-subhead">
-				{current.name}
-			</span>
-		);
+		return <span className={cn("block truncate", text)}>{current.name}</span>;
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger className="flex min-w-0 max-w-full items-center gap-1 rounded-md px-2 py-1 font-medium text-subhead hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary">
+			<DropdownMenuTrigger
+				className={cn(
+					"flex min-w-0 max-w-full items-center gap-1 rounded-md px-2 py-1 hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary",
+					text,
+					sidebar && "-mx-2",
+				)}
+			>
 				<span className="truncate">{current.name}</span>
 				<ChevronsUpDown className="size-3.5 shrink-0" aria-hidden />
 				<span className="sr-only">{t("orgSwitch")}</span>

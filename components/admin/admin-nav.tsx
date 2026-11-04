@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavIcon } from "@/components/shell/nav-icon";
+import {
+	SourceItem,
+	SourceList,
+	SourceSection,
+} from "@/components/ui/source-list";
 import type { NavIcon as NavIconName } from "@/lib/nav";
 import { cn } from "@/lib/utils";
 
@@ -25,8 +30,8 @@ function activeHref(path: string, sections: AdminNavSection[]) {
 	return best;
 }
 
-// Seitenleiste des Admin-Bereichs nach Apple HIG: Gruppen mit Überschrift,
-// Symbol in Akzentfarbe, Auswahl getönt. Am Handy dieselben Seiten als
+// Seitenleiste des Admin-Bereichs nach Apple HIG — dieselben Bausteine wie
+// das Menü der App (components/ui/source-list.tsx). Am Handy dieselben Seiten als
 // waagrecht scrollende Kapseln.
 export function AdminNav({
 	sections,
@@ -39,41 +44,23 @@ export function AdminNav({
 	const active = activeHref(path, sections);
 	if (variant === "sidebar")
 		return (
-			<nav
-				aria-label="Admin-Navigation"
-				className="flex flex-col gap-5 text-subhead"
-			>
-				{sections.map((s) => (
-					<div key={s.label} className="flex flex-col gap-1">
-						<p className="px-2 font-semibold text-footnote text-muted-foreground">
-							{s.label}
-						</p>
-						<ul className="flex flex-col gap-px">
-							{s.items.map((item) => {
-								const isActive = item.href === active;
-								return (
-									<li key={item.href}>
-										<Link
-											href={item.href}
-											aria-current={isActive ? "page" : undefined}
-											className={cn(
-												"flex h-8 items-center gap-2.5 rounded-md px-2 text-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11",
-												isActive &&
-													"bg-primary/12 font-semibold hover:bg-primary/12 dark:bg-primary/20",
-											)}
-										>
-											<NavIcon
-												name={item.icon}
-												className="size-[1.125rem] shrink-0 text-primary"
-											/>
-											<span className="truncate">{item.label}</span>
-										</Link>
-									</li>
-								);
-							})}
-						</ul>
-					</div>
-				))}
+			<nav aria-label="Admin-Navigation">
+				<SourceList>
+					{sections.map((s) => (
+						<SourceSection key={s.label} title={s.label}>
+							{s.items.map((item) => (
+								<SourceItem
+									key={item.href}
+									href={item.href}
+									current={item.href === active}
+									icon={<NavIcon name={item.icon} />}
+									title={item.label}
+									truncate
+								/>
+							))}
+						</SourceSection>
+					))}
+				</SourceList>
 			</nav>
 		);
 	return (

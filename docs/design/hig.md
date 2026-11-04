@@ -106,13 +106,21 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
   (Rot). Destruktiv ist nie die Primärrolle. Je Ansicht höchstens 1–2 hervorgehoben; Vorrang über
   Stil, nicht über Größe. Beschriftung mit Verb; „…“, wenn noch eine Eingabe folgt. Ladezustand im
   Button mit geänderter Beschriftung („Speichern“ → „Speichert …“). Kapselform.
-- **Listen:** gruppiert und eingerückt (`ListSection`), Kopf und Fuß in Footnote, Zeilen ≥ 44 px,
-  Pfeil nach rechts nur für Drill-down, Werte rechts in Grau, Trennlinien eingerückt.
+- **Listen:** gruppiert und eingerückt (`ListSection`), Kopf und Fuß in Footnote (Kopf grau und
+  halbfett wie die Gruppen der Seitenleiste), Symbol in Akzentfarbe ohne Kachel (wie die Postfächer
+  in Mail), Zeilen ≥ 44 px, Pfeil nach rechts nur für Drill-down, Werte rechts in Grau,
+  Trennlinien eingerückt.
 - **Tabellen:** Spaltenköpfe ohne Versalien, Sortieren per Klick, Hover als Tönung (kein
   Vergrößern), Auslassung in der Mitte für lange Kennungen (`MiddleEllipsis`), markierbar.
   Am Handy werden Tabellen zu Listen.
 - **Seitenleiste:** höchstens zwei Ebenen, nicht standardmäßig versteckt, nichts Kritisches ganz
-  unten.
+  unten. Eine Sprache für alles, was navigiert: Menü von Klick, both.money und Admin-Portal und
+  die Listen neben dem Inhalt (Einstellungen, Hilfe, Kapitel der Gap-Analyse) nutzen dieselben
+  Bausteine (`components/ui/source-list.tsx`: `SourceList`, `SourceSection`, `SourceItem`;
+  einklappbar `source-group.tsx`) — Symbol in Akzentfarbe ohne Kachel, keine Karten,
+  Gruppenkopf klein und grau, Auswahl getönt. Ab 1024 px liegt eine solche Liste auf der Fläche
+  der Seitenleiste (`lg:bg-sidebar`, Trennlinie rechts), damit Menü und Liste eine Spalte bilden;
+  am Handy bleibt die gruppierte Liste.
 - **Tab-Leiste (Handy):** höchstens fünf Tabs, nur Navigation, nie Aktionen, keine ausgeblendeten
   oder deaktivierten Tabs, möglichst kein „Mehr“.
 - **Werkzeugleiste/Kopf:** Titel kurz; Zurück als Symbol (Chevron) mit dem Titel der Elternseite;
@@ -215,7 +223,8 @@ Varianten, die auf dem grauen Seitengrund (#F2F2F7) mindestens 4,5 : 1 erreichen
     Wort die Kartenbreite (200 % Text).
 - Einstellungen nach dem Muster der iOS-Einstellungen: Bereiche als gruppierte Liste
   (`lib/settings/sections.ts`), am Handy erst Liste, dann Bereich mit Rückweg, ab Desktop Liste
-  links und Bereich rechts; Adresse bleibt `?tab=`.
+  links in Seitenleisten-Optik (`ListSearch source="wide"`) und Bereich rechts; Adresse bleibt
+  `?tab=`.
 - Klebende Leisten am unteren Rand (Speichern, Auswahl) mit `sticky bottom-(--bar-offset)` und
   `.material-bar`: `--bar-offset` hebt sie am Handy über die Tab-Leiste.
 - Spalten mit eigenem Bedienelement in `RegisterPage` tragen `interactive: true`, damit der

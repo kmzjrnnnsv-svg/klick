@@ -9,50 +9,47 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { SourceGroup } from "@/components/ui/source-group";
+import { SourceItem, SourceItems } from "@/components/ui/source-list";
 import { cn } from "@/lib/utils";
 import { NavIcon } from "./nav-icon";
 
-// Seitenleiste ab 1024 px nach Apple HIG: Gruppen, Symbole in Akzentfarbe,
-// Auswahl getönt. Zuordnung pure in lib/nav.ts.
+// Seitenleiste ab 1024 px nach Apple HIG — dieselben Bausteine wie das Menü
+// von Klick (components/ui/source-list.tsx, source-group.tsx): Gruppen
+// einklappbar (Zustand im Browser, die Gruppe der offenen Seite bleibt auf),
+// Symbole in Akzentfarbe, Auswahl getönt. Zuordnung pure in lib/nav.ts.
+const CLOSED_KEY = "both.nav.closed";
+
 export function SidebarLinks({ groups }: { groups: WalletNavGroup[] }) {
 	const t = useTranslations("Shell");
 	const path = usePathname();
 	const active = activeWalletNav(groups, path);
 	return (
 		<nav aria-label={t("nav")} className="flex flex-col gap-4 text-subhead">
-			{groups.map((g) => (
-				<div key={g.key} className="flex flex-col gap-0.5">
-					{g.labelKey && (
-						<p className="px-2 pb-0.5 font-semibold text-footnote text-muted-foreground">
-							{t(g.labelKey)}
-						</p>
-					)}
-					<ul className="flex flex-col gap-px">
-						{g.items.map((i) => {
-							const on = i.key === active;
-							return (
-								<li key={i.key}>
-									<Link
-										href={i.href}
-										aria-current={on ? "page" : undefined}
-										className={cn(
-											"flex h-8 items-center gap-2.5 rounded-md px-2 text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:h-11",
-											on &&
-												"bg-primary/12 font-semibold hover:bg-primary/12 dark:bg-primary/20",
-										)}
-									>
-										<NavIcon
-											name={i.icon}
-											className="size-[1.125rem] shrink-0 text-primary"
-										/>
-										<span className="truncate">{t(i.labelKey)}</span>
-									</Link>
-								</li>
-							);
-						})}
-					</ul>
-				</div>
-			))}
+			{groups.map((g) => {
+				const items = g.items.map((i) => (
+					<SourceItem
+						key={i.key}
+						href={i.href}
+						current={i.key === active}
+						icon={<NavIcon name={i.icon} />}
+						title={t(i.labelKey)}
+						truncate
+					/>
+				));
+				if (!g.labelKey) return <SourceItems key={g.key}>{items}</SourceItems>;
+				return (
+					<SourceGroup
+						key={g.key}
+						id={g.key}
+						title={t(g.labelKey)}
+						active={g.items.some((i) => i.key === active)}
+						storageKey={CLOSED_KEY}
+					>
+						{items}
+					</SourceGroup>
+				);
+			})}
 		</nav>
 	);
 }
