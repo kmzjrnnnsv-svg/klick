@@ -405,12 +405,12 @@ export const BASICS: HelpArticle[] = [
 			},
 			{
 				id: "konten",
-				heading: "Konten aus Entra ID prüfen lassen",
+				heading: "Konten aus Entra ID oder Google Workspace prüfen lassen",
 				body: [
-					"Unter Einstellungen > Integrationen verbindet eine Inhaber:in Microsoft Entra ID, nur lesend. Danach prüft Klick jeden Tag vier Controls automatisch: MFA (CC-IAM-03), Admins (CC-IAM-04), Austritte (CC-IAM-02) und Rezertifizierung (CC-IAM-05). Das Ergebnis steht am Control unter „Automatische Prüfung“ und als Test im Testprogramm.",
+					"Unter Einstellungen > Integrationen verbindet eine Inhaber:in Microsoft Entra ID oder Google Workspace, nur lesend. Bei Entra ID gibt eine Person mit Administratorrechten Klick über einen Freigabe-Link frei. Bei Google trägt sie in der Admin-Konsole unter domänenweiter Delegierung die Client-ID von Klick mit drei Lese-Bereichen ein; danach gibst du in Klick die Adresse einer Super-Admin-Person an. Ab dann prüft Klick jeden Tag vier Controls automatisch: MFA (CC-IAM-03), Admins (CC-IAM-04), Austritte (CC-IAM-02) und Rezertifizierung (CC-IAM-05). Das Ergebnis steht am Control unter „Automatische Prüfung“ und als Test im Testprogramm.",
 					"Team > Konten zeigt alle Konten mit Filtern wie „Ohne MFA“, „Admins“ oder „Ausgeschieden“. Auf der Seite eines Kontos ordnest du es einer Person in Klick zu, markierst es als ausgeschieden oder nimmst ein Notfall- oder Dienstkonto begründet und befristet aus den Prüfungen aus.",
 				],
-				tip: "Klick ändert nie etwas im Tenant. Deaktiviere Konten ausgeschiedener Personen selbst, sonst schlägt die Prüfung „Austritte“ nach der Frist an.",
+				tip: "Klick ändert nie etwas im Verzeichnis. Deaktiviere Konten ausgeschiedener Personen selbst, sonst schlägt die Prüfung „Austritte“ nach der Frist an. Google meldet kein Austrittsdatum: Markier ausgeschiedene Personen deshalb in Klick als ausgeschieden.",
 			},
 			{
 				id: "zugriffspruefung",
