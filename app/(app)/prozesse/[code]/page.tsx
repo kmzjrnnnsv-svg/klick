@@ -5,6 +5,8 @@ import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { BiaSummary } from "@/components/bcm/bia-summary";
 import { ChainSection } from "@/components/bcm/chain-section";
+import { CreateExerciseButton } from "@/components/bcm/create-exercise-button";
+import { ExerciseList } from "@/components/bcm/exercise-list";
 import { PlanSummary } from "@/components/bcm/plan-summary";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
@@ -36,6 +38,7 @@ import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { biaIssues } from "@/lib/bcm/bia";
 import { bcmChain } from "@/lib/bcm/chain";
+import { exercisesForProcess } from "@/lib/bcm/exercise-queries";
 import { planIssues } from "@/lib/bcm/plan";
 import { bcmPlanFor } from "@/lib/bcm/plan-queries";
 import { CONTROLS } from "@/lib/compliance/catalog";
@@ -118,6 +121,7 @@ async function ProcessDetailPage({
 			siteRows,
 			method,
 			plan,
+			exercises,
 		] = await Promise.all([
 			listComments(tx, ctx.orgId, "process", id),
 			historyFor(tx, `process:${id}`),
@@ -135,6 +139,7 @@ async function ProcessDetailPage({
 				.orderBy(sites.name),
 			orgRiskMethod(tx, ctx.orgId),
 			bcmPlanFor(tx, ctx.orgId, id),
+			exercisesForProcess(tx, ctx.orgId, id),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -161,6 +166,7 @@ async function ProcessDetailPage({
 			siteRows,
 			method,
 			plan,
+			exercises,
 			names,
 		};
 	});
@@ -182,6 +188,7 @@ async function ProcessDetailPage({
 		siteRows,
 		method,
 		plan,
+		exercises,
 	} = data;
 	const site = siteRows.find((x) => x.id === p.siteId) ?? null;
 
@@ -481,6 +488,17 @@ async function ProcessDetailPage({
 				/>
 			</Section>
 
+			<Section
+				title={t("exercisesTitle")}
+				actions={
+					allows(ctx, { control: ["update"] }) ? (
+						<CreateExerciseButton processId={p.id} />
+					) : undefined
+				}
+			>
+				<ExerciseList rows={exercises} />
+			</Section>
+
 			<Section title={t("raci")}>
 				<p className="mb-3 text-muted-foreground text-footnote">
 					{t("raciLead")}
@@ -690,6 +708,7 @@ async function ProcessDetailPage({
 }
 
 export default withMessages(ProcessDetailPage, [
+	"Bcm",
 	"Approvals",
 	"Auth",
 	"Common",

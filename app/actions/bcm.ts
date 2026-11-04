@@ -2,7 +2,8 @@
 
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { bcmPlans, processes } from "@/db/schema";
+import { getTranslations } from "next-intl/server";
+import { bcmExercises, bcmPlans, processes, sites, tasks } from "@/db/schema";
 import type { ProcessBia } from "@/db/schema/registers";
 import { safeAction } from "@/lib/actions/safe";
 import { GateBlocked } from "@/lib/approvals/gate-error";
@@ -10,16 +11,30 @@ import { gateApproval } from "@/lib/approvals/service";
 import { requireOrg, toOrgCtx } from "@/lib/auth/guards";
 import { normalizeBia, suggestTargets } from "@/lib/bcm/bia";
 import {
+	exerciseControl,
+	exerciseOutcome,
+	formatMinutes,
+	normalizeExercise,
+	seedScript,
+} from "@/lib/bcm/exercise";
+import {
 	normalizePlan,
 	planIssues,
 	releasable,
 	reviewDate,
 } from "@/lib/bcm/plan";
+import { insertControlTest } from "@/lib/compliance/control-test-service";
+import { isFunctionKey } from "@/lib/compliance/function-key";
+import { userNames } from "@/lib/compliance/queries";
 import { levelCount } from "@/lib/compliance/risk-method";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
+import { implementationFor } from "@/lib/evidence-studio/implementation";
 import { orgRiskMethod } from "@/lib/org/queries";
 import {
+	completeBcmExerciseSchema,
+	createBcmExerciseSchema,
 	releaseBcmPlanSchema,
+	saveBcmExerciseSchema,
 	saveBcmPlanSchema,
 	saveBiaSchema,
 } from "@/lib/validation/bcm";
@@ -313,3 +328,308 @@ async function releaseBcmPlanImpl(
 
 export const saveBcmPlan = safeAction("saveBcmPlan", saveBcmPlanImpl);
 export const releaseBcmPlan = safeAction("releaseBcmPlan", releaseBcmPlanImpl);
+
+// ── Notfallübungen (N4) ────────────────────────────────────────────────────
+
+const EXERCISE_TITLE: Record<string, string> = {
+	tabletop: "Planspiel",
+	walkthrough: "Begehung",
+	dry_run: "Trockenlauf",
+	restore_test: "Wiederherstellungstest",
+	failover: "Umschalttest",
+	full: "Vollübung",
+};
+
+// Übung anlegen: Drehbuch aus dem Notfallplan des Prozesses (Alarmierung
+// mit Funktionsschlüssel; die Namen löst die Seite auf)
+async function createBcmExerciseImpl(
+	input: unknown,
+): Promise<ActionResult<{ id: string }>> {
+	const c = await requireOrg({ control: ["update"] });
+	const parsed = createBcmExerciseSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const res = await mutateOrg<ActionResult<{ id: string }>>(
+		toOrgCtx(c),
+		async (tx) => {
+			let name = "";
+			let planVersion: number | null = null;
+			let script = seedScript(null, (r) => r);
+			if (d.processId) {
+				const [p] = await tx
+					.select({
+						id: processes.id,
+						code: processes.code,
+						name: processes.name,
+					})
+					.from(processes)
+					.where(
+						and(
+							eq(processes.id, d.processId),
+							eq(processes.organizationId, c.orgId),
+						),
+					)
+					.limit(1);
+				if (!p) return { result: { ok: false, error: "notFound" }, audit: [] };
+				name = `${p.code} ${p.name}`;
+				const [plan] = await tx
+					.select({ content: bcmPlans.content, version: bcmPlans.version })
+					.from(bcmPlans)
+					.where(
+						and(
+							eq(bcmPlans.organizationId, c.orgId),
+							eq(bcmPlans.processId, p.id),
+						),
+					)
+					.limit(1);
+				if (plan) {
+					planVersion = plan.version || null;
+					// Stellen der Alarmierung lesbar: Funktion übersetzt, Person mit Namen
+					const tf = await getTranslations("Functions");
+					const people = await userNames(
+						tx,
+						plan.content.alert
+							.map((a) => a.who)
+							.filter((w) => w && !w.startsWith("function:")),
+					);
+					script = seedScript(plan.content, (ref) => {
+						if (!ref.startsWith("function:"))
+							return people.get(ref) ?? "Unbekannt";
+						const key = ref.slice("function:".length);
+						if (key.startsWith("role:")) return "Eigene Rolle";
+						return isFunctionKey(key)
+							? tf(key as Parameters<typeof tf>[0])
+							: key;
+					});
+				}
+			}
+			if (d.siteId) {
+				const [site] = await tx
+					.select({ id: sites.id, name: sites.name })
+					.from(sites)
+					.where(and(eq(sites.id, d.siteId), eq(sites.organizationId, c.orgId)))
+					.limit(1);
+				if (!site)
+					return { result: { ok: false, error: "notFound" }, audit: [] };
+				name ||= site.name;
+			}
+			const [row] = await tx
+				.insert(bcmExercises)
+				.values({
+					organizationId: c.orgId,
+					processId: d.processId ?? null,
+					siteId: d.siteId ?? null,
+					kind: d.kind,
+					title: `${EXERCISE_TITLE[d.kind]}: ${name}`.slice(0, 200),
+					plannedAt: d.plannedAt ?? null,
+					script,
+					participants: [],
+					measures: [],
+					planVersion,
+					createdBy: c.userId,
+				})
+				.returning({ id: bcmExercises.id });
+			if (!row) throw new Error("insert failed");
+			return {
+				result: { ok: true, data: { id: row.id } },
+				audit: {
+					action: "bcm_exercise.created",
+					target: `bcm_exercise:${row.id}`,
+					after: {
+						kind: d.kind,
+						processId: d.processId ?? null,
+						siteId: d.siteId ?? null,
+						plannedAt: d.plannedAt ?? null,
+					},
+				},
+			};
+		},
+	);
+	revalidatePath("/testprogramm", "layout");
+	revalidatePath("/prozesse", "layout");
+	return res;
+}
+
+async function saveBcmExerciseImpl(input: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ control: ["update"] });
+	const parsed = saveBcmExerciseSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const clean = normalizeExercise(d);
+	const res = await mutateOrg<ActionResult>(toOrgCtx(c), async (tx) => {
+		const [ex] = await tx
+			.select({ id: bcmExercises.id, status: bcmExercises.status })
+			.from(bcmExercises)
+			.where(
+				and(
+					eq(bcmExercises.id, d.id),
+					eq(bcmExercises.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		if (!ex) return { result: { ok: false, error: "notFound" }, audit: [] };
+		// abgeschlossene Übungen sind fest (der Test steht im Testprogramm)
+		if (ex.status === "done")
+			return { result: { ok: false, error: "exercise_done" }, audit: [] };
+		await tx
+			.update(bcmExercises)
+			.set({
+				...clean,
+				kind: d.kind,
+				plannedAt: d.plannedAt,
+				startedAt: d.startedAt,
+				endedAt: d.endedAt,
+				updatedAt: new Date(),
+			})
+			.where(eq(bcmExercises.id, ex.id));
+		return {
+			result: { ok: true, data: undefined },
+			audit: {
+				action: "bcm_exercise.saved",
+				target: `bcm_exercise:${ex.id}`,
+				after: {
+					steps: clean.script.length,
+					participants: clean.participants.length,
+					recoveryMinutes: clean.recoveryMinutes,
+					dataLossMinutes: clean.dataLossMinutes,
+				},
+			},
+		};
+	});
+	revalidatePath("/testprogramm", "layout");
+	return res;
+}
+
+// Abschließen: Ergebnis aus Messung und Drehbuch, Test im Testprogramm mit
+// Prozess und Standort (schließt die Lücke; nicht bestanden öffnet eine
+// Abweichung), Maßnahmen als Aufgaben am Prozess
+async function completeBcmExerciseImpl(
+	input: unknown,
+): Promise<ActionResult<{ result: "pass" | "partial" | "fail" }>> {
+	const c = await requireOrg({ control: ["update"] });
+	const parsed = completeBcmExerciseSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const res = await mutateOrg<
+		ActionResult<{ result: "pass" | "partial" | "fail" }>
+	>(toOrgCtx(c), async (tx) => {
+		const [ex] = await tx
+			.select()
+			.from(bcmExercises)
+			.where(
+				and(
+					eq(bcmExercises.id, parsed.data.id),
+					eq(bcmExercises.organizationId, c.orgId),
+				),
+			)
+			.limit(1);
+		if (!ex) return { result: { ok: false, error: "notFound" }, audit: [] };
+		if (ex.status === "done")
+			return { result: { ok: false, error: "exercise_done" }, audit: [] };
+		const [p] = ex.processId
+			? await tx
+					.select({
+						id: processes.id,
+						code: processes.code,
+						rtoHours: processes.rtoHours,
+						rpoHours: processes.rpoHours,
+					})
+					.from(processes)
+					.where(eq(processes.id, ex.processId))
+					.limit(1)
+			: [];
+		const outcome = exerciseOutcome(
+			ex.kind,
+			{ rtoHours: p?.rtoHours ?? null, rpoHours: p?.rpoHours ?? null },
+			{
+				recoveryMinutes: ex.recoveryMinutes,
+				dataLossMinutes: ex.dataLossMinutes,
+			},
+			ex.script,
+		);
+		const impl = await implementationFor(tx, c.orgId, exerciseControl(ex.kind));
+		if (!impl) return { result: { ok: false, error: "notFound" }, audit: [] };
+		const notes = [
+			ex.title,
+			ex.scenario && `Szenario: ${ex.scenario}`,
+			ex.recoveryMinutes !== null &&
+				`Wiederanlauf gemessen: ${formatMinutes(ex.recoveryMinutes)}${p?.rtoHours != null ? ` (RTO ${p.rtoHours} h)` : ""}`,
+			ex.dataLossMinutes !== null &&
+				`Datenverlust gemessen: ${formatMinutes(ex.dataLossMinutes)}${p?.rpoHours != null ? ` (RPO ${p.rpoHours} h)` : ""}`,
+			ex.lessons && `Erkenntnisse: ${ex.lessons}`,
+			`Übung: /testprogramm/uebungen/${ex.id}`,
+		]
+			.filter(Boolean)
+			.join("\n");
+		const test = await insertControlTest(
+			tx,
+			{ orgId: c.orgId, userId: c.userId },
+			{
+				implementationId: impl.id,
+				method: "bcm_exercise",
+				scope: ex.title,
+				testedAt: ex.endedAt ?? new Date(),
+				result: outcome.result,
+				notes,
+				processId: ex.processId,
+				siteId: ex.siteId,
+			},
+		);
+		for (const m of ex.measures)
+			await tx.insert(tasks).values({
+				organizationId: c.orgId,
+				title: m.slice(0, 300),
+				description: `Aus der Übung „${ex.title}“: /testprogramm/uebungen/${ex.id}`,
+				assigneeUserId: c.userId,
+				createdByUserId: c.userId,
+				priority: outcome.result === "fail" ? "high" : "normal",
+				entityType: p ? "process" : null,
+				entityId: p?.id ?? null,
+				sourceKind: "bcm_exercise",
+			});
+		await tx
+			.update(bcmExercises)
+			.set({
+				status: "done",
+				result: outcome.result,
+				controlTestId: test.id,
+				completedBy: c.userId,
+				endedAt: ex.endedAt ?? new Date(),
+				updatedAt: new Date(),
+			})
+			.where(eq(bcmExercises.id, ex.id));
+		return {
+			result: { ok: true, data: { result: outcome.result } },
+			audit: [
+				...test.audits,
+				{
+					action: "bcm_exercise.completed",
+					target: `bcm_exercise:${ex.id}`,
+					after: {
+						result: outcome.result,
+						rtoMet: outcome.rtoMet,
+						rpoMet: outcome.rpoMet,
+						measures: ex.measures.length,
+						controlTestId: test.id,
+					},
+				},
+			],
+		};
+	});
+	revalidatePath("/testprogramm", "layout");
+	revalidatePath("/prozesse", "layout");
+	revalidatePath("/controls", "layout");
+	return res;
+}
+
+export const createBcmExercise = safeAction(
+	"createBcmExercise",
+	createBcmExerciseImpl,
+);
+export const saveBcmExercise = safeAction(
+	"saveBcmExercise",
+	saveBcmExerciseImpl,
+);
+export const completeBcmExercise = safeAction(
+	"completeBcmExercise",
+	completeBcmExerciseImpl,
+);

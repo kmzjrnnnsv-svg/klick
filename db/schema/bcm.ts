@@ -9,8 +9,10 @@ import {
 } from "drizzle-orm/pg-core";
 import { orgPolicy } from "../rls";
 import { json, orgId, pk, ts, userRef } from "./_shared";
-import type { AlertChannel } from "./enums";
-import { processes } from "./registers";
+import type { AlertChannel, ExerciseKind } from "./enums";
+import { EXERCISE_KINDS } from "./enums";
+import { controlTests } from "./grc";
+import { processes, sites } from "./registers";
 
 // Notfallmanagement (N3): ein Notfall- und Wiederanlaufplan je Prozess,
 // strukturiert statt als Freitext. Schreiben nur über lib/bcm/plan-service.ts.
@@ -74,3 +76,64 @@ export const bcmPlans = pgTable(
 ).enableRLS();
 
 export type BcmPlan = typeof bcmPlans.$inferSelect;
+
+// Notfallübungen (N4): Drehbuch, Teilnehmende, Messung gegen RTO/RPO;
+// abgeschlossen schreibt sie den Test an CC-BCM-05 (bzw. CC-BCM-03) mit
+// Prozess und Standort. Schreiben nur über app/actions/bcm.ts.
+export type ExerciseScriptStep = {
+	text: string;
+	// Soll und Ist in Minuten ab Beginn
+	expectedMinutes: number | null;
+	actualMinutes: number | null;
+	// null = nicht geprüft
+	ok: boolean | null;
+	note: string;
+};
+
+export type ExerciseParticipant = {
+	// function:<key>, Konto-ID oder freier Name
+	who: string;
+	role: string;
+};
+
+export const bcmExercises = pgTable(
+	"bcm_exercises",
+	{
+		id: pk(),
+		organizationId: orgId(),
+		processId: uuid().references(() => processes.id, { onDelete: "cascade" }),
+		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
+		kind: text({ enum: EXERCISE_KINDS }).$type<ExerciseKind>().notNull(),
+		title: text().notNull(),
+		status: text({ enum: ["planned", "done"] })
+			.notNull()
+			.default("planned"),
+		plannedAt: date(),
+		scenario: text().notNull().default(""),
+		script: json<ExerciseScriptStep[]>().notNull(),
+		participants: json<ExerciseParticipant[]>().notNull(),
+		startedAt: ts(),
+		endedAt: ts(),
+		// gemessen: bis der Prozess wieder lief, und wie alt die Daten danach
+		recoveryMinutes: integer(),
+		dataLossMinutes: integer(),
+		// Fassung des Notfallplans, die geübt wurde
+		planVersion: integer(),
+		lessons: text().notNull().default(""),
+		measures: json<string[]>().notNull(),
+		result: text({ enum: ["pass", "partial", "fail"] }),
+		controlTestId: uuid().references(() => controlTests.id, {
+			onDelete: "set null",
+		}),
+		createdBy: userRef(),
+		completedBy: userRef(),
+		createdAt: ts().notNull().defaultNow(),
+		updatedAt: ts().notNull().defaultNow(),
+	},
+	(t) => [
+		index("bcm_exercises_org_process_idx").on(t.organizationId, t.processId),
+		orgPolicy("bcm_exercises"),
+	],
+).enableRLS();
+
+export type BcmExercise = typeof bcmExercises.$inferSelect;
