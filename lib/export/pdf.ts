@@ -351,6 +351,145 @@ function signatures(lay: Layout, b: Extract<DocBlock, { type: "signatures" }>) {
 	lay.y -= 4;
 }
 
+const MONTHS = [
+	"Jan",
+	"Feb",
+	"Mär",
+	"Apr",
+	"Mai",
+	"Jun",
+	"Jul",
+	"Aug",
+	"Sep",
+	"Okt",
+	"Nov",
+	"Dez",
+];
+const dayIndex = (iso: string) =>
+	Math.floor(Date.parse(`${iso}T00:00:00Z`) / 86_400_000);
+
+// Zeile auf eine Breite kürzen (mit „…“)
+function fitLine(text: string, font: PdfFontKey, size: number, w: number) {
+	const codes = toWinAnsi(text);
+	if (textWidth(codes, font, size) <= w) return codes;
+	const dots = toWinAnsi("…");
+	let cut = codes.length;
+	while (
+		cut > 1 &&
+		textWidth([...codes.slice(0, cut), ...dots], font, size) > w
+	)
+		cut -= 1;
+	return [...codes.slice(0, cut), ...dots];
+}
+
+// Balkenplan: links die Beschriftung, rechts die Zeitachse mit Monaten;
+// Kopf mit Monaten auf jeder Seite, Monatslinien unter den Balken
+function gantt(lay: Layout, b: Extract<DocBlock, { type: "gantt" }>) {
+	const labelW = 190;
+	const x0 = M.left + labelW + 6;
+	const barW = PAGE.w - M.right - x0;
+	const first = dayIndex(b.start);
+	const span = Math.max(1, dayIndex(b.end) - first + 1);
+	const xAt = (iso: string, endOfDay = false) =>
+		x0 + ((dayIndex(iso) - first + (endOfDay ? 1 : 0)) / span) * barW;
+	const shades = [0.22, 0.55, 0.8];
+	const gray = new Map(
+		b.legend.map(([k], i) => [k, shades[i] ?? 0.55] as const),
+	);
+	// Monatsanfänge im Zeitraum
+	const ticks: { x: number; label: string }[] = [];
+	const s = new Date(`${b.start}T00:00:00Z`);
+	let y = s.getUTCFullYear();
+	let m = s.getUTCMonth();
+	for (let k = 0; k < 240; k += 1) {
+		const iso = `${y}-${String(m + 1).padStart(2, "0")}-01`;
+		if (dayIndex(iso) > dayIndex(b.end)) break;
+		const label = `${MONTHS[m]} ${String(y).slice(2)}`;
+		if (dayIndex(iso) >= first) ticks.push({ x: xAt(iso), label });
+		else {
+			// Beginn mitten im Monat: Monat am Anfang der Achse, wenn Platz ist
+			const next = new Date(Date.UTC(y, m + 1, 1)).toISOString().slice(0, 10);
+			if (xAt(next) - x0 >= 30) ticks.push({ x: x0, label });
+		}
+		m += 1;
+		if (m === 12) {
+			m = 0;
+			y += 1;
+		}
+	}
+	const monthW = (barW / span) * 30.4;
+	const step = Math.max(1, Math.ceil(30 / Math.max(1, monthW)));
+	const rowH = 11;
+	const axisH = 16;
+	let gridTop = 0;
+	let gridOps = 0;
+	const closeGrid = () => {
+		// Monatslinien vor die Balken setzen (liegen darunter)
+		const lines = ticks.map(
+			(t) =>
+				`0.88 G 0.35 w ${num(t.x)} ${num(gridTop)} m ${num(t.x)} ${num(lay.y)} l S`,
+		);
+		lay.ops.splice(gridOps, 0, ...lines);
+	};
+	const axis = () => {
+		const top = lay.y;
+		ticks.forEach((t, i) => {
+			if (i % step === 0)
+				lay.text(toWinAnsi(t.label), t.x + 1.5, top - 10, "regular", 7, 0.4);
+		});
+		lay.line(x0, top - axisH, x0 + barW, top - axisH, 0.6, 0.5);
+		lay.y -= axisH;
+		gridTop = lay.y;
+		gridOps = lay.ops.length;
+	};
+	const ensureRow = (h: number) => {
+		if (lay.y - h >= M.bottom) return;
+		closeGrid();
+		lay.newPage();
+		axis();
+	};
+	lay.ensure(axisH + 3 * rowH);
+	axis();
+	for (const g of b.groups) {
+		ensureRow(rowH * 2);
+		lay.y -= rowH + 2;
+		lay.text(
+			fitLine(g.label, "bold", 8, labelW),
+			M.left,
+			lay.y + 2.5,
+			"bold",
+			8,
+			0.15,
+		);
+		for (const r of g.rows) {
+			ensureRow(rowH);
+			lay.y -= rowH;
+			lay.text(
+				fitLine(r.label, "regular", 7.5, labelW - 8),
+				M.left + 8,
+				lay.y + 2.5,
+				"regular",
+				7.5,
+			);
+			const bx = xAt(r.start);
+			const bw = Math.max(1.5, xAt(r.end, true) - bx);
+			lay.fill(bx, lay.y + 2, bw, rowH - 4, gray.get(r.shade) ?? 0.55);
+		}
+	}
+	closeGrid();
+	lay.y -= 8;
+	// Legende
+	lay.ensure(14);
+	let lx = M.left;
+	for (const [k, label] of b.legend) {
+		lay.fill(lx, lay.y - 8, 14, 6, gray.get(k) ?? 0.55);
+		const codes = toWinAnsi(label);
+		lay.text(codes, lx + 18, lay.y - 8, "regular", 7.5, 0.3);
+		lx += 18 + textWidth(codes, "regular", 7.5) + 14;
+	}
+	lay.y -= 18;
+}
+
 function block(lay: Layout, b: DocBlock) {
 	switch (b.type) {
 		case "heading": {
@@ -400,6 +539,9 @@ function block(lay: Layout, b: DocBlock) {
 			return;
 		case "table":
 			table(lay, b);
+			return;
+		case "gantt":
+			gantt(lay, b);
 			return;
 		case "signatures":
 			signatures(lay, b);

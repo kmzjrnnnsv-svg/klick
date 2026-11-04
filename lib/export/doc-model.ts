@@ -14,6 +14,19 @@ export type DocBlock =
 			empty?: string;
 	  }
 	| {
+			// Balkenplan (Umsetzungsplan): Zeilen je Gruppe, Datum als ISO-Tag;
+			// im PDF als Balken in Grautönen je `shade`, in Markdown als Tabelle
+			type: "gantt";
+			start: string;
+			end: string;
+			groups: {
+				label: string;
+				rows: { label: string; start: string; end: string; shade: string }[];
+			}[];
+			// Reihenfolge = Grautöne von dunkel nach hell
+			legend: [shade: string, label: string][];
+	  }
+	| {
 			type: "signatures";
 			signers: {
 				role: string;
@@ -81,6 +94,18 @@ export function renderBlocksMarkdown(blocks: readonly DocBlock[]): string {
 					);
 				out.push("");
 				break;
+			case "gantt": {
+				const legend = new Map(b.legend);
+				out.push("| Gruppe | Zeile | Art | Beginn | Ende |");
+				out.push("| --- | --- | --- | --- | --- |");
+				for (const g of b.groups)
+					for (const r of g.rows)
+						out.push(
+							`| ${cell(g.label)} | ${cell(r.label)} | ${cell(legend.get(r.shade) ?? r.shade)} | ${r.start} | ${r.end} |`,
+						);
+				out.push("");
+				break;
+			}
 			case "signatures":
 				out.push("| Funktion | Name | Unterschrieben |", "| --- | --- | --- |");
 				for (const s of b.signers)

@@ -4314,6 +4314,8 @@
 		"planPerson": "Eine Person",
 		"planNoOwner": "Ohne Zuständigkeit: {area}",
 		"planAreaPrivacy": "Datenschutz",
+		"planExportPdf": "Plan als PDF",
+		"planExportCsv": "Plan als CSV",
 		"planEmpty": "Keine offenen Maßnahmen, also gibt es nichts zu planen.",
 		"measuresFromPlan": "Beginn, Ende und Zuständige aus dem Umsetzungsplan",
 		"measuresFromPlanHint": "Jede Aufgabe bekommt Beginn und Ende aus dem Plan und geht an die Person, die für das Control verantwortlich ist.",

@@ -100,6 +100,7 @@ export const IMPLEMENT: HelpArticle[] = [
 					"Klick schätzt die Dauer je Maßnahme nach Aufwand: klein 5, mittel 15, groß 40 Arbeitstage. Ist eine Maßnahme schon teilweise umgesetzt, halb so lang. Eine Richtlinie mit Freigabe braucht 5 Tage mehr.",
 					"Manches kommt zuerst: erst Geltungsbereich und Leitlinie, dann Inventar und Risiko, und in jedem Bereich die Richtlinie vor der Technik. Was dieselbe Funktion verantwortet, läuft nacheinander.",
 					"Ein Rahmenwerk ist bereit, wenn jede Anforderung erfüllt ist. Trägt eine Maßnahme sie ganz, reicht diese. Tragen sie nur mehrere teilweise, braucht es alle.",
+					"Unter dem Plan lädst du ihn als PDF für die Geschäftsleitung oder als CSV für Tabellen und Projektwerkzeuge. Der Bericht der Gap-Analyse enthält ihn ebenfalls.",
 				],
 				tip: "Beginn, wie viele Maßnahmen gleichzeitig laufen und die Dauer jeder Maßnahme kannst du ändern. Klick speichert nach zwei Sekunden und rechnet neu. Feiertage zählen noch nicht.",
 			},
