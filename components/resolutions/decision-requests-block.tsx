@@ -38,7 +38,9 @@ export async function DecisionRequestsBlock({
 		approverHint: await managementApproverHint(tx, ctx.orgId, ctx.userId),
 	}));
 	const canAsk = allows(ctx, { decision: ["create"] });
-	const empty = data.requests.length === 0 && data.resolutions.length === 0;
+	// nur offene Anfragen stehen in der Liste; entschiedene sind Beschlüsse
+	const open = data.requests.filter((q) => q.status === "open");
+	const empty = open.length === 0 && data.resolutions.length === 0;
 	return (
 		<Section
 			title={t("blockTitle")}
@@ -71,24 +73,22 @@ export async function DecisionRequestsBlock({
 							</p>
 						</li>
 					))}
-					{data.requests
-						.filter((q) => q.status === "open")
-						.map((q) => (
-							<li key={q.id} className="flex items-center gap-2 py-1.5">
-								<Link
-									href="/beschluesse?tab=anfragen"
-									className="min-w-0 truncate hover:underline"
-								>
-									<span className="whitespace-nowrap font-mono text-muted-foreground text-footnote">
-										{q.code}
-									</span>{" "}
-									{q.question}
-								</Link>
-								<Badge variant="warning" className="ml-auto shrink-0">
-									{t("status_open")}
-								</Badge>
-							</li>
-						))}
+					{open.map((q) => (
+						<li key={q.id} className="flex items-center gap-2 py-1.5">
+							<Link
+								href="/beschluesse?tab=anfragen"
+								className="min-w-0 truncate hover:underline"
+							>
+								<span className="whitespace-nowrap font-mono text-muted-foreground text-footnote">
+									{q.code}
+								</span>{" "}
+								{q.question}
+							</Link>
+							<Badge variant="warning" className="ml-auto shrink-0">
+								{t("status_open")}
+							</Badge>
+						</li>
+					))}
 				</ul>
 			)}
 		</Section>
