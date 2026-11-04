@@ -228,7 +228,13 @@ export default async function WalletPairPage({
 								{t("statAvgIn")}
 							</dt>
 							<dd className="mt-1 tabular font-semibold text-title-3">
-								{avg !== null ? money(avg) : "—"}
+								{avg !== null ? (
+									money(avg)
+								) : (
+									<span className="font-normal text-muted-foreground text-subhead">
+										{t("statAvgNone")}
+									</span>
+								)}
 							</dd>
 						</div>
 						<div className="rounded-2xl bg-card p-4">
@@ -244,9 +250,13 @@ export default async function WalletPairPage({
 								{t("statHolding")}
 							</dt>
 							<dd className="mt-1 tabular font-semibold text-title-3">
-								{current !== null && holding > 0n
-									? money(amountValue(holding, decimals, current))
-									: "—"}
+								{current !== null && holding > 0n ? (
+									money(amountValue(holding, decimals, current))
+								) : (
+									<span className="font-normal text-muted-foreground text-subhead">
+										{t("statHoldingNone")}
+									</span>
+								)}
 							</dd>
 						</div>
 					</dl>

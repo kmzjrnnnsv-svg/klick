@@ -16,6 +16,7 @@ import {
 	listTransfers,
 } from "@wallet/lib/wallet/queries";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/page-header";
@@ -133,6 +134,17 @@ export default async function WalletAccountPage({
 				<h2 id="acc-addresses" className="mb-3 font-semibold text-title-3">
 					{t("detailAddresses")}
 				</h2>
+				{data.addresses.length === 0 && (
+					<p className="text-muted-foreground text-subhead">
+						{t("detailAddressesEmpty")}{" "}
+						<Link
+							href={`/receive?account=${account.id}`}
+							className="text-primary underline-offset-4 hover:underline"
+						>
+							{t("detailAddressesIssue")}
+						</Link>
+					</p>
+				)}
 				<ul className="divide-y divide-border/60 text-subhead">
 					{data.addresses.map((a) => (
 						<li
