@@ -22,6 +22,7 @@ import { WatchButton } from "@/components/entity/watch-button";
 import { EvidenceFileLink } from "@/components/evidence/evidence-file-link";
 import { SheetView } from "@/components/evidence-studio/sheet-view";
 import { withMessages } from "@/components/i18n/with-messages";
+import { AutomaticCheckSection } from "@/components/identity/automatic-check";
 import {
 	ControlExplainerCard,
 	ControlRelationsSection,
@@ -329,6 +330,7 @@ async function ControlDetailPage({
 				currentUserId={ctx.userId}
 			/>
 			<ControlExplainerCard code={code} />
+			<AutomaticCheckSection ctx={ctx} code={code} />
 			<ControlRelationsSection
 				code={code}
 				orgFrameworks={[...orgFrameworks]}

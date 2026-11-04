@@ -35,6 +35,7 @@ export type Column<T> = {
 // Liste nach Apple HIG (erste Spalte als Titel, weitere als Zeile darunter,
 // Pfeil für Drill-down).
 export function RegisterPage<T extends { id: string }>({
+	back,
 	title,
 	lead,
 	eyebrow,
@@ -50,6 +51,8 @@ export function RegisterPage<T extends { id: string }>({
 	footer,
 	paging,
 }: {
+	// Unterseite (z. B. /team/konten): Zurück zur Elternseite
+	back?: { href: string; label: string };
 	title: string;
 	lead?: string;
 	eyebrow?: string;
@@ -80,6 +83,7 @@ export function RegisterPage<T extends { id: string }>({
 	return (
 		<>
 			<PageHeader
+				back={back}
 				title={title}
 				lead={lead}
 				eyebrow={eyebrow}

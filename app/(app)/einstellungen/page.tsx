@@ -33,6 +33,7 @@ import { DangerZonePanel } from "@/components/settings/danger-zone-panel";
 import { DlpPanel } from "@/components/settings/dlp-panel";
 import { EntityProfilePanel } from "@/components/settings/entity-profile-panel";
 import { FrameworksPanel } from "@/components/settings/frameworks-panel";
+import { IdentityPanel } from "@/components/settings/identity-panel";
 import { IntegrationsPanel } from "@/components/settings/integrations-panel";
 import { LedgerPanel } from "@/components/settings/ledger-panel";
 import { NetworkPanel } from "@/components/settings/network-panel";
@@ -127,6 +128,8 @@ import { loadPriceTable } from "@/lib/db/pricing";
 import { flushQueuedAudits, readOrg, withOrg } from "@/lib/db/with-org";
 import { withDlpDefaults } from "@/lib/dlp/policy";
 import { berlinToday } from "@/lib/evidence-studio/queries";
+import { entraConfigured } from "@/lib/identity/config";
+import { identityPolicyFor, identitySourceViews } from "@/lib/identity/queries";
 import { KIND_LABELS } from "@/lib/jobs/digest";
 import { orgLedger } from "@/lib/ledger/export";
 import { recommendServices } from "@/lib/marketing/recommend";
@@ -1112,10 +1115,15 @@ async function renderSection(
 			);
 			const canCreate = allows(ctx, { integration: ["create"] });
 			const canRevoke = allows(ctx, { integration: ["revoke"] });
-			const [teams, sso] = await Promise.all([
+			const [teams, sso, identity] = await Promise.all([
 				readOrg(octx, (tx) => teamsIntegrationOf(tx, ctx.orgId)),
 				listSsoProvidersForOrg(ctx.orgId),
+				readOrg(octx, async (tx) => ({
+					sources: await identitySourceViews(tx, ctx.orgId),
+					policy: await identityPolicyFor(tx, ctx.orgId),
+				})),
 			]);
+			const entra = identity.sources.find((s) => s.provider === "entra");
 			const entraTenant =
 				sso
 					.map((p) =>
@@ -1139,6 +1147,30 @@ async function renderSection(
 							}
 						}
 						suggestedTenant={entraTenant}
+					/>
+					<IdentityPanel
+						configured={entraConfigured()}
+						isOwner={ctx.orgRole === "owner"}
+						canSync={allows(ctx, { identity: ["update"] })}
+						source={
+							entra
+								? {
+										id: entra.id,
+										tenantKey: entra.tenantKey,
+										status: entra.status,
+										connectedAt: entra.connectedAt?.toISOString() ?? null,
+										domains: entra.domains,
+										capabilities: entra.capabilities,
+										lastSyncAt: entra.lastSyncAt?.toISOString() ?? null,
+										lastSyncOk: entra.lastSyncOk,
+										accountCount: entra.accountCount,
+										lastError: entra.lastError,
+										consentOpen: entra.consentOpen,
+									}
+								: null
+						}
+						suggestedTenant={entraTenant}
+						policy={identity.policy}
 					/>
 					<WalletLinkPanel
 						links={walletLinks}
@@ -1205,6 +1237,7 @@ export default withMessages(SettingsPage, [
 	"Entity",
 	"Frameworks",
 	"Functions",
+	"Identity",
 	"Integrations",
 	"Ledger",
 	"NetworkSettings",
