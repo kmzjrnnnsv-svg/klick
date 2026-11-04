@@ -29,6 +29,13 @@ export const entraConsentSchema = entraTenantSchema.extend({
 	acknowledged: z.literal(true, { error: "identity_ack_required" }),
 });
 
+// Google Workspace (I3): Admin-Adresse der Kundin, unter der Klick über die
+// domänenweite Delegierung liest
+export const googleConnectSchema = z.object({
+	adminEmail: z.email().trim().toLowerCase().max(254),
+	acknowledged: z.literal(true, { error: "identity_ack_required" }),
+});
+
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 export const identityExceptionSchema = z.object({

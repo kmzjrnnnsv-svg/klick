@@ -1,9 +1,12 @@
 import { mutateOrg, readOrg } from "@/lib/db/with-org";
+import { createGoogleGet, type GoogleGet } from "@/lib/google/client";
+import { googleHttpsTransport } from "@/lib/google/http";
 import { createMsGet } from "@/lib/microsoft/graph-client";
 import { msHttpsTransport } from "@/lib/microsoft/http";
 import type { MsGet } from "@/lib/microsoft/types";
-import { identityMsConfig } from "./config";
+import { identityGoogleAccount, identityMsConfig } from "./config";
 import { fetchEntraSnapshot } from "./providers/entra";
+import { fetchGoogleSnapshot } from "./providers/google";
 import {
 	applySnapshot,
 	evaluateIdentityChecks,
@@ -16,7 +19,7 @@ import type { ProviderResult, ProviderSnapshot } from "./types";
 // fragen, danach in einer kurzen Transaktion schreiben und die Prüfungen
 // fortschreiben. Fehler bleiben an der Quelle stehen; alte Daten bleiben.
 
-export type SyncDeps = { msGet?: MsGet; now?: Date };
+export type SyncDeps = { msGet?: MsGet; googleGet?: GoogleGet; now?: Date };
 
 // Identität liest Seiten mit bis zu 999 Konten: längere Frist, mehr Platz
 export function identityMsGet(): MsGet | null {
@@ -27,6 +30,17 @@ export function identityMsGet(): MsGet | null {
 		msHttpsTransport({ timeoutMs: 60_000, maxBytes: 16 * 1024 * 1024 }),
 	);
 }
+
+// Google: Dienstkonto „Klick Identität“, Token je Admin-Adresse
+export function identityGoogleGet(): GoogleGet | null {
+	const sa = identityGoogleAccount();
+	return sa ? createGoogleGet(sa, googleHttpsTransport()) : null;
+}
+
+const adminEmailOf = (settings: unknown): string | null => {
+	const v = (settings as { adminEmail?: unknown } | null)?.adminEmail;
+	return typeof v === "string" && v.includes("@") ? v : null;
+};
 
 export async function syncIdentitySource(
 	orgId: string,
@@ -43,7 +57,14 @@ export async function syncIdentitySource(
 		snap = get
 			? await fetchEntraSnapshot(get, pre.source.tenantKey)
 			: { ok: false, error: "token_failed" };
-	} else snap = { ok: false, error: "bad_response" }; // Google/Okta folgen (I3/I4)
+	} else if (pre.source.provider === "google") {
+		const get = deps.googleGet ?? identityGoogleGet();
+		const subject = adminEmailOf(pre.source.settings);
+		snap =
+			get && subject
+				? await fetchGoogleSnapshot(get, subject, pre.source.tenantKey)
+				: { ok: false, error: get ? "consent_missing" : "token_failed" };
+	} else snap = { ok: false, error: "bad_response" }; // Okta folgt (I4)
 	return mutateOrg(ctx, async (tx) => {
 		if (!snap.ok) {
 			const audit = await recordSyncError(tx, ctx, pre.source, snap.error, now);

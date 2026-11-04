@@ -10,6 +10,8 @@ import {
 	type IdentityConsentResult,
 } from "@/lib/identity/service";
 import { identityMsGet } from "@/lib/identity/sync";
+import { enqueue } from "@/lib/jobs/boss";
+import { IDENTITY_SYNC_SOURCE_JOB } from "@/lib/jobs/identity-sync";
 import { openState } from "@/lib/microsoft/consent";
 
 export const dynamic = "force-dynamic";
@@ -73,5 +75,12 @@ export async function GET(req: Request) {
 		});
 		return { result: r.result, audit: r.audit };
 	});
+	// erster Abruf gleich danach (sonst erst um 05:15); ohne Warteschlange
+	// übernimmt ihn der nächste tägliche Lauf
+	if (result === "active" && pre.row)
+		await enqueue(IDENTITY_SYNC_SOURCE_JOB, {
+			orgId: opened.orgId,
+			sourceId: pre.row.id,
+		});
 	return done(result);
 }

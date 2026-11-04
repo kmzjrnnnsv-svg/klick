@@ -57,6 +57,8 @@ export type ProviderError =
 	| "forbidden"
 	| "throttled"
 	| "too_many"
+	// die Admin-Adresse gehört inzwischen zu einer anderen Kundin (Google)
+	| "tenant_mismatch"
 	| "bad_response";
 
 export type ProviderResult<T> =

@@ -149,17 +149,124 @@ export function entraCallbackValid(
 	);
 }
 
-export async function consentContext(
+// Adressen der Inhaber:innen für die Bindung an den Tenant bzw. die Kundin
+export async function ownerEmailsOf(
 	tx: OrgTx,
 	orgId: string,
-): Promise<{ row: IdentitySource | null; ownerEmails: string[] }> {
-	const row = await identitySourceOf(tx, orgId, "entra");
+): Promise<string[]> {
 	const owners = await tx
 		.select({ email: user.email })
 		.from(member)
 		.innerJoin(user, eq(user.id, member.userId))
 		.where(and(eq(member.organizationId, orgId), eq(member.role, "owner")));
-	return { row, ownerEmails: owners.map((o) => o.email) };
+	return owners.map((o) => o.email);
+}
+
+export async function consentContext(
+	tx: OrgTx,
+	orgId: string,
+): Promise<{ row: IdentitySource | null; ownerEmails: string[] }> {
+	const row = await identitySourceOf(tx, orgId, "entra");
+	return { row, ownerEmails: await ownerEmailsOf(tx, orgId) };
+}
+
+// ── Google Workspace: domänenweite Delegierung ─────────────────────────
+
+export type GoogleConnectResult = "active" | "taken" | "other_customer";
+
+// Verbinden nach geprüfter Delegierung und Bindung (Netz vorher, ohne
+// Transaktion). Schlüssel = Kundennummer; eine Kundin gehört nur einer Org
+// (Index identity_sources_tenant_uq). Eine andere Kundin an derselben Org
+// geht erst nach dem Trennen, damit sich keine Konten mischen.
+export async function connectGoogleSource(
+	tx: OrgTx,
+	ctx: { orgId: string; userId: string | null },
+	input: {
+		customerId: string;
+		adminEmail: string;
+		domains: string[];
+		now: Date;
+	},
+): Promise<{
+	result: GoogleConnectResult;
+	sourceId: string | null;
+	audit: AuditInput[];
+}> {
+	const target = `organization:${ctx.orgId}`;
+	const existing = await identitySourceOf(tx, ctx.orgId, "google");
+	if (
+		existing &&
+		existing.status !== "pending_consent" &&
+		existing.tenantKey.toLowerCase() !== input.customerId.toLowerCase()
+	)
+		return { result: "other_customer", sourceId: null, audit: [] };
+	const values = {
+		tenantKey: input.customerId,
+		status: "active" as const,
+		settings: { adminEmail: input.adminEmail },
+		domains: input.domains,
+		lastError: null,
+		lastErrorAt: null,
+		updatedAt: input.now,
+	};
+	let sourceId: string;
+	try {
+		sourceId = await tx.transaction(async (sp) => {
+			if (existing) {
+				await sp
+					.update(identitySources)
+					.set({ ...values, connectedAt: existing.connectedAt ?? input.now })
+					.where(eq(identitySources.id, existing.id));
+				return existing.id;
+			}
+			const [row] = await sp
+				.insert(identitySources)
+				.values({
+					...values,
+					organizationId: ctx.orgId,
+					provider: "google",
+					connectedAt: input.now,
+					createdBy: ctx.userId,
+				})
+				.returning({ id: identitySources.id });
+			return (row as { id: string }).id;
+		});
+	} catch (e) {
+		if (!isUniqueViolation(e)) throw e;
+		return {
+			result: "taken",
+			sourceId: null,
+			audit: [
+				{
+					action: "identity.consent_taken",
+					target,
+					after: { provider: "google" },
+					outcome: "failure",
+				},
+			],
+		};
+	}
+	const adminChanged =
+		existing !== null &&
+		(existing.settings as { adminEmail?: unknown }).adminEmail !==
+			input.adminEmail;
+	return {
+		result: "active",
+		sourceId,
+		audit: [
+			{
+				action: "identity.connected",
+				target,
+				before: existing ? { status: existing.status } : undefined,
+				// Kennungen, keine Adresse der Admin-Person
+				after: {
+					provider: "google",
+					tenant: input.customerId,
+					...(adminChanged ? { adminChanged: true } : {}),
+				},
+			},
+		],
+	};
 }
 
 // Rückruf abschließen. `bound` kommt aus entraBound (Netz, vorher); ein
