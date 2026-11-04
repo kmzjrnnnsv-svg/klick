@@ -57,6 +57,7 @@ export type ProcessDraft = {
 	impactNotes?: string | null;
 	inputs?: string | null;
 	outputs?: string | null;
+	siteId?: string | null;
 	reviewAt?: string | null;
 };
 
@@ -90,10 +91,13 @@ function NumberField({
 export function ProcessForm({
 	initial,
 	members,
+	sites = [],
 	trigger,
 }: {
 	initial?: ProcessDraft;
 	members: MemberOption[];
+	// Standort des Prozesses (Notfallübung je Standort, Kette im BCM)
+	sites?: { id: string; name: string }[];
 	trigger?: "button" | "link";
 }) {
 	const t = useTranslations("Processes");
@@ -147,6 +151,12 @@ export function ProcessForm({
 					className="flex flex-col gap-4"
 					onSubmit={(e) => {
 						e.preventDefault();
+						if (
+							d.rtoHours != null &&
+							d.mtpdHours != null &&
+							d.rtoHours > d.mtpdHours
+						)
+							return void toast.error(t("rtoOverMtpd"));
 						start(async () => {
 							const res = await upsertProcess({
 								...d,
@@ -257,6 +267,27 @@ export function ProcessForm({
 							value={d.mtpdHours}
 							onChange={(v) => set("mtpdHours", v)}
 						/>
+						{sites.length > 0 && (
+							<div className="flex flex-col gap-1.5">
+								<Label>{t("site")}</Label>
+								<Select
+									value={d.siteId ?? "none"}
+									onValueChange={(v) => set("siteId", v === "none" ? null : v)}
+								>
+									<SelectTrigger className="w-full">
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="none">{t("siteNone")}</SelectItem>
+										{sites.map((x) => (
+											<SelectItem key={x.id} value={x.id}>
+												{x.name}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</div>
+						)}
 						<div className="flex flex-col gap-1.5">
 							<Label htmlFor="pr-review">{t("reviewAt")}</Label>
 							<Input

@@ -94,6 +94,7 @@ export async function loadOrgStatus(
 				: null,
 			controlsStarted,
 			processesWithoutAccountable: counts.processesWithoutA,
+			processesWithoutBia: counts.processesWithoutBia,
 			riskProposals: proposals.proposals.length,
 			teamInvited: counts.members > 1 || counts.invitations > 0,
 			// bestätigt, sobald es Risiken gibt, die Methode bestätigt ist oder
@@ -129,6 +130,7 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 		overdueRuns,
 		overdueNcs,
 		processesWithoutA,
+		processesWithoutBia,
 		members,
 		invitations,
 		risks,
@@ -151,6 +153,10 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 			where p.organization_id = ${orgId} and p.status <> 'retired'
 			  and not exists (select 1 from process_raci r
 			    where r.organization_id = ${orgId} and r.process_id = p.id and r.raci = 'A')`),
+		tx.execute<{ n: number }>(sql`
+			select count(*)::int as n from processes
+			where organization_id = ${orgId} and status <> 'retired'
+			  and criticality <> 'standard' and bia is null`),
 		tx.execute<{ n: number }>(sql`
 			select count(*)::int as n from member where organization_id = ${orgId}`),
 		tx.execute<{ n: number }>(sql`
@@ -189,6 +195,7 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 		overdueRuns: n(overdueRuns),
 		overdueNcs: n(overdueNcs),
 		processesWithoutA: n(processesWithoutA),
+		processesWithoutBia: n(processesWithoutBia),
 		members: n(members),
 		invitations: n(invitations),
 		risks: n(risks),

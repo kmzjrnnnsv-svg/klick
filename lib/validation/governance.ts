@@ -38,31 +38,44 @@ const optionalDate = isoDate.nullable().optional();
 const hours = z.coerce.number().int().min(0).max(100_000).nullable().optional();
 
 // ── Prozesse ───────────────────────────────────────────────────────────────
-export const processSchema = z.object({
-	processId: uuid.optional(),
-	code: z
-		.string()
-		.trim()
-		.regex(/^P-\d{2,3}$/, "Format P-NN")
-		.optional(),
-	name: shortText,
-	description: longText.optional(),
-	category: z
-		.enum(["core", "support", "management", "control"])
-		.default("core"),
-	criticality: z.enum(CRITICALITY).default("standard"),
-	ownerUserId: responsibleRef,
-	deputyUserId: uuid.nullable().optional(),
-	assigneeUserId: uuid.nullable().optional(),
-	rtoHours: hours,
-	rpoHours: hours,
-	mtpdHours: hours,
-	impactNotes: longText.optional(),
-	inputs: longText.optional(),
-	outputs: longText.optional(),
-	parentProcessId: uuid.nullable().optional(),
-	reviewAt: optionalDate,
-});
+export const processSchema = z
+	.object({
+		processId: uuid.optional(),
+		code: z
+			.string()
+			.trim()
+			.regex(/^P-\d{2,3}$/, "Format P-NN")
+			.optional(),
+		name: shortText,
+		description: longText.optional(),
+		category: z
+			.enum(["core", "support", "management", "control"])
+			.default("core"),
+		criticality: z.enum(CRITICALITY).default("standard"),
+		ownerUserId: responsibleRef,
+		deputyUserId: uuid.nullable().optional(),
+		assigneeUserId: uuid.nullable().optional(),
+		rtoHours: hours,
+		rpoHours: hours,
+		mtpdHours: hours,
+		impactNotes: longText.optional(),
+		inputs: longText.optional(),
+		outputs: longText.optional(),
+		parentProcessId: uuid.nullable().optional(),
+		siteId: uuid.nullable().optional(),
+		reviewAt: optionalDate,
+	})
+	// Wiederanlauf muss vor dem Punkt liegen, ab dem der Ausfall nicht mehr
+	// tragbar ist (BSI 200-4: WAZ ≤ MTA)
+	.refine(
+		(v) =>
+			v.rtoHours === null ||
+			v.rtoHours === undefined ||
+			v.mtpdHours === null ||
+			v.mtpdHours === undefined ||
+			v.rtoHours <= v.mtpdHours,
+		{ message: "rto_over_mtpd", path: ["rtoHours"] },
+	);
 export type ProcessInput = z.output<typeof processSchema>;
 
 export const raciEntrySchema = z
