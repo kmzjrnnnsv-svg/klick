@@ -129,7 +129,8 @@ async function AssessmentPage({
 		if (!detail) return null;
 		return {
 			...detail,
-			members: await listMembersForPicker(tx, ctx.orgId),
+			// Weitergeben und Maßnahmen nur an Personen, die mitarbeiten können
+			members: await listMembersForPicker(tx, ctx.orgId, { workers: true }),
 			// „Nicht relevant“: Stand der Bestätigung je Frage
 			naConfirmations:
 				detail.assessment.kind === "self"
@@ -934,17 +935,14 @@ async function AssessmentPage({
 								<p className="text-muted-foreground text-subhead">
 									{t("measuresLead")}
 								</p>
-								{canTasks ? (
-									<MeasuresForm
-										assessmentId={a.id}
-										measures={measures}
-										members={data.members}
-										defaultAssignee={ctx.userId}
-										frameworkNames={fwNames}
-									/>
-								) : (
-									<p className="text-subhead">{t("measuresEmpty")}</p>
-								)}
+								<MeasuresForm
+									assessmentId={a.id}
+									measures={measures}
+									members={data.members}
+									defaultAssignee={ctx.userId}
+									frameworkNames={fwNames}
+									readOnly={!canTasks}
+								/>
 							</section>
 						);
 					})()}

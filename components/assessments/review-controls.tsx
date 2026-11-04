@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
@@ -258,8 +259,31 @@ export function ApplyDialog({
 										</span>{" "}
 										{x.title}
 									</span>
-									<span className="text-muted-foreground text-footnote">
+									<span className="flex flex-wrap gap-x-2 text-muted-foreground text-footnote">
 										{t(`naState_${x.status}` as "naState_pending")}
+										{/* nächster Schritt je Stand */}
+										{x.status === "pending" ? (
+											<Link
+												href="/heute/freigaben"
+												className="hit-area text-primary hover:underline"
+											>
+												{t("naNext_pending")}
+											</Link>
+										) : x.status === "blocked" ? (
+											<Link
+												href="/organisation?tab=rollen"
+												className="hit-area text-primary hover:underline"
+											>
+												{t("naNext_blocked")}
+											</Link>
+										) : (
+											<Link
+												href={`/gap-analyse/${assessmentId}?ansicht=fokus&frage=${encodeURIComponent(x.controlCode)}`}
+												className="hit-area text-primary hover:underline"
+											>
+												{t("naNext_answer")}
+											</Link>
+										)}
 									</span>
 								</li>
 							))}

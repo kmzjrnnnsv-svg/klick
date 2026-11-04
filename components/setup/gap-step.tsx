@@ -4,24 +4,51 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
-import { startSetupGapAnalysis } from "@/app/actions/setup";
+import { completeSetupStep, startSetupGapAnalysis } from "@/app/actions/setup";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { errorText } from "@/components/ui/error-text";
 import { toast } from "@/components/ui/toast";
 
 // Schritt 7 (D5): Gap-Analyse über die gewählten Rahmenwerke anlegen,
-// vorbelegt aus der Einrichtung, und direkt öffnen
+// vorbelegt aus der Einrichtung, und direkt öffnen. Gibt es schon eine,
+// führt der Schritt zu ihr und schließt die Einrichtung ab, statt eine
+// zweite anzulegen.
 export function GapStep({
 	frameworks,
+	existing,
 }: {
 	frameworks: { slug: string; name: string }[];
+	existing?: { id: string; title: string } | null;
 }) {
 	const t = useTranslations("Setup");
 	const tc = useTranslations("Common");
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [selected, setSelected] = useState(frameworks.map((f) => f.slug));
+	if (existing)
+		return (
+			<div className="flex flex-col gap-4 rounded-2xl bg-card p-4 text-subhead">
+				<p>{t("gapExisting", { title: existing.title })}</p>
+				<div className="flex flex-wrap justify-end gap-2">
+					<Button variant="outline" asChild>
+						<Link href={`/gap-analyse/${existing.id}`}>{t("gapOpen")}</Link>
+					</Button>
+					<Button
+						disabled={pending}
+						onClick={() =>
+							start(async () => {
+								const res = await completeSetupStep({ step: "gap-analyse" });
+								if (!res.ok) return void toast.error(errorText(tc, res));
+								router.push(`/gap-analyse/${existing.id}`);
+							})
+						}
+					>
+						{t("gapFinish")}
+					</Button>
+				</div>
+			</div>
+		);
 	if (frameworks.length === 0)
 		return (
 			<p className="text-subhead">

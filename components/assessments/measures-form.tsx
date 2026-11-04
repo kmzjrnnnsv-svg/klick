@@ -27,12 +27,15 @@ export function MeasuresForm({
 	members,
 	defaultAssignee,
 	frameworkNames,
+	readOnly = false,
 }: {
 	assessmentId: string;
 	measures: Measure[];
 	members: { userId: string; name: string }[];
 	defaultAssignee: string;
 	frameworkNames: Record<string, string>;
+	// ohne Recht „Aufgaben anlegen“: Vorschläge lesen, nicht übernehmen
+	readOnly?: boolean;
 }) {
 	const t = useTranslations("Assessment");
 	const tc = useTranslations("Common");
@@ -47,6 +50,35 @@ export function MeasuresForm({
 
 	if (measures.length === 0)
 		return <p className="text-subhead">{t("measuresEmpty")}</p>;
+	if (readOnly)
+		return (
+			<div className="flex flex-col gap-3">
+				<p className="text-muted-foreground text-subhead">
+					{t("measuresReadOnly")}
+				</p>
+				<ol className="flex flex-col list-inset overflow-hidden rounded-2xl bg-card text-subhead">
+					{measures.map((m, i) => (
+						<li key={key(m)} className="flex flex-col gap-1 px-3 py-2">
+							<span className="flex flex-wrap items-center gap-2">
+								<span className="text-muted-foreground tabular-nums">
+									{i + 1}.
+								</span>
+								<Badge variant={KIND_TONE[m.kind]}>{t(`kind_${m.kind}`)}</Badge>
+								<span className="font-mono text-footnote" translate="no">
+									{m.controlCode}
+								</span>
+								<span className="min-w-0 font-medium">{m.title}</span>
+							</span>
+							{m.recommendation && (
+								<span className="text-muted-foreground text-footnote">
+									{m.recommendation}
+								</span>
+							)}
+						</li>
+					))}
+				</ol>
+			</div>
+		);
 
 	return (
 		<form
@@ -64,7 +96,13 @@ export function MeasuresForm({
 						dueAt: dueAt || null,
 					});
 					if (!res.ok) return void toast.error(errorText(tc, res));
-					toast.success(t("measuresCreated", { count: res.data.created }));
+					// weiter geht es in den Aufgaben (Als Nächstes zeigt sie auch)
+					toast.success(t("measuresCreated", { count: res.data.created }), {
+						action: {
+							label: t("measuresOpenTasks"),
+							onClick: () => router.push("/heute/aufgaben?all=1"),
+						},
+					});
 					setPicked(new Set());
 					router.refresh();
 				});

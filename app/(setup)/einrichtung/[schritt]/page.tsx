@@ -48,6 +48,7 @@ import {
 	listMembersForPicker,
 	userNames,
 } from "@/lib/compliance/queries";
+import { listAssessments } from "@/lib/compliance/queries-assessments";
 import { readOrg } from "@/lib/db/with-org";
 import { termsAccepted } from "@/lib/legal/terms";
 import { loadRoleBoard } from "@/lib/org/role-board-data";
@@ -205,6 +206,14 @@ async function SetupStepPage({
 							.where(eq(providers.organizationId, ctx.orgId))
 					).map((p) => p.name),
 				};
+			case "gap-analyse": {
+				// schon eine Gap-Analyse (auch über /gap-analyse angelegt)?
+				const [latest] = await listAssessments(tx, ctx.orgId, "self");
+				return {
+					...base,
+					existingGap: latest ? { id: latest.id, title: latest.title } : null,
+				};
+			}
 			default:
 				return base;
 		}
@@ -500,6 +509,7 @@ async function SetupStepPage({
 						slug,
 						name: fwNames[slug] ?? slug,
 					}))}
+					existing={"existingGap" in data ? data.existingGap : null}
 				/>
 			)}
 

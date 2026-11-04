@@ -22,6 +22,7 @@ import type {
 	ImplStatus,
 	OrgRoleLegal,
 } from "@/db/schema/enums";
+import { normalizeRole } from "@/lib/auth/session-rules";
 import type { OrgTx } from "@/lib/db/with-org";
 import { currentEvidence } from "@/lib/evidence/current";
 
@@ -545,19 +546,33 @@ export async function listWatcherIds(
 
 // Aktive Mitglieder (für Owner-/Assignee-Auswahl und Mentions) — über die
 // Better-Auth-Tabellen, explizit auf die Org gefiltert.
+// `workers`: nur, wer Aufgaben sieht und Fragen beantworten kann — ohne
+// Mitarbeitende (nur Richtlinien) und Prüfer:innen (prüfen, arbeiten nicht mit).
 export async function listMembersForPicker(
 	tx: OrgTx,
 	orgId: string,
+	opts: { workers?: boolean } = {},
 ): Promise<{ userId: string; name: string; email: string }[]> {
 	const rows = await tx
-		.select({ userId: user.id, name: user.name, email: user.email })
+		.select({
+			userId: user.id,
+			name: user.name,
+			email: user.email,
+			role: member.role,
+		})
 		.from(member)
 		.innerJoin(user, eq(user.id, member.userId))
 		.where(eq(member.organizationId, orgId))
 		.orderBy(asc(user.name));
 	// Ohne Namen (Magic-Link-Konto) die Adresse zeigen, sonst bleibt die
 	// Auswahl leer — wie userNames().
-	return rows.map((r) => ({ ...r, name: r.name.trim() || r.email }));
+	return rows
+		.filter(
+			(r) =>
+				!opts.workers ||
+				!["employee", "auditor"].includes(normalizeRole(r.role)),
+		)
+		.map(({ role: _role, ...r }) => ({ ...r, name: r.name.trim() || r.email }));
 }
 
 // Nachweise mit verknüpften Control-Codes (Register /nachweise).

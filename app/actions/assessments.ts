@@ -48,7 +48,6 @@ import { loadOrgCatalog } from "@/lib/compliance/org-catalog-server";
 import { getOrgProfile, loadApplicability } from "@/lib/compliance/queries";
 import { mutateOrg, type OrgTx } from "@/lib/db/with-org";
 import { currentEvidence } from "@/lib/evidence/current";
-
 import {
 	linkEvidenceToControl,
 	screenUpload,
@@ -56,6 +55,7 @@ import {
 } from "@/lib/evidence/store";
 import { notify } from "@/lib/notifications/notify";
 import { getOrgLimiter } from "@/lib/rate-limit";
+import { completeSetupGapStep } from "@/lib/setup/open";
 import {
 	answerQuestionSchema,
 	assessmentIdSchema,
@@ -119,15 +119,16 @@ async function createAssessmentImpl(
 			{ orgId: c.orgId, userId: c.userId },
 			d,
 		);
-		return r
-			? {
-					result: { id: r.id, questions: r.questions },
-					audit: r.audit,
-				}
-			: { result: null, audit: [] };
+		if (!r) return { result: null, audit: [] };
+		const setupStep = await completeSetupGapStep(tx, c.orgId, new Date());
+		return {
+			result: { id: r.id, questions: r.questions },
+			audit: setupStep ? [r.audit, setupStep] : r.audit,
+		};
 	});
 	if (!out) return { ok: false, error: "noQuestions" };
 	revalidatePath(PATH);
+	revalidatePath("/heute");
 	return { ok: true, data: out };
 }
 

@@ -148,4 +148,39 @@ describe("nextSteps", () => {
 		expect(texts.step_gap_continue).toBeTruthy();
 		expect(texts.detail_gap_continue).toBeTruthy();
 	});
+
+	it("nach „Ergebnis übernehmen“: erst Maßnahmen anlegen, dann umsetzen", () => {
+		const applied = { id: "a1", title: "Kurz-Check" };
+		const create = nextSteps({
+			...done,
+			gap: { open: null, startCount: 0, applied },
+			measures: { total: 0, open: 0 },
+		});
+		expect(create.map((s) => s.key)).toEqual(["measures_create"]);
+		expect(create[0]?.href).toBe("/gap-analyse/a1?schritt=massnahmen");
+		expect(
+			keys({
+				gap: { open: null, startCount: 0, applied },
+				measures: { total: 4, open: 3 },
+			}),
+		).toEqual(["measures_open"]);
+		// alles erledigt: kein Hinweis mehr
+		expect(
+			keys({
+				gap: { open: null, startCount: 0, applied },
+				measures: { total: 4, open: 0 },
+			}),
+		).toEqual([]);
+		// laufende Gap-Analyse geht vor
+		expect(
+			keys({
+				gap: {
+					open: { id: "a2", title: "Neu", answered: 1, total: 30 },
+					startCount: 0,
+					applied,
+				},
+				measures: { total: 0, open: 0 },
+			}),
+		).toEqual(["gap_continue"]);
+	});
 });
