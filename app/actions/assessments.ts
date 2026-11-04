@@ -36,6 +36,8 @@ import {
 	requestNaConfirmation,
 	withdrawNaConfirmation,
 } from "@/lib/assessments/na-approval";
+import { loadImplementationPlan } from "@/lib/assessments/plan-server";
+import { PLAN_VERSION } from "@/lib/assessments/schedule";
 import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates, nextAssessmentCode } from "@/lib/assessments/state";
 import type { AuditInput } from "@/lib/audit";
@@ -68,6 +70,7 @@ import {
 	delegateQuestionSchema,
 	extendAssessmentSchema,
 	linkAnswerEvidenceSchema,
+	planSettingsSchema,
 	reviewAnswerSchema,
 } from "@/lib/validation/assessments";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
@@ -769,6 +772,15 @@ async function createMeasuresImpl(
 			d.items.map((i) => i.controlCode),
 		);
 		const catalog = await loadOrgCatalog(tx, c.orgId);
+		// Fristen aus dem Umsetzungsplan: der Server rechnet selbst (Teil C)
+		const plan = d.fromPlan
+			? await loadImplementationPlan(tx, c.orgId, a.id)
+			: null;
+		if (d.fromPlan && !plan) return { result: null, audit: [] };
+		const scheduled = new Map(
+			(plan?.schedule.items ?? []).map((i) => [i.controlCode, i]),
+		);
+		const assigned = new Map<string, number>();
 		// keine Doppelten: offene Aufgaben aus diesem Fragebogen je Control
 		const open = await tx
 			.select({ entityId: tasks.entityId, title: tasks.title })
@@ -819,6 +831,14 @@ async function createMeasuresImpl(
 				frameworks: a.frameworks,
 				catalog,
 			});
+			// im Plan: Beginn und Ende aus dem Plan, zuständig die verantwortliche
+			// Person des Controls (sonst die gewählte)
+			const slot = plan ? scheduled.get(item.controlCode) : undefined;
+			const assignee =
+				(plan ? plan.owners.get(item.controlCode)?.ownerUserId : null) ??
+				d.assigneeUserId ??
+				c.userId;
+			assigned.set(assignee, (assigned.get(assignee) ?? 0) + 1);
 			await tx.insert(tasks).values({
 				organizationId: c.orgId,
 				title,
@@ -841,9 +861,10 @@ async function createMeasuresImpl(
 				]
 					.filter(Boolean)
 					.join("\n"),
-				assigneeUserId: d.assigneeUserId ?? c.userId,
+				assigneeUserId: assignee,
 				createdByUserId: c.userId,
-				dueAt: d.dueAt ?? null,
+				startAt: slot?.start ?? null,
+				dueAt: slot?.end ?? d.dueAt ?? null,
 				priority: item.kind === "implement" ? "high" : "normal",
 				entityType: "control",
 				entityId: impl.id,
@@ -851,23 +872,32 @@ async function createMeasuresImpl(
 			});
 			created += 1;
 		}
-		if (created > 0 && d.assigneeUserId)
-			await notify(tx, {
-				orgId: c.orgId,
-				recipients: [d.assigneeUserId],
-				actorUserId: c.userId,
-				kind: "task_assigned",
-				title: `${created} Maßnahmen aus der Gap-Analyse ${a.code}`,
-				link: "/heute/aufgaben",
-			});
+		// je zuständiger Person eine Nachricht (nie an die handelnde Person)
+		for (const [userId, n] of assigned)
+			if (plan || userId === d.assigneeUserId)
+				await notify(tx, {
+					orgId: c.orgId,
+					recipients: [userId],
+					actorUserId: c.userId,
+					kind: "task_assigned",
+					title: `${n} Maßnahmen aus der Gap-Analyse ${a.code}`,
+					link: "/heute/aufgaben",
+				});
 		return {
 			result: { created },
 			audit: {
-				action: "assessment.measures",
+				action: plan ? "assessment.plan_applied" : "assessment.measures",
 				target: `assessment:${a.id}`,
 				after: {
 					created,
 					items: d.items.map((i) => `${i.kind}:${i.controlCode}`),
+					...(plan
+						? {
+								start: plan.schedule.start,
+								end: plan.schedule.end,
+								capacity: plan.settings.capacity,
+							}
+						: {}),
 				},
 			},
 		};
@@ -1055,6 +1085,50 @@ export const applyAssessmentResults = safeAction(
 	applyAssessmentResultsImpl,
 );
 export const createMeasures = safeAction("createMeasures", createMeasuresImpl);
+
+// Umsetzungsplan (Teil C): Beginn, Kapazität und eigene Dauern speichern;
+// der Plan selbst wird bei jedem Aufruf neu gerechnet. Recht wie beim
+// Anlegen der Maßnahmen, weil daraus Aufgaben werden.
+async function savePlanSettingsImpl(input: unknown): Promise<ActionResult> {
+	const c = await requireOrg({ assessment: ["read"], task: ["create"] });
+	const parsed = planSettingsSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	const ok = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const a = await loadAssessment(tx, c.orgId, d.assessmentId);
+		if (!a || a.kind !== "self" || a.status === "cancelled")
+			return { result: false, audit: [] };
+		const plan = {
+			start: d.start,
+			capacity: d.capacity,
+			overrides: d.overrides,
+			version: PLAN_VERSION,
+		};
+		await tx
+			.update(assessments)
+			.set({ plan })
+			.where(
+				and(eq(assessments.id, a.id), eq(assessments.organizationId, c.orgId)),
+			);
+		return {
+			result: true,
+			audit: {
+				action: "assessment.plan_saved",
+				target: `assessment:${a.id}`,
+				before: a.plan ?? null,
+				after: plan,
+			},
+		};
+	});
+	if (!ok) return { ok: false, error: "notFound" };
+	revalidatePath(`${PATH}/${d.assessmentId}`);
+	return { ok: true, data: undefined };
+}
+
+export const savePlanSettings = safeAction(
+	"savePlanSettings",
+	savePlanSettingsImpl,
+);
 export const cloneAssessment = safeAction(
 	"cloneAssessment",
 	cloneAssessmentImpl,

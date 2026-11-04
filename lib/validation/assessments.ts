@@ -69,5 +69,22 @@ export const createMeasuresSchema = z.object({
 	assigneeUserId: uuid.nullable().optional(),
 	// Fristvorschlag: Tage ab heute je Aufwand (S/M/L) oder feste Frist
 	dueAt: isoDate.nullable().optional(),
+	// Fristen aus dem Umsetzungsplan (Teil C): Beginn und Ende je Maßnahme,
+	// zuständig die verantwortliche Person des Controls; der Server rechnet
+	// den Plan selbst, die Eingabe nennt nur die Auswahl
+	fromPlan: z.boolean().optional(),
+});
+
+// Umsetzungsplan: nur Einstellungen; der Plan wird immer neu gerechnet
+export const planSettingsSchema = z.object({
+	assessmentId: uuid,
+	start: isoDate,
+	capacity: z.number().int().min(1).max(5),
+	overrides: z
+		.record(
+			z.string().regex(/^CC-[A-Z0-9]+-[0-9A-Z]+$/),
+			z.number().int().min(1).max(250),
+		)
+		.refine((o) => Object.keys(o).length <= 400, "zu viele Einträge"),
 });
 export type CreateAssessmentInput = z.infer<typeof createAssessmentSchema>;
