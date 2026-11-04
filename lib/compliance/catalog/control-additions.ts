@@ -30,6 +30,8 @@ export type ControlCore = {
 };
 
 import { PART_A } from "./control-additions-a";
+import { PART_B } from "./control-additions-b";
+import { PART_C } from "./control-additions-c";
 
 export const ADDITION_KINDS: readonly AdditionKind[] = [
 	"inhalt",
@@ -40,6 +42,8 @@ export const ADDITION_KINDS: readonly AdditionKind[] = [
 
 export const CONTROL_ADDITIONS: Record<string, ControlCore> = {
 	...PART_A,
+	...PART_B,
+	...PART_C,
 	"CC-HR-03": {
 		core: "Ein Programm schult alle Beschäftigten zur Sicherheit, mit Plan und belegter Teilnahme.",
 		where: { href: "/schulungen", label: "Schulungen" },
