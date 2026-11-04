@@ -92,10 +92,11 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 					"Kurz-Check mit den 30 wichtigsten Fragen oder gleich alle; erweitern geht jederzeit.",
 					"Je Frage vier Knöpfe: Ja, Teilweise, Nein, Weiß ich nicht. Danach nur, was passt: Nachweis, was fehlt, oder an wen die Frage geht.",
 					"Ergebnis übernehmen: erst die Vorschau der Änderungen, dann der Control-Status. „Ja“ ohne Nachweis zählt nur halb.",
-					"Maßnahmen nach Hebel anlegen; was fehlt, steht schon in der Aufgabe.",
+					"Umsetzungsplan als Balkenplan: Dauer je Maßnahme, Reihenfolge, wer was trägt und ab wann jedes Rahmenwerk bereit ist.",
+					"Plan übernehmen: jede Aufgabe mit Beginn, Frist und zuständiger Person; was fehlt, steht schon in der Aufgabe.",
 				],
 				result:
-					"Control-Status, Maßnahmenplan und ein Bericht zum Herunterladen.",
+					"Control-Status, Umsetzungsplan als PDF und CSV und ein Bericht zum Herunterladen.",
 			},
 			{
 				key: "team",
