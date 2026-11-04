@@ -45,6 +45,7 @@ import {
 import { listProviderRatings } from "@/lib/compliance/queries-ratings";
 import {
 	getProviderDetail,
+	incidentsForProvider,
 	providerIdsWithRisk,
 } from "@/lib/compliance/queries-suppliers";
 import { supplierQuestions } from "@/lib/compliance/supplier-assessment";
@@ -110,6 +111,7 @@ async function ProviderPage({
 			frameworks,
 			withRisk,
 			waiting,
+			incidents,
 		] = await Promise.all([
 			listComments(tx, ctx.orgId, "provider", id),
 			historyFor(tx, `provider:${id}`),
@@ -119,6 +121,7 @@ async function ProviderPage({
 			listOrgFrameworks(tx, ctx.orgId),
 			providerIdsWithRisk(tx, ctx.orgId),
 			pendingApprovalIds(tx, ctx.orgId, "provider", [id]),
+			incidentsForProvider(tx, ctx.orgId, id),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -142,6 +145,7 @@ async function ProviderPage({
 			dora: frameworks.some((f) => f.slug === "dora"),
 			hasRisk: withRisk.has(id),
 			approvalPending: waiting.size > 0,
+			incidents,
 		};
 	});
 	if (!data) notFound();
@@ -308,6 +312,48 @@ async function ProviderPage({
 			aside={
 				<>
 					<SourceRisksBlock ctx={ctx} kind="provider" id={id} />
+					<Section
+						title={tl("incidentsTitle")}
+						actions={
+							allows(ctx, { incident: ["create"] }) ? (
+								<Link
+									href={`/vorfaelle/neu?dienstleister=${p.id}`}
+									className={buttonVariants({
+										variant: "secondary",
+										size: "sm",
+									})}
+								>
+									{tl("incidentNew")}
+								</Link>
+							) : null
+						}
+					>
+						{data.incidents.length === 0 ? (
+							<p className="text-muted-foreground text-subhead">
+								{tl("incidentsEmpty")}
+							</p>
+						) : (
+							<ul className="flex flex-col gap-2 text-subhead">
+								{data.incidents.map((i) => (
+									<li key={i.id} className="flex flex-col">
+										<Link
+											href={`/vorfaelle/${i.id}`}
+											className="hover:underline"
+										>
+											<span className="font-mono text-footnote" translate="no">
+												{i.code}
+											</span>{" "}
+											{i.title}
+										</Link>
+										<span className="text-muted-foreground text-footnote">
+											{fmtDate.format(i.awareAt)} ·{" "}
+											{tl(`incidentStatus_${i.status}`)}
+										</span>
+									</li>
+								))}
+							</ul>
+						)}
+					</Section>
 					<DecisionRequestsBlock ctx={ctx} kind="provider" id={id} />
 					<Section
 						title={te("tasks")}

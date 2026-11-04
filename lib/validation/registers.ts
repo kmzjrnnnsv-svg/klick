@@ -265,6 +265,7 @@ export const createIncidentSchema = z.object({
 	description: longText.optional(),
 	regimes: z.array(z.enum(INCIDENT_REGIMES)).min(1).default(["dora"]),
 	productId: uuid.nullable().optional(),
+	providerId: uuid.nullable().optional(),
 });
 export type CreateIncidentInput = z.output<typeof createIncidentSchema>;
 
@@ -302,6 +303,7 @@ export const classifyIncidentSchema = z.object({
 		})
 		.optional(),
 	productId: uuid.nullable().optional(),
+	providerId: uuid.nullable().optional(),
 	classificationOverride: z.enum(["major", "significant", "minor"]).optional(),
 	classificationOverrideNote: z.string().trim().max(2000).optional(),
 });

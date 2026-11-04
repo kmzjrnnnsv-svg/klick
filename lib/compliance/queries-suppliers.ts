@@ -5,6 +5,7 @@ import {
 	assessments,
 	assets,
 	evidence,
+	incidents,
 	processes,
 	processProviders,
 	providers,
@@ -239,4 +240,46 @@ export async function getPortalAssessment(
 		})),
 		files,
 	};
+}
+
+// Auswahl am Vorfall (L3b): alle außer nur gemeldeten und abgelehnten
+export async function listProviderOptions(tx: OrgTx, orgId: string) {
+	const rows = await tx
+		.select({
+			id: providers.id,
+			name: providers.name,
+			status: providers.status,
+		})
+		.from(providers)
+		.where(eq(providers.organizationId, orgId))
+		.orderBy(providers.name);
+	return rows
+		.filter((r) => r.status !== "requested" && r.status !== "declined")
+		.map(({ id, name }) => ({ id, name }));
+}
+
+// Vorfälle mit diesem Dienstleister (L3b), neueste zuerst
+export async function incidentsForProvider(
+	tx: OrgTx,
+	orgId: string,
+	providerId: string,
+) {
+	return tx
+		.select({
+			id: incidents.id,
+			code: incidents.code,
+			title: incidents.title,
+			status: incidents.status,
+			classification: incidents.classification,
+			awareAt: incidents.awareAt,
+		})
+		.from(incidents)
+		.where(
+			and(
+				eq(incidents.organizationId, orgId),
+				eq(incidents.providerId, providerId),
+			),
+		)
+		.orderBy(desc(incidents.awareAt))
+		.limit(50);
 }

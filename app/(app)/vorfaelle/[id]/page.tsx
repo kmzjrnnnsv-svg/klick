@@ -52,6 +52,7 @@ import {
 } from "@/lib/compliance/queries";
 import { getIncident } from "@/lib/compliance/queries-p2";
 import { listProductOptions } from "@/lib/compliance/queries-products";
+import { listProviderOptions } from "@/lib/compliance/queries-suppliers";
 import { topManagementOf } from "@/lib/compliance/top-management";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
@@ -166,6 +167,11 @@ async function IncidentDetailPage({
 		? await readOrg(toOrgCtx(ctx), (tx) => listProductOptions(tx, ctx.orgId))
 		: [];
 	const product = products.find((p) => p.id === incident.productId) ?? null;
+	const providerOptions = await readOrg(toOrgCtx(ctx), (tx) =>
+		listProviderOptions(tx, ctx.orgId),
+	);
+	const provider =
+		providerOptions.find((p) => p.id === incident.providerId) ?? null;
 	const me = candidates.find((c) => c.userId === ctx.userId);
 	const step = approval?.steps.find((s) => s.order === approval.currentStep);
 	const eligible = Boolean(
@@ -284,6 +290,16 @@ async function IncidentDetailPage({
 					<MetaItem label={t("affectsPayments")}>
 						{incident.affectsPayments ? "ja" : "nein"}
 					</MetaItem>
+					{provider && (
+						<MetaItem label={t("provider")}>
+							<Link
+								href={`/dienstleister/${provider.id}`}
+								className="hover:underline"
+							>
+								{provider.name}
+							</Link>
+						</MetaItem>
+					)}
 					{product && (
 						<MetaItem label={t("product")}>
 							<Link
@@ -455,6 +471,8 @@ async function IncidentDetailPage({
 						initialCra={incident.craCriteria}
 						productId={incident.productId}
 						products={products}
+						providerId={incident.providerId}
+						providers={providerOptions}
 					/>
 				</Section>
 			)}

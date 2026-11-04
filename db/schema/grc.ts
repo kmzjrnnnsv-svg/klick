@@ -1187,6 +1187,11 @@ export const incidents = pgTable(
 		}),
 		craCriteria: json<Record<string, unknown>>(),
 		mitigationAvailableAt: ts(),
+		// Dienstleister, der den Vorfall verursacht hat oder betroffen ist (L3b,
+		// DORA Art. 28 Abs. 1, Lieferantensteuerung)
+		providerId: uuid().references((): AnyPgColumn => providers.id, {
+			onDelete: "set null",
+		}),
 		classification: text({
 			enum: ["major", "significant", "minor", "unclassified"],
 		})
@@ -1215,6 +1220,7 @@ export const incidents = pgTable(
 	(t) => [
 		unique().on(t.organizationId, t.code),
 		index("incidents_org_status_idx").on(t.organizationId, t.status),
+		index("incidents_provider_idx").on(t.organizationId, t.providerId),
 		orgPolicy("incidents"),
 	],
 ).enableRLS();

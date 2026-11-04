@@ -26,6 +26,7 @@ import {
 	insertCraBundle,
 	isCra,
 	ownProduct,
+	ownProvider,
 } from "@/lib/compliance/incident-service";
 import { nonconformityFromIncident } from "@/lib/compliance/nonconformity";
 import { createNonconformity } from "@/lib/compliance/nonconformity-service";
@@ -104,6 +105,12 @@ async function classifyIncidentImpl(
 				: d.productId === null
 					? null
 					: ((await ownProduct(tx, c.orgId, d.productId)) ?? row.productId);
+		const providerId =
+			d.providerId === undefined
+				? row.providerId
+				: d.providerId === null
+					? null
+					: ((await ownProvider(tx, c.orgId, d.providerId)) ?? row.providerId);
 		const classifiedAt = row.classifiedAt ?? new Date();
 		const dl = deadlinesFor({
 			regimes: d.regimes,
@@ -122,6 +129,7 @@ async function classifyIncidentImpl(
 				nis2Criteria: d.nis2Criteria ?? null,
 				craCriteria: isCra(d.regimes) ? (d.craCriteria ?? null) : null,
 				productId,
+				providerId,
 				classification,
 				classificationOverrideNote: d.classificationOverride
 					? (d.classificationOverrideNote ?? null)
@@ -187,6 +195,7 @@ async function classifyIncidentImpl(
 						reasons,
 						regimes: d.regimes,
 						productId,
+						providerId,
 						override: d.classificationOverride ?? null,
 					},
 				},

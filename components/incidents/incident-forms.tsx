@@ -34,15 +34,58 @@ function nowLocal(): string {
 }
 
 type ProductOption = { id: string; code: string; name: string };
+type ProviderOption = { id: string; name: string };
+
+// Dienstleister am Vorfall (L3b): verursacht oder betroffen
+function ProviderSelect({
+	id,
+	value,
+	onChange,
+	providers,
+}: {
+	id: string;
+	value: string;
+	onChange: (v: string) => void;
+	providers: ProviderOption[];
+}) {
+	const t = useTranslations("Incidents");
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Label htmlFor={id}>{t("provider")}</Label>
+			<Select
+				value={value || "none"}
+				onValueChange={(v) => onChange(v === "none" ? "" : v)}
+			>
+				<SelectTrigger id={id} className="w-full sm:max-w-96">
+					<SelectValue />
+				</SelectTrigger>
+				<SelectContent>
+					<SelectItem value="none">{t("providerNone")}</SelectItem>
+					{providers.map((p) => (
+						<SelectItem key={p.id} value={p.id}>
+							{p.name}
+						</SelectItem>
+					))}
+				</SelectContent>
+			</Select>
+			<p className="text-muted-foreground text-footnote">{t("providerHint")}</p>
+		</div>
+	);
+}
 
 // Drei Felder: Was · Wann bemerkt (Default jetzt) · Betrifft Zahlungen/Kunden.
 // Mit CRA zusätzlich: betroffenes Produkt und Art der Meldung (Art. 14).
 export function IncidentCreateForm({
 	regimes,
 	products = [],
+	providers = [],
+	defaultProviderId,
 }: {
 	regimes: IncidentRegime[];
 	products?: ProductOption[];
+	providers?: ProviderOption[];
+	// vorbelegt aus ?dienstleister= (vom Dienstleister aus erfasst)
+	defaultProviderId?: string | null;
 }) {
 	const t = useTranslations("Incidents");
 	const tc = useTranslations("Common");
@@ -54,6 +97,7 @@ export function IncidentCreateForm({
 	const [customers, setCustomers] = useState(false);
 	const [description, setDescription] = useState("");
 	const [productId, setProductId] = useState("");
+	const [providerId, setProviderId] = useState(defaultProviderId ?? "");
 	const [craKind, setCraKind] = useState<"" | "cra_vuln" | "cra_incident">("");
 	return (
 		<form
@@ -76,6 +120,7 @@ export function IncidentCreateForm({
 								? regimes
 								: ["dora"],
 						productId: productId || null,
+						providerId: providerId || null,
 					});
 					if (!res.ok) return void toast.error(errorText(tc, res));
 					toast.success(t("created"));
@@ -120,6 +165,14 @@ export function IncidentCreateForm({
 					{t("affectsCustomers")}
 				</label>
 			</div>
+			{providers.length > 0 && (
+				<ProviderSelect
+					id="inc-provider"
+					value={providerId}
+					onChange={setProviderId}
+					providers={providers}
+				/>
+			)}
 			{products.length > 0 && (
 				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2">
 					<legend className="px-1 text-muted-foreground text-footnote">
@@ -221,6 +274,8 @@ export function ClassifyForm({
 	initialCra,
 	productId: initialProductId,
 	products = [],
+	providerId: initialProviderId,
+	providers = [],
 }: {
 	incidentId: string;
 	regimes: IncidentRegime[];
@@ -232,6 +287,8 @@ export function ClassifyForm({
 	initialCra?: Record<string, unknown> | null;
 	productId?: string | null;
 	products?: ProductOption[];
+	providerId?: string | null;
+	providers?: ProviderOption[];
 }) {
 	const t = useTranslations("Incidents");
 	const tc = useTranslations("Common");
@@ -248,6 +305,7 @@ export function ClassifyForm({
 		(initialCra as Record<string, boolean>) ?? {},
 	);
 	const [productId, setProductId] = useState(initialProductId ?? "");
+	const [providerId, setProviderId] = useState(initialProviderId ?? "");
 	const hasCra = regs.includes("cra_vuln") || regs.includes("cra_incident");
 	const [override, setOverride] = useState<
 		"" | "major" | "significant" | "minor"
@@ -267,6 +325,7 @@ export function ClassifyForm({
 						nis2Criteria: regs.includes("nis2") ? nis2 : undefined,
 						craCriteria: hasCra ? cra : undefined,
 						productId: products.length > 0 ? productId || null : undefined,
+						providerId: providers.length > 0 ? providerId || null : undefined,
 						classificationOverride: override || undefined,
 						classificationOverrideNote: overrideNote || undefined,
 					});
@@ -345,6 +404,14 @@ export function ClassifyForm({
 						</label>
 					))}
 				</fieldset>
+			)}
+			{providers.length > 0 && (
+				<ProviderSelect
+					id="cls-provider"
+					value={providerId}
+					onChange={setProviderId}
+					providers={providers}
+				/>
 			)}
 			{hasCra && (
 				<fieldset className="grid grid-cols-1 gap-3 rounded-2xl bg-card p-3 sm:grid-cols-2">
