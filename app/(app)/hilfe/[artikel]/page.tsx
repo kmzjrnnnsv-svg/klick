@@ -9,6 +9,11 @@ import { BackLink } from "@/components/ui/back-link";
 import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import { ListSearch } from "@/components/ui/list-search";
+import {
+	SourceItem,
+	SourceList,
+	SourceSection,
+} from "@/components/ui/source-list";
 import { SplitPane } from "@/components/ui/split-pane";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -130,18 +135,18 @@ export default async function HelpArticlePage({
 	const visible = articlesFor(ctx.orgRole);
 	const context =
 		pages.length > 0 ? (
-			<ListGroup>
-				<ListSection title={t("toPage")}>
+			<SourceList>
+				<SourceSection title={t("toPage")}>
 					{pages.map((p) => (
-						<ListRow
+						<SourceItem
 							key={p.href}
 							icon={<NavIcon name={p.icon} />}
 							title={p.label}
 							href={p.href}
 						/>
 					))}
-				</ListSection>
-			</ListGroup>
+				</SourceSection>
+			</SourceList>
 		) : null;
 	return (
 		// Ab 1024 px bündig (data-split-page="flush", wie die Einstellungen):
@@ -158,9 +163,10 @@ export default async function HelpArticlePage({
 					as="nav"
 					list
 					aria-label={t("title")}
-					className="hidden max-lg:@3xl:sticky max-lg:@3xl:top-16 max-lg:@3xl:max-h-[calc(100dvh-8rem)] max-lg:@3xl:self-start max-lg:@3xl:overflow-y-auto max-lg:@3xl:overscroll-contain @3xl:block lg:border-border/60 lg:border-r lg:px-4 [&_.lucide-chevron-right]:hidden"
+					// ab 1024 px auf der Fläche der Seitenleiste, Zeilen wie im Menü
+					className="hidden max-lg:@3xl:sticky max-lg:@3xl:top-16 max-lg:@3xl:max-h-[calc(100dvh-8rem)] max-lg:@3xl:self-start max-lg:@3xl:overflow-y-auto max-lg:@3xl:overscroll-contain @3xl:block lg:border-border/60 lg:border-r lg:bg-sidebar lg:px-3"
 				>
-					<h2 className="mb-4 font-bold text-foreground text-title-2 lg:pt-6">
+					<h2 className="mb-4 font-bold text-foreground text-title-2 lg:px-2 lg:pt-6">
 						<Link href="/hilfe" className="hit-area hover:opacity-70">
 							{t("title")}
 						</Link>
@@ -168,6 +174,7 @@ export default async function HelpArticlePage({
 					<KeepActiveVisible active={a.slug} />
 					<ListSearch
 						sticky
+						source="always"
 						action="/hilfe"
 						items={visible.map((r) => ({
 							id: r.slug,
@@ -183,11 +190,11 @@ export default async function HelpArticlePage({
 							empty: t("listEmpty"),
 						}}
 					>
-						<ListGroup>
+						<SourceList>
 							{articlesByArea(visible).map(({ area, articles }) => (
-								<ListSection key={area} title={t(`area_${area}`)}>
+								<SourceSection key={area} title={t(`area_${area}`)}>
 									{articles.map((r) => (
-										<ListRow
+										<SourceItem
 											key={r.slug}
 											icon={
 												<NavIcon name={HELP_ICONS[r.slug] ?? "circle-help"} />
@@ -197,9 +204,9 @@ export default async function HelpArticlePage({
 											current={r.slug === a.slug}
 										/>
 									))}
-								</ListSection>
+								</SourceSection>
 							))}
-						</ListGroup>
+						</SourceList>
 					</ListSearch>
 				</SplitPane>
 				<SplitPane

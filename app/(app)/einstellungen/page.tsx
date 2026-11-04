@@ -57,6 +57,11 @@ import { WorkflowsPanel } from "@/components/settings/workflows-panel";
 import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import { ListSearch } from "@/components/ui/list-search";
+import {
+	SourceItem,
+	SourceList,
+	SourceSection,
+} from "@/components/ui/source-list";
 import { SplitPane } from "@/components/ui/split-pane";
 import {
 	approvalWorkflows,
@@ -293,19 +298,22 @@ async function SettingsPage({
 					className={cn(
 						// unter 1024 px klebt die Liste unter der Kopfleiste (das Fenster
 						// scrollt); darüber scrollt sie als Spalte selbst (styles/base.css)
-						"max-lg:@3xl:sticky max-lg:@3xl:top-16 max-lg:@3xl:max-h-[calc(100dvh-8rem)] max-lg:@3xl:self-start max-lg:@3xl:overflow-y-auto max-lg:@3xl:overscroll-contain @3xl:[&_.lucide-chevron-right]:hidden",
-						"lg:px-4 lg:@3xl:border-border/60 lg:@3xl:border-r",
+						"max-lg:@3xl:sticky max-lg:@3xl:top-16 max-lg:@3xl:max-h-[calc(100dvh-8rem)] max-lg:@3xl:self-start max-lg:@3xl:overflow-y-auto max-lg:@3xl:overscroll-contain",
+						// ab 1024 px auf der Fläche der Seitenleiste: Menü und Liste
+						// wirken wie eine Spalte (gleiche Zeilen, gleicher Grund)
+						"lg:px-3 lg:@3xl:border-border/60 lg:@3xl:border-r lg:@3xl:bg-sidebar",
 						chosen && "hidden @3xl:block",
 					)}
 				>
 					{/* Abstand oben am Titel, nicht an der Spalte: sonst hielte das
 					    klebende Suchfeld ihn frei und Zeilen schienen darüber durch */}
-					<div className="lg:pt-6">
+					<div className="lg:px-2 lg:pt-6">
 						<PageHeader compact title={t("title")} />
 					</div>
 					<KeepActiveVisible active={section} />
 					<ListSearch
 						sticky
+						source="wide"
 						items={visible.map((k) => ({
 							id: k,
 							title: t(SECTION_LABEL[k]),
@@ -313,7 +321,7 @@ async function SettingsPage({
 							href: `/einstellungen?tab=${k}`,
 							icon: SECTION_ICON[k],
 							terms: settingsTerms(k),
-							current: chosen && k === section,
+							current: k === section,
 						}))}
 						labels={{
 							placeholder: t("searchPlaceholder"),
@@ -321,7 +329,25 @@ async function SettingsPage({
 							empty: t("searchEmpty"),
 						}}
 					>
-						<ListGroup>
+						{/* neben dem Inhalt: Zeilen wie im Menü, ohne Satz und Pfeil; der
+						    gezeigte Bereich ist gewählt (ohne Wahl der Standardbereich) */}
+						<SourceList className="hidden @3xl:flex">
+							{settingsGroups(visible).map((g) => (
+								<SourceSection key={g.group} title={t(GROUP_LABEL[g.group])}>
+									{g.keys.map((k) => (
+										<SourceItem
+											key={k}
+											icon={SECTION_ICON[k]}
+											title={t(SECTION_LABEL[k])}
+											href={`/einstellungen?tab=${k}`}
+											current={k === section}
+										/>
+									))}
+								</SourceSection>
+							))}
+						</SourceList>
+						{/* Handy: gruppierte Liste mit einem Satz je Bereich */}
+						<ListGroup className="@3xl:hidden">
 							{settingsGroups(visible).map((g) => (
 								<ListSection key={g.group} title={t(GROUP_LABEL[g.group])}>
 									{g.keys.map((k) => (
@@ -329,19 +355,8 @@ async function SettingsPage({
 											key={k}
 											icon={SECTION_ICON[k]}
 											title={t(SECTION_LABEL[k])}
-											// Satz, was der Bereich regelt; neben dem Inhalt steht
-											// er über dem Bereich
-											subtitle={
-												<span className="@3xl:hidden">{t(`hint_${k}`)}</span>
-											}
+											subtitle={t(`hint_${k}`)}
 											href={`/einstellungen?tab=${k}`}
-											current={chosen && k === section}
-											// Ohne Wahl zeigt die geteilte Ansicht den Standardbereich
-											className={cn(
-												!chosen &&
-													k === section &&
-													"@3xl:bg-primary/12 @3xl:font-semibold",
-											)}
 										/>
 									))}
 								</ListSection>

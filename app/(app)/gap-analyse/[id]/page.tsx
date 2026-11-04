@@ -501,7 +501,7 @@ async function AssessmentPage({
 							<nav
 								aria-label={t("chapters")}
 								data-split-pane
-								className="lg:border-border/60 lg:border-r lg:px-3 lg:pt-3"
+								className="lg:border-border/60 lg:border-r lg:bg-sidebar lg:px-3 lg:pt-3"
 							>
 								<KeepActiveVisible active={chapter} />
 								<ListKeys>
@@ -516,8 +516,9 @@ async function AssessmentPage({
 															s.code === chapter ? "page" : undefined
 														}
 														className={cn(
-															"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-subhead hover:bg-muted pointer-coarse:min-h-11",
-															s.code === chapter && "bg-muted font-medium",
+															"flex min-h-8 items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1 text-foreground text-subhead transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11",
+															s.code === chapter &&
+																"bg-primary/12 font-semibold hover:bg-primary/12 dark:bg-primary/20",
 														)}
 													>
 														<span className="truncate">{s.title}</span>
@@ -707,7 +708,7 @@ async function AssessmentPage({
 							<nav
 								aria-label={t("chapters")}
 								data-split-pane
-								className="lg:border-border/60 lg:border-r lg:px-3 lg:pt-3"
+								className="lg:border-border/60 lg:border-r lg:bg-sidebar lg:px-3 lg:pt-3"
 							>
 								<KeepActiveVisible active={chapter} />
 								<ListKeys>
@@ -725,8 +726,9 @@ async function AssessmentPage({
 															s.code === chapter ? "page" : undefined
 														}
 														className={cn(
-															"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-subhead hover:bg-muted pointer-coarse:min-h-11",
-															s.code === chapter && "bg-muted font-medium",
+															"flex min-h-8 items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1 text-foreground text-subhead transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11",
+															s.code === chapter &&
+																"bg-primary/12 font-semibold hover:bg-primary/12 dark:bg-primary/20",
 														)}
 													>
 														<span className="truncate">{s.title}</span>
