@@ -6,7 +6,10 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
 	advanceProvider,
+	completeProviderExit,
 	requestProvider,
+	setProviderExitItem,
+	startProviderExit,
 	updateProviderDetails,
 } from "@/app/actions/supplier-lifecycle";
 import { useGateFeedback } from "@/components/approvals/use-gate-feedback";
@@ -14,6 +17,7 @@ import type { MemberOption } from "@/components/entity/owner-assignee";
 import { ResponsibleSelect } from "@/components/entity/responsible-select";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useConfirm } from "@/components/ui/confirm-alert";
 import {
 	Dialog,
 	DialogContent,
@@ -37,6 +41,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import { useParamOpen } from "@/components/ui/use-param-open";
+import type { ProviderExitItem } from "@/db/schema/enums";
 
 // Lebenszyklus eines Dienstleisters (L1): Bedarf melden, Bedarf annehmen
 // oder ablehnen, in Betrieb nehmen, Angaben zu Auslagerung und Ausstieg.
@@ -48,9 +53,11 @@ function useFail() {
 	return (res: { error?: string; ref?: string }) =>
 		res.error === "wrong_stage"
 			? t("errWrongStage")
-			: res.error === "statusLocked"
-				? t("errLocked")
-				: (gate.errorText(res.error ?? "") ?? errorText(tc, res));
+			: res.error === "exit_incomplete"
+				? t("errExitIncomplete")
+				: res.error === "statusLocked"
+					? t("errLocked")
+					: (gate.errorText(res.error ?? "") ?? errorText(tc, res));
 }
 
 // Bedarf melden: was gebraucht wird und wofür; die Prüfung übernimmt danach
@@ -598,5 +605,204 @@ export function ProviderDetailsForm({
 				</form>
 			</DialogContent>
 		</Dialog>
+	);
+}
+
+// Ausstieg beginnen (L3): Begründung und geplantes Ende; je nach Ablauf erst
+// nach Freigabe „Im Ausstieg“
+export function StartExitDialog({ providerId }: { providerId: string }) {
+	const t = useTranslations("SupplierLifecycle");
+	const tc = useTranslations("Common");
+	const gate = useGateFeedback();
+	const fail = useFail();
+	const router = useRouter();
+	const [open, setOpen] = useState(false);
+	const [pending, start] = useTransition();
+	const [error, setError] = useState<string | null>(null);
+	const [reason, setReason] = useState("");
+	const [plannedEnd, setPlannedEnd] = useState("");
+	return (
+		<Dialog
+			open={open}
+			onOpenChange={(o) => {
+				setOpen(o);
+				if (!o) setError(null);
+			}}
+		>
+			<DialogTrigger asChild>
+				<Button type="button" size="sm" variant="ghost">
+					{t("exitStart")}
+				</Button>
+			</DialogTrigger>
+			<DialogContent className="sm:max-w-lg">
+				<form
+					className="flex flex-col gap-4"
+					onSubmit={(e) => {
+						e.preventDefault();
+						start(async () => {
+							setError(null);
+							const res = await startProviderExit({
+								providerId,
+								reason,
+								plannedEnd: plannedEnd || null,
+							});
+							if (!res.ok) return setError(fail(res));
+							if (res.data.approvalPending) toast.info(gate.pendingText());
+							else toast.success(t("exitStarted"));
+							setOpen(false);
+							router.refresh();
+						});
+					}}
+				>
+					<DialogHeader>
+						<DialogTitle>{t("exitTitle")}</DialogTitle>
+						<DialogDescription>{t("exitLead")}</DialogDescription>
+					</DialogHeader>
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="ex-reason">{t("exitReason")}</Label>
+						<Textarea
+							id="ex-reason"
+							rows={3}
+							value={reason}
+							onChange={(e) => setReason(e.target.value)}
+							placeholder={t("exitReasonHint")}
+							minLength={10}
+							maxLength={2000}
+							required
+						/>
+					</div>
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="ex-end">{t("exitPlannedEnd")}</Label>
+						<Input
+							id="ex-end"
+							type="date"
+							value={plannedEnd}
+							onChange={(e) => setPlannedEnd(e.target.value)}
+							className="sm:max-w-56"
+						/>
+					</div>
+					<FormAlert message={error} />
+					<DialogFooter>
+						<Button
+							type="button"
+							variant="ghost"
+							onClick={() => setOpen(false)}
+						>
+							{tc("cancel")}
+						</Button>
+						<Button
+							type="submit"
+							variant="destructive"
+							disabled={pending || reason.trim().length < 10}
+						>
+							{t("exitStart")}
+						</Button>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
+	);
+}
+
+// Checkliste des Ausstiegs: abhaken mit Datum, abschließen erst vollständig
+export function ExitChecklist({
+	providerId,
+	items,
+	canEdit,
+	complete,
+}: {
+	providerId: string;
+	items: { key: ProviderExitItem; required: boolean; doneAt: string | null }[];
+	canEdit: boolean;
+	complete: boolean;
+}) {
+	const t = useTranslations("SupplierLifecycle");
+	const fail = useFail();
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	const [error, setError] = useState<string | null>(null);
+	const confirm = useConfirm({
+		title: t("exitCompleteTitle"),
+		description: t("exitCompleteLead"),
+		confirmLabel: t("exitComplete"),
+	});
+	const fmt = new Intl.DateTimeFormat("de-DE", {
+		dateStyle: "medium",
+		timeZone: "Europe/Berlin",
+	});
+	return (
+		<div className="flex flex-col gap-3">
+			<ul className="flex flex-col gap-2">
+				{items.map((i) => (
+					<li key={i.key}>
+						<label className="flex items-start gap-2">
+							<Checkbox
+								checked={i.doneAt !== null}
+								disabled={!canEdit || pending}
+								onCheckedChange={(v) =>
+									start(async () => {
+										setError(null);
+										const res = await setProviderExitItem({
+											providerId,
+											item: i.key,
+											done: Boolean(v),
+										});
+										if (!res.ok) return setError(fail(res));
+										router.refresh();
+									})
+								}
+								className="mt-0.5"
+							/>
+							<span className="flex flex-col">
+								<span>
+									{t(`exitItem_${i.key}`)}
+									{!i.required && (
+										<span className="ml-2 text-muted-foreground text-footnote">
+											{t("recommended")}
+										</span>
+									)}
+								</span>
+								{i.doneAt && (
+									<span className="text-muted-foreground text-footnote">
+										{t("exitDoneAt", {
+											date: fmt.format(new Date(`${i.doneAt}T12:00:00Z`)),
+										})}
+									</span>
+								)}
+							</span>
+						</label>
+					</li>
+				))}
+			</ul>
+			{canEdit && (
+				<div className="flex flex-wrap items-center gap-2">
+					<Button
+						type="button"
+						size="sm"
+						disabled={pending || !complete}
+						onClick={() =>
+							confirm.ask(() =>
+								start(async () => {
+									setError(null);
+									const res = await completeProviderExit({ providerId });
+									if (!res.ok) return setError(fail(res));
+									toast.success(t("exitCompleted"));
+									router.refresh();
+								}),
+							)
+						}
+					>
+						{t("exitComplete")}
+					</Button>
+					{!complete && (
+						<span className="text-muted-foreground text-footnote">
+							{t("exitCompleteOpen")}
+						</span>
+					)}
+				</div>
+			)}
+			<FormAlert message={error} />
+			{confirm.node}
+		</div>
 	);
 }

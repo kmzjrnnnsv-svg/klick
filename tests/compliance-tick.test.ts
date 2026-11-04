@@ -715,6 +715,54 @@ describe("collectDueItems — Lieferantenbewertungen", () => {
 			"/dienstleister/p1?tab=bewertungen",
 		);
 	});
+	it("Dienstleister: Kündigungsfrist, Vertragsende, AV-Vertrag und Ausstiegstest", () => {
+		// 07.10.: Kündigung bis 06.11. (30 Tage), Vertragsende 05.01. (90 Tage)
+		const res = collectDueItems(NOW, {
+			...empty,
+			providerAssessments: [
+				{
+					id: "p2",
+					name: "Rechenzentrum",
+					nextAssessmentAt: null,
+					ownerUserId: "u1",
+					status: "active",
+					contractEnd: "2027-01-05",
+					noticePeriodDays: 60,
+				},
+				{
+					id: "p3",
+					name: "Altlast",
+					nextAssessmentAt: "2026-10-09",
+					ownerUserId: "u1",
+					status: "terminated",
+				},
+			],
+		});
+		const keys = res.notifications.map((n) => n.dedupeKey);
+		expect(keys).toContain("provider:notice:p2:2026-11-06:30");
+		expect(keys).toContain("provider:contract_end:p2:2027-01-05:90");
+		// beendete Dienstleister bekommen keine Bewertungserinnerung
+		expect(keys.some((k) => k.includes("p3"))).toBe(false);
+		// AV-Vertrag und Ausstiegstest nur am Monatsersten
+		const first = collectDueItems(new Date("2026-11-01T09:00:00Z"), {
+			...empty,
+			providerAssessments: [
+				{
+					id: "p4",
+					name: "Lohnbüro",
+					nextAssessmentAt: null,
+					ownerUserId: "u1",
+					status: "active",
+					criticality: "critical",
+					processesPersonalData: true,
+				},
+			],
+		});
+		expect(first.notifications.map((n) => n.dedupeKey)).toEqual([
+			"provider:dpa:p4:2026-11",
+			"provider:exit_test:p4:2026-11",
+		]);
+	});
 });
 
 describe("collectDueItems — Sicherheitsaufträge", () => {

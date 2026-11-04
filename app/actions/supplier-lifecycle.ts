@@ -13,14 +13,18 @@ import {
 	functionRecipients,
 	ownerColumns,
 } from "@/lib/compliance/function-holders-service";
+import { exitComplete } from "@/lib/compliance/supplier-lifecycle";
 import { mutateOrg } from "@/lib/db/with-org";
 import { notify } from "@/lib/notifications/notify";
 import { orgOwnerIds } from "@/lib/org/queries";
 import { type ActionResult, fromZod } from "@/lib/validation/common";
 import {
+	completeProviderExitSchema,
 	providerDetailsSchema,
+	providerExitItemSchema,
 	providerRequestSchema,
 	providerStepSchema,
+	startProviderExitSchema,
 } from "@/lib/validation/suppliers";
 
 // Lebenszyklus eines Dienstleisters (L1, lib/compliance/supplier-lifecycle.ts):
@@ -238,6 +242,186 @@ async function updateProviderDetailsImpl(
 	return { ok: true, data: { id: providerId } };
 }
 
+// Ausstieg beginnen (L3): Begründung und geplantes Ende; der Auslöser
+// provider.exit entscheidet, ob eine Freigabe nötig ist. Ohne Freigabe sofort
+// „Im Ausstieg“, mit Freigabe bleibt der Dienstleister bis dahin in Betrieb.
+async function startProviderExitImpl(
+	input: unknown,
+): Promise<ActionResult<{ approvalPending: boolean }>> {
+	const c = await requireOrg({ provider: ["update"] });
+	const parsed = startProviderExitSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	try {
+		const res = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const [p] = await tx
+				.select()
+				.from(providers)
+				.where(
+					and(
+						eq(providers.id, d.providerId),
+						eq(providers.organizationId, c.orgId),
+					),
+				)
+				.limit(1);
+			if (!p) throw new StepError("notFound");
+			if (!["active", "onboarding", "paused"].includes(p.status))
+				throw new StepError("wrong_stage");
+			const waiting = await pendingApprovalIds(tx, c.orgId, "provider", [p.id]);
+			if (waiting.size > 0) throw new StepError("statusLocked");
+			const exit = {
+				reason: d.reason,
+				plannedEnd: d.plannedEnd ?? null,
+				requestedAt: new Date().toISOString(),
+				requestedBy: c.userId,
+				items: {},
+			};
+			await tx.update(providers).set({ exit }).where(eq(providers.id, p.id));
+			const gate = await gateApproval(
+				tx,
+				{ orgId: c.orgId, userId: c.userId, name: c.name },
+				{
+					trigger: "provider.exit",
+					entityType: "provider",
+					entityId: p.id,
+					entityOwnerUserId: p.ownerUserId,
+					title: `Ausstieg aus Dienstleister: ${p.name}`,
+					link: `${PATH}/${p.id}`,
+					facts: providerFactsOf(p),
+				},
+			);
+			if (gate.status === "error")
+				throw new GateBlocked(gate.error, gate.warnings);
+			const approvalPending = gate.status === "pending";
+			// ohne Ablauf (oder sofort freigegeben) beginnt der Ausstieg jetzt
+			if (!approvalPending)
+				await tx
+					.update(providers)
+					.set({ status: "exiting" })
+					.where(eq(providers.id, p.id));
+			return {
+				result: { approvalPending },
+				audit: {
+					action: "provider.exit_started",
+					target: `provider:${p.id}`,
+					before: { status: p.status },
+					after: {
+						status: approvalPending ? p.status : "exiting",
+						reason: d.reason,
+						plannedEnd: exit.plannedEnd,
+						approvalPending,
+					},
+				},
+			};
+		});
+		revalidatePath(`${PATH}/${d.providerId}`);
+		revalidatePath(PATH);
+		return { ok: true, data: res };
+	} catch (e) {
+		if (e instanceof GateBlocked) return { ok: false, error: e.code };
+		if (e instanceof StepError) return { ok: false, error: e.code };
+		throw e;
+	}
+}
+
+// Punkt der Checkliste abhaken (mit Datum) oder zurücknehmen
+async function setProviderExitItemImpl(
+	input: unknown,
+): Promise<ActionResult<undefined>> {
+	const c = await requireOrg({ provider: ["update"] });
+	const parsed = providerExitItemSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	try {
+		await mutateOrg(toOrgCtx(c), async (tx) => {
+			const [p] = await tx
+				.select({ status: providers.status, exit: providers.exit })
+				.from(providers)
+				.where(
+					and(
+						eq(providers.id, d.providerId),
+						eq(providers.organizationId, c.orgId),
+					),
+				)
+				.limit(1);
+			if (!p) throw new StepError("notFound");
+			if (p.status !== "exiting" || !p.exit) throw new StepError("wrong_stage");
+			const items = { ...p.exit.items };
+			if (d.done) items[d.item] = new Date().toISOString().slice(0, 10);
+			else delete items[d.item];
+			await tx
+				.update(providers)
+				.set({ exit: { ...p.exit, items } })
+				.where(eq(providers.id, d.providerId));
+			return {
+				result: undefined,
+				audit: {
+					action: "provider.exit_item",
+					target: `provider:${d.providerId}`,
+					before: { [d.item]: p.exit.items[d.item] ?? null },
+					after: { [d.item]: items[d.item] ?? null },
+				},
+			};
+		});
+	} catch (e) {
+		if (e instanceof StepError) return { ok: false, error: e.code };
+		throw e;
+	}
+	revalidatePath(`${PATH}/${d.providerId}`);
+	return { ok: true, data: undefined };
+}
+
+// Ausstieg abschließen: nur mit vollständiger Checkliste; danach beendet
+async function completeProviderExitImpl(
+	input: unknown,
+): Promise<ActionResult<undefined>> {
+	const c = await requireOrg({ provider: ["update"] });
+	const parsed = completeProviderExitSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	const d = parsed.data;
+	try {
+		await mutateOrg(toOrgCtx(c), async (tx) => {
+			const [p] = await tx
+				.select()
+				.from(providers)
+				.where(
+					and(
+						eq(providers.id, d.providerId),
+						eq(providers.organizationId, c.orgId),
+					),
+				)
+				.limit(1);
+			if (!p) throw new StepError("notFound");
+			if (p.status !== "exiting" || !p.exit) throw new StepError("wrong_stage");
+			if (!exitComplete(p)) throw new StepError("exit_incomplete");
+			const now = new Date().toISOString();
+			await tx
+				.update(providers)
+				.set({
+					status: "terminated",
+					exit: { ...p.exit, completedAt: now, completedBy: c.userId },
+					contractEnd: p.contractEnd ?? now.slice(0, 10),
+				})
+				.where(eq(providers.id, p.id));
+			return {
+				result: undefined,
+				audit: {
+					action: "provider.exit_completed",
+					target: `provider:${p.id}`,
+					before: { status: p.status },
+					after: { status: "terminated", items: p.exit.items },
+				},
+			};
+		});
+	} catch (e) {
+		if (e instanceof StepError) return { ok: false, error: e.code };
+		throw e;
+	}
+	revalidatePath(`${PATH}/${d.providerId}`);
+	revalidatePath(PATH);
+	return { ok: true, data: undefined };
+}
+
 export const requestProvider = safeAction(
 	"requestProvider",
 	requestProviderImpl,
@@ -249,4 +433,16 @@ export const advanceProvider = safeAction(
 export const updateProviderDetails = safeAction(
 	"updateProviderDetails",
 	updateProviderDetailsImpl,
+);
+export const startProviderExit = safeAction(
+	"startProviderExit",
+	startProviderExitImpl,
+);
+export const setProviderExitItem = safeAction(
+	"setProviderExitItem",
+	setProviderExitItemImpl,
+);
+export const completeProviderExit = safeAction(
+	"completeProviderExit",
+	completeProviderExitImpl,
 );

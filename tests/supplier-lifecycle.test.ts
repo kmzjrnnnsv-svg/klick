@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ART30_CLAUSES } from "@/lib/compliance/catalog/art30-clauses";
 import {
+	exitComplete,
 	type LifecycleInput,
 	type LifecycleOptions,
 	lifecycleItems,
 	providerLifecycle,
+	providerReminders,
 	providerStage,
 	stageStates,
 } from "@/lib/compliance/supplier-lifecycle";
@@ -206,5 +208,109 @@ describe("providerLifecycle", () => {
 		expect(e.exit).toBe("current");
 		expect(e.review).toBe("open");
 		expect(e.request).toBe("done");
+	});
+});
+
+describe("Ausstieg (L3)", () => {
+	const exiting: LifecycleInput = {
+		...done,
+		status: "exiting",
+		exit: {
+			reason: "Wechsel zu anderem Anbieter",
+			plannedEnd: "2026-12-31",
+			requestedAt: "2026-11-01T10:00:00Z",
+			requestedBy: "u1",
+			items: { notice_given: "2026-11-02" },
+		},
+	};
+
+	it("Checkliste erscheint erst im Ausstieg", () => {
+		expect(lifecycleItems(done, opts).some((i) => i.stage === "exit")).toBe(
+			false,
+		);
+		const items = lifecycleItems(exiting, opts).filter(
+			(i) => i.stage === "exit",
+		);
+		expect(items.map((i) => i.key)).toEqual([
+			"exit_notice_given",
+			"exit_data_returned",
+			"exit_deletion_confirmed",
+			"exit_access_revoked",
+			"exit_replacement_ready",
+		]);
+		expect(items[0]?.done).toBe(true);
+		// Ersatz nur bei kritisch/wesentlich Pflicht
+		expect(items[4]?.required).toBe(false);
+		expect(providerStage(exiting, opts)).toBe("exit");
+	});
+
+	it("abschließen erst mit allen Pflichtpunkten", () => {
+		expect(exitComplete(exiting)).toBe(false);
+		const items = {
+			notice_given: "2026-11-02",
+			data_returned: "2026-11-10",
+			deletion_confirmed: "2026-11-12",
+			access_revoked: "2026-11-12",
+		};
+		const ready = {
+			...exiting,
+			exit: { ...(exiting.exit as NonNullable<LifecycleInput["exit"]>), items },
+		};
+		expect(exitComplete(ready)).toBe(true);
+		// kritisch: Ersatz fehlt noch
+		expect(exitComplete({ ...ready, criticality: "critical" })).toBe(false);
+	});
+});
+
+describe("providerReminders (L3)", () => {
+	const base2 = {
+		status: "active" as const,
+		criticality: "standard" as const,
+		isMaterial: false,
+		processesPersonalData: false,
+		dpaSignedAt: null,
+		contractEnd: "2027-01-31",
+		noticePeriodDays: 90,
+		exitPlanTestedAt: null,
+	};
+
+	it("Kündigungsfrist und Vertragsende nur an den Vorlauf-Tagen", () => {
+		// Kündigung bis 02.11.2026 (90 Tage vor dem 31.01.2027)
+		expect(providerReminders(base2, "2026-10-03")).toEqual([
+			{ kind: "notice", date: "2026-11-02", days: 30 },
+		]);
+		expect(providerReminders(base2, "2026-10-04")).toEqual([]);
+		expect(providerReminders(base2, "2026-11-02")).toEqual([
+			{ kind: "contract_end", date: "2027-01-31", days: 90 },
+		]);
+		// ohne Kündigungsfrist nur das Vertragsende
+		expect(
+			providerReminders({ ...base2, noticePeriodDays: null }, "2027-01-24"),
+		).toEqual([{ kind: "contract_end", date: "2027-01-31", days: 7 }]);
+	});
+
+	it("AV-Vertrag und Ausstiegstest am Monatsersten, nur im Betrieb", () => {
+		const p = {
+			...base2,
+			contractEnd: null,
+			processesPersonalData: true,
+			criticality: "critical" as const,
+			exitPlanTestedAt: "2025-06-01",
+		};
+		expect(providerReminders(p, "2026-11-01")).toEqual([
+			{ kind: "dpa_missing" },
+			{ kind: "exit_test", lastTest: "2025-06-01" },
+		]);
+		expect(providerReminders(p, "2026-11-02")).toEqual([]);
+		expect(
+			providerReminders({ ...p, exitPlanTestedAt: "2026-06-01" }, "2026-11-01"),
+		).toEqual([{ kind: "dpa_missing" }]);
+		for (const status of [
+			"requested",
+			"exiting",
+			"terminated",
+			"declined",
+		] as const)
+			expect(providerReminders({ ...p, status }, "2026-11-01")).toEqual([]);
 	});
 });

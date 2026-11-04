@@ -203,20 +203,24 @@ async function loadDueRows(
 		.filter((d) => d.status === "approved" || docsInForce.has(d.id))
 		.map(({ id: _id, status: _s, ...d }) => d);
 
+	// alle Dienstleister: Bewertung fällig, Vertrag, AV-Vertrag, Ausstiegstest
 	const providerAssessments = await tx
 		.select({
 			id: providers.id,
 			name: providers.name,
 			nextAssessmentAt: providers.nextAssessmentAt,
 			ownerUserId: providers.ownerUserId,
+			status: providers.status,
+			criticality: providers.criticality,
+			isMaterial: providers.isMaterial,
+			processesPersonalData: providers.processesPersonalData,
+			dpaSignedAt: providers.dpaSignedAt,
+			contractEnd: providers.contractEnd,
+			noticePeriodDays: providers.noticePeriodDays,
+			exitPlanTestedAt: providers.exitPlanTestedAt,
 		})
 		.from(providers)
-		.where(
-			and(
-				eq(providers.organizationId, orgId),
-				isNotNull(providers.nextAssessmentAt),
-			),
-		);
+		.where(eq(providers.organizationId, orgId));
 
 	const evidenceExpiring = await tx
 		.select({

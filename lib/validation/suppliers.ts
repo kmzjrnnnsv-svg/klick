@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ASSESSMENT_ANSWERS } from "@/db/schema/enums";
+import { ASSESSMENT_ANSWERS, PROVIDER_EXIT_ITEMS } from "@/db/schema/enums";
 import { ART30_CLAUSES } from "@/lib/compliance/catalog/art30-clauses";
 import { email, shortText, uuid } from "./common";
 import { responsibleRef } from "./responsible";
@@ -123,3 +123,18 @@ export const providerDetailsSchema = z.object({
 	exitStrategy: z.string().trim().max(4000).nullable().optional(),
 	exitPlanTestedAt: isoDate.nullable().optional(),
 });
+
+// Ausstieg (L3)
+export const startProviderExitSchema = z.object({
+	providerId: uuid,
+	reason: z.string().trim().min(10).max(2000),
+	plannedEnd: isoDate.nullable().optional(),
+});
+
+export const providerExitItemSchema = z.object({
+	providerId: uuid,
+	item: z.enum(PROVIDER_EXIT_ITEMS),
+	done: z.boolean(),
+});
+
+export const completeProviderExitSchema = z.object({ providerId: uuid });
