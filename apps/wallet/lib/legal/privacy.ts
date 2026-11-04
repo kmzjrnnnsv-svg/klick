@@ -2,7 +2,7 @@
 // (Verantwortliche:r) setzt die Seite aus LEGAL_* zusammen. Entwurf —
 // fachliche Prüfung: docs/legal/both-money-datenschutz.md.
 
-export const PRIVACY_AS_OF = "24.10.2026";
+export const PRIVACY_AS_OF = "04.11.2026";
 
 export type PrivacySection = {
 	title: string;
@@ -56,6 +56,17 @@ export const PRIVACY_SECTIONS: PrivacySection[] = [
 			"Cookies, die mit „both.“ beginnen: Anmeldung und Sitzung – höchstens 12 Stunden, bei Inaktivität 30 Minuten.",
 			"„both_link“: Aktivierungs-, Einladungs- oder Zurücksetz-Link gegen das Anlegen eines Passkeys tauschen – höchstens 30 Minuten.",
 			"„both_pending_invite“ (Sitzungsspeicher des Browsers): Einladung nach der Anmeldung annehmen – bis zur Annahme oder bis du den Tab schließt.",
+		],
+	},
+	{
+		title: "Zugang anfragen",
+		paragraphs: [
+			"Fragst du über das Formular auf der Startseite Zugang an, speichern wir Name, Unternehmen, E-Mail-Adresse, den gewählten Zweck und deine Nachricht. Deine IP-Adresse speichern wir nur als nicht umkehrbaren Hashwert, um Missbrauch zu begrenzen. Der Betrieb von both.money bekommt die Anfrage per E-Mail; an die angegebene Adresse schickt das Formular nichts.",
+		],
+		items: [
+			"Zweck: deine Anfrage beantworten und gegebenenfalls eine Einladung ausstellen.",
+			"Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Anfrage vor einem Vertrag), für den Schutz vor Missbrauch lit. f.",
+			"Speicherdauer: 12 Monate nach der letzten Bearbeitung, danach gelöscht.",
 		],
 	},
 	{

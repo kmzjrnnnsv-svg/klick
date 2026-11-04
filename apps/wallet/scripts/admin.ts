@@ -12,15 +12,30 @@
  *   pnpm wallet:admin invite --org <slug> --email <adresse> [--role viewer]
  *   pnpm wallet:admin admin --email <adresse> [--revoke]
  *   pnpm wallet:recover <adresse>                       (Passkeys + Sitzungen weg, Link für neuen Passkey)
+ *   pnpm wallet:admin requests list [--all]              (Zugangsanfragen von der Startseite; ohne --all nur neue)
+ *   pnpm wallet:admin requests status --id <kennung> --status contacted|closed|spam
  */
 import { readFileSync } from "node:fs";
 import { db, sqlClient } from "@wallet/db";
 import { passkey, session, user } from "@wallet/db/auth-schema";
 import { members, orgSettings, orgs } from "@wallet/db/schema";
-import { CUSTODY_MODES, type CustodyMode } from "@wallet/db/schema/enums";
+import {
+	ACCESS_REQUEST_STATUS,
+	type AccessRequestStatus,
+	CUSTODY_MODES,
+	type CustodyMode,
+} from "@wallet/db/schema/enums";
+import {
+	ACCESS_REQUEST_STATUS_LABEL,
+	PURPOSE_LABEL,
+} from "@wallet/lib/access-requests/rules";
 import { auditPlatform } from "@wallet/lib/audit";
 import { issueLink } from "@wallet/lib/auth/links";
 import { isMemberRole } from "@wallet/lib/auth/permissions";
+import {
+	listAccessRequests,
+	setAccessRequestStatus,
+} from "@wallet/lib/db/access-requests";
 import { mutateOrg, withPlatform } from "@wallet/lib/db/with-org";
 import { hasLinks } from "@wallet/lib/export/emit";
 import { emitOrgUpdated } from "@wallet/lib/export/org";
@@ -302,6 +317,40 @@ async function main() {
 			});
 			console.log(
 				`Zugang zurückgesetzt (${removed.length} Passkeys, alle Sitzungen entfernt).\nLink für einen neuen Passkey (gültig bis ${until(expiresAt)}):\n\n${url}`,
+			);
+			return;
+		}
+		case "requests list": {
+			const rows = await listAccessRequests({ all: flag("all") });
+			console.table(
+				rows.map((r) => ({
+					...r,
+					purpose: PURPOSE_LABEL[r.purpose],
+					status: ACCESS_REQUEST_STATUS_LABEL[r.status],
+					createdAt: until(r.createdAt),
+				})),
+			);
+			return;
+		}
+		case "requests status": {
+			const id = need(opt("id"), "--id");
+			const status = need(opt("status"), "--status");
+			if (!(ACCESS_REQUEST_STATUS as readonly string[]).includes(status))
+				throw new Error(
+					`--status muss eines sein von: ${ACCESS_REQUEST_STATUS.join(", ")}`,
+				);
+			const ok = await setAccessRequestStatus(
+				id,
+				status as AccessRequestStatus,
+			);
+			if (!ok) throw new Error(`Anfrage ${id} gibt es nicht`);
+			await auditPlatform(CLI, {
+				action: "access_request.status",
+				target: `access_request:${id}`,
+				after: { status },
+			});
+			console.log(
+				`Anfrage ${id}: ${ACCESS_REQUEST_STATUS_LABEL[status as AccessRequestStatus]}`,
 			);
 			return;
 		}
