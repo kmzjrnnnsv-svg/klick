@@ -26,7 +26,8 @@ import { oktaConnectSchema } from "@/lib/validation/identity";
 // Obergrenze, Admin-Rollen nur mit Recht.
 
 const D = "firma.okta.com";
-const TOKEN = "00abcdefghijklmnopqrstuvwxyz0123456789AB";
+// Platzhalter ohne Zufall (Secret-Scanner), Format wie ein Okta-Token
+const TOKEN = `00${"t".repeat(40)}`;
 
 describe("Okta-Adresse", () => {
 	it("nur Okta-Hosts, auch aus Link oder OIDC-Issuer", () => {

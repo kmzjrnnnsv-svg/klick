@@ -10,3 +10,6 @@
 # Platzhalter-Schlüssel im Test der KI-Anbieter (nachgebauter Server), kein
 # echter Schlüssel.
 4d0ecb39fe73cea793a403938abf48976905218d:tests/ai-providers.test.ts:generic-api-key:26
+# Erfundene Okta-Test-Kennung (nachgebauter Dienst), kein echtes Token; die
+# Datei nutzt seitdem eine Kennung ohne Zufall.
+54fe3e90bc4aacb3728bc8a04accf0390ce5b2ce:tests/identity-okta.test.ts:generic-api-key:29
