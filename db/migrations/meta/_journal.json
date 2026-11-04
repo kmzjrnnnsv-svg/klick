@@ -505,6 +505,13 @@
       "when": 1793826854989,
       "tag": "0071_process_bia",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1793828037893,
+      "tag": "0072_bcm_chain",
+      "breakpoints": true
     }
   ]
 }

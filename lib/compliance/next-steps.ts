@@ -22,6 +22,7 @@ export type NextStepKey =
 	| "controls_start"
 	| "processes_accountable"
 	| "processes_bia"
+	| "processes_chain"
 	| "risk_proposals"
 	| "team"
 	| "appetite"
@@ -58,6 +59,8 @@ export type NextStepFacts = {
 	processesWithoutAccountable: number;
 	// kritische oder wichtige Prozesse ohne geführte BIA
 	processesWithoutBia?: number;
+	// kritische Prozesse, deren Abhängigkeiten das RTO/RPO verfehlen
+	processesChainBroken?: number;
 	riskProposals: number;
 	teamInvited: boolean;
 	appetiteConfirmed: boolean;
@@ -153,6 +156,10 @@ export function nextSteps(f: NextStepFacts, limit = 5): NextStep[] {
 	if ((f.processesWithoutBia ?? 0) > 0)
 		add("processes_bia", 41, "/prozesse?tab=kritisch", {
 			count: f.processesWithoutBia ?? 0,
+		});
+	if ((f.processesChainBroken ?? 0) > 0)
+		add("processes_chain", 43, "/prozesse?tab=abhaengigkeiten", {
+			count: f.processesChainBroken ?? 0,
 		});
 	if (f.riskProposals > 0)
 		add("risk_proposals", 40, "/risiken?tab=vorschlaege", {

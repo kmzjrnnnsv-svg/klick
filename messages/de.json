@@ -2337,7 +2337,9 @@
 		"contractStart": "Vertragsbeginn",
 		"tabOverview": "Übersicht",
 		"status_declined": "Abgelehnt",
-		"statusLocked": "Der Status ist gesperrt, solange eine Freigabe offen ist."
+		"statusLocked": "Der Status ist gesperrt, solange eine Freigabe offen ist.",
+		"rtoHours": "Wiederanlauf laut Vertrag (Stunden)",
+		"rpoHours": "Datenverlust höchstens laut Vertrag (Stunden)"
 	},
 	"Assets": {
 		"lifecycle": "Lebenszyklus",
@@ -2397,7 +2399,17 @@
 		"status_pending": "Wartet auf Freigabe",
 		"status_declined": "Abgelehnt",
 		"status_retired": "Außer Betrieb",
-		"retireRequested": "Außerbetriebnahme beantragt — wartet auf Freigabe."
+		"retireRequested": "Außerbetriebnahme beantragt — wartet auf Freigabe.",
+		"recovery": "Im Notfall",
+		"recoveryLead": "Wie schnell läuft das Asset nach einem Ausfall wieder, und wie alt ist der Datenstand danach höchstens? Klick gleicht das mit den Zielen der Prozesse ab.",
+		"rtoHours": "Wiederanlauf in Stunden",
+		"rpoHours": "Datenverlust höchstens (Stunden)",
+		"redundancy": "Ausweichweg",
+		"redundancyUnknown": "Nicht angegeben",
+		"redundancy_none": "Keiner",
+		"redundancy_cold": "Kalt (Ersatz muss aufgebaut werden)",
+		"redundancy_warm": "Warm (bereit, Umschalten von Hand)",
+		"redundancy_hot": "Heiß (läuft mit)"
 	},
 	"Trainings": {
 		"title": "Schulungen",
@@ -2619,7 +2631,10 @@
 		"site": "Standort",
 		"siteNone": "Kein bestimmter Standort",
 		"rtoOverMtpd": "Die Wiederanlaufzeit (RTO) muss kleiner oder gleich der maximal tragbaren Ausfallzeit (MTPD) sein.",
-		"biaMissing": "Noch keine"
+		"biaMissing": "Noch keine",
+		"chainTitle": "Im Notfall: Abhängigkeiten",
+		"chainLead": "Der Prozess läuft erst wieder, wenn alles läuft, wovon er abhängt. Die langsamste Abhängigkeit bestimmt, was erreichbar ist.",
+		"chainMissShort": "Ziel nicht erreichbar"
 	},
 	"Organisation": {
 		"title": "Organisation",
@@ -8587,6 +8602,8 @@
 		"detail_processes_accountable": "Je Prozess genau eine Person oder Funktion mit A in der RACI",
 		"step_processes_bia": "{count, plural, one {Ein kritischer Prozess braucht} other {# kritische Prozesse brauchen}} eine BIA",
 		"detail_processes_bia": "Schaden über die Zeit bewerten, dann schlägt Klick RTO, RPO und MTPD vor",
+		"step_processes_chain": "{count, plural, one {Ein kritischer Prozess erreicht sein Ziel} other {# kritische Prozesse erreichen ihr Ziel}} im Notfall nicht",
+		"detail_processes_chain": "Ein Asset oder Dienstleister braucht länger als das RTO oder verliert mehr Daten als das RPO",
 		"step_risk_proposals": "{count, plural, one {Einen Risikovorschlag} other {# Risikovorschläge}} prüfen",
 		"detail_risk_proposals": "Aus Dienstleistern, Assets und Lücken abgeleitet",
 		"step_team": "Team einladen",
@@ -8919,6 +8936,28 @@
 		"issue_decreasing": "Schaden sinkt mit der Zeit – prüfen",
 		"dur_hours": "{count} h",
 		"dur_days": "{count, plural, one {# Tag} other {# Tage}}",
-		"dur_weeks": "{count, plural, one {# Woche} other {# Wochen}}"
+		"dur_weeks": "{count, plural, one {# Woche} other {# Wochen}}",
+		"chainEmpty": "Noch keine Assets oder Dienstleister verknüpft. Verknüpf sie unten unter „Verknüpfungen“, dann prüft Klick, ob das Ziel erreichbar ist.",
+		"chainUnknown": "nicht angegeben",
+		"chainRto": "Erreichbarer Wiederanlauf",
+		"chainRpo": "Erreichbarer Datenverlust",
+		"chainTarget": "Ziel:",
+		"chainOk": "erreichbar",
+		"chainMiss": "nicht erreichbar",
+		"chainOpen": "noch nicht prüfbar",
+		"chainDependency": "Abhängigkeit",
+		"chainFindings": "Befund",
+		"chainNoFinding": "passt",
+		"chainKind_asset": "Asset",
+		"chainKind_provider": "Dienstleister",
+		"chain_rto_slow": "langsamer als das RTO",
+		"chain_rpo_loss": "mehr Datenverlust als das RPO",
+		"chain_rto_missing": "Wiederanlauf fehlt",
+		"chain_rpo_missing": "Datenstand fehlt",
+		"chain_single_point": "kein Ausweichweg",
+		"redundancy_none": "kein Ausweichweg",
+		"redundancy_cold": "Ausweichweg kalt",
+		"redundancy_warm": "Ausweichweg warm",
+		"redundancy_hot": "Ausweichweg heiß"
 	}
 }

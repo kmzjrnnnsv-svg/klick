@@ -67,7 +67,12 @@ export type AssetDraft = {
 	maintenance?: "contract" | "internal" | "none" | null;
 	maintenanceUntil?: string | null;
 	lastPatchedAt?: string | null;
+	rtoHours?: number | null;
+	rpoHours?: number | null;
+	redundancy?: (typeof REDUNDANCY)[number] | null;
 };
+
+const REDUNDANCY = ["none", "cold", "warm", "hot"] as const;
 
 const MAINTENANCE = ["contract", "internal", "none"] as const;
 
@@ -143,6 +148,9 @@ export function AssetForm({
 								maintenance: d.maintenance ?? null,
 								maintenanceUntil: d.maintenanceUntil || null,
 								lastPatchedAt: d.lastPatchedAt || null,
+								rtoHours: d.rtoHours ?? null,
+								rpoHours: d.rpoHours ?? null,
+								redundancy: d.redundancy ?? null,
 							});
 							if (!res.ok)
 								return void toast.error(
@@ -395,6 +403,72 @@ export function AssetForm({
 								value={d.lastPatchedAt ?? ""}
 								onChange={(e) => set("lastPatchedAt", e.target.value)}
 							/>
+						</div>
+					</fieldset>
+					<fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+						<legend className="font-medium text-footnote mb-1 text-muted-foreground">
+							{t("recovery")}
+						</legend>
+						<p className="text-footnote text-muted-foreground sm:col-span-3">
+							{t("recoveryLead")}
+						</p>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="as-rto">{t("rtoHours")}</Label>
+							<Input
+								id="as-rto"
+								type="number"
+								inputMode="numeric"
+								min={0}
+								value={d.rtoHours ?? ""}
+								onChange={(e) =>
+									set(
+										"rtoHours",
+										e.target.value === "" ? null : Number(e.target.value),
+									)
+								}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="as-rpo">{t("rpoHours")}</Label>
+							<Input
+								id="as-rpo"
+								type="number"
+								inputMode="numeric"
+								min={0}
+								value={d.rpoHours ?? ""}
+								onChange={(e) =>
+									set(
+										"rpoHours",
+										e.target.value === "" ? null : Number(e.target.value),
+									)
+								}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label>{t("redundancy")}</Label>
+							<Select
+								value={d.redundancy ?? "unknown"}
+								onValueChange={(v) =>
+									set(
+										"redundancy",
+										v === "unknown" ? null : (v as (typeof REDUNDANCY)[number]),
+									)
+								}
+							>
+								<SelectTrigger className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="unknown">
+										{t("redundancyUnknown")}
+									</SelectItem>
+									{REDUNDANCY.map((r) => (
+										<SelectItem key={r} value={r}>
+											{t(`redundancy_${r}`)}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 					</fieldset>
 					<div className="flex flex-col gap-1.5">

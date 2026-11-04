@@ -26,6 +26,7 @@ export function DependencyMap({
 		criticalProcesses: string;
 		processes: string;
 		rto: string;
+		chainMiss: string;
 		crit: Record<string, string>;
 	};
 }) {
@@ -54,6 +55,9 @@ export function DependencyMap({
 								>
 									{labels.crit[n.criticality] ?? n.criticality}
 								</Badge>
+								{n.chainBreaks > 0 && (
+									<Badge variant="destructive">{labels.chainMiss}</Badge>
+								)}
 								{n.rtoHours !== null && (
 									<span className="text-muted-foreground text-footnote">
 										{labels.rto} {n.rtoHours} h
