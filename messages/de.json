@@ -144,7 +144,7 @@
 		"ctaPricing": "Preise",
 		"exampleTitle": "Anmelden mit zweitem Faktor",
 		"exampleLead": "{count} Rahmenwerke verlangen eine sichere Anmeldung. Ein zweiter Faktor für jedes Konto erfüllt sie alle, die Maßnahme ist überall dieselbe. Ohne Klick weist du sie {count}‑mal nach. Mit Klick einmal.",
-		"exampleNote": "Wo Rahmenwerke Verschiedenes verlangen, etwa bei den Inhalten von Schulungen, zeigt Klick die Unterschiede je Rahmenwerk.",
+		"exampleNote": "Oft ist nur der Kern gleich, etwa bei Schulungen: ein Programm für alle. Was einzelne Rahmenwerke dazu wollen, zeigt Klick je Maßnahme mit Fundstelle.",
 		"withoutTitle": "Ohne Klick",
 		"withoutRow": "MFA nachweisen",
 		"withoutFooter": "{count} Listen, {count} Nachweise",

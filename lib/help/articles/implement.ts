@@ -241,8 +241,17 @@ export const IMPLEMENT: HelpArticle[] = [
 				list: [
 					"Jedes Rahmenwerk hat oben auf seiner Seite einen Steckbrief: wozu es da ist, für wen es gilt, wer es verlangt, was ohne passiert und wie man es zeigt. Jedes Kapitel hat einen einfachen Satz.",
 					"Jede Maßnahme (Control) hat oben „Einfach erklärt“: was das ist, wozu, und ein Bild aus dem Alltag.",
-					"Darunter steht „Wer verlangt das – und was genau?“: alle Rahmenwerke mit ihren Anforderungen, ob die Maßnahme sie ganz oder nur teilweise erfüllt, und was bei „teilweise“ dazukommt.",
+					"Darunter steht „Wer verlangt das – und was genau?“: zuerst der Kern, den alle deine Rahmenwerke verlangen, dann „Was einzelne Rahmenwerke dazu wollen“. Die Zusätze sind sortiert nach Inhalt, Zielgruppe, Zeitpunkt und Nachweis, je mit Fundstelle und dem Ort in Klick, wo du es erledigst.",
+					"Ganz unten lassen sich alle Anforderungen im Einzelnen aufklappen, mit Stand und dem Hinweis, ob die Maßnahme sie ganz oder nur teilweise erfüllt.",
 					"Auf der Seite einer Anforderung steht je Maßnahme, welche Rahmenwerke sie mit erfüllt.",
+				],
+			},
+			{
+				id: "kern",
+				heading: "Beispiel: Schulungen, ein Kern und Zusätze",
+				body: [
+					"Fast jedes Rahmenwerk verlangt Schulungen. Der Kern ist gleich: ein Programm für alle, mit Plan und belegter Teilnahme. Die Inhalte sind es nicht.",
+					"PCI DSS will Phishing in der Schulung, das GwG Geldwäsche und Verdachtsmeldung, NIS2 eine eigene Schulung der Geschäftsleitung. Klick zeigt das als Zusätze, aber nur für die Rahmenwerke, die für dich gelten. So weißt du, welche Module du brauchst und für wen.",
 				],
 			},
 			{

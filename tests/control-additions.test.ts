@@ -65,8 +65,8 @@ describe("Kern und Zusätze je Maßnahme", () => {
 	it("deckt die meistgeteilten Maßnahmen ab", () => {
 		expect(SHARED.length).toBe(60);
 		const covered = SHARED.filter((c) => CONTROL_ADDITIONS[c]);
-		// K1: Gerüst mit zwei Vorlagen; K2 hebt auf alle 60
-		expect(covered.length).toBeGreaterThanOrEqual(2);
+		// K1: die 15 meistgeteilten; K2 hebt auf alle 60
+		expect(covered.length).toBeGreaterThanOrEqual(15);
 	});
 
 	it.each(ENTRIES)("%s: Fundstellen sind Kanten dieser Maßnahme", (code, e) => {
