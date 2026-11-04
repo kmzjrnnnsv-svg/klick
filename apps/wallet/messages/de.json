@@ -158,7 +158,10 @@
 		"groupWallet": "Wallet",
 		"tabBar": "Bereiche",
 		"access": "Zugang",
-		"mandates": "Vollmachten"
+		"mandates": "Vollmachten",
+		"searchField": "Suchen …",
+		"searchHint": "Seite suchen (⌘K)",
+		"searchEmpty": "Nichts gefunden."
 	},
 	"StepUp": {
 		"title": "Kurz bestätigen",
