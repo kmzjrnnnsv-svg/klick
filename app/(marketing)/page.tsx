@@ -3,32 +3,17 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { SectionDivider } from "@/components/marketing/landing-decor";
 import { buttonVariants } from "@/components/ui/button";
-import {
-	CONTROL_BY_CODE,
-	EDGES_BY_CONTROL,
-	FRAMEWORK_BY_SLUG,
-	frameworksWithIndex,
-	REQUIREMENT_BY_KEY,
-	splitRequirementKey,
-} from "@/lib/compliance/catalog";
+import { frameworksWithIndex } from "@/lib/compliance/catalog";
 import {
 	CATALOG_CONTROL_REFS,
 	CATALOG_EDGES,
 	CATALOG_REQ_REFS,
 } from "@/lib/compliance/catalog-view";
 import { computeSynergy } from "@/lib/compliance/synergy";
+import { landingExample } from "@/lib/marketing/landing-example";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["how1", "how2", "how3"] as const;
-
-// Beispiel für „Ohne Klick / Mit Klick“: Schulungen versteht jede:r. Welche
-// Rahmenwerke das Control erfüllt, kommt aus den Katalog-Kanten, nicht aus dem Text.
-const EXAMPLE_CONTROL = "CC-HR-03";
-
-// „DORA — Digital Operational …“ → „DORA“, „GwG (Geldwäschegesetz)“ → „GwG“.
-function shortName(name: string): string {
-	return name.split(/ — | \(/)[0].trim();
-}
 
 const FRAMEWORKS = frameworksWithIndex();
 
@@ -43,22 +28,7 @@ const SYNERGY = computeSynergy(
 	},
 );
 
-const EXAMPLE = {
-	title: CONTROL_BY_CODE.get(EXAMPLE_CONTROL)?.title ?? "",
-	frameworks: [
-		...new Set(
-			(EDGES_BY_CONTROL.get(EXAMPLE_CONTROL) ?? [])
-				.filter(
-					(e) =>
-						REQUIREMENT_BY_KEY.get(e.requirement)?.legalStatus !== "repealed",
-				)
-				.map((e) => splitRequirementKey(e.requirement).framework),
-		),
-	]
-		.flatMap((slug) => FRAMEWORK_BY_SLUG.get(slug) ?? [])
-		.sort((a, b) => a.sortOrder - b.sortOrder)
-		.map((f) => shortName(f.name)),
-};
+const EXAMPLE = landingExample();
 
 export default async function LandingPage() {
 	const t = await getTranslations("Landing");
@@ -108,7 +78,7 @@ export default async function LandingPage() {
 									className="flex items-baseline justify-between gap-3 border-border/60 border-b pb-2 text-subhead"
 								>
 									<span className="font-medium">{fw}</span>
-									<span className="text-right text-muted-foreground text-footnote">
+									<span className="shrink-0 whitespace-nowrap text-right text-muted-foreground text-footnote">
 										{t("withoutRow")}
 									</span>
 								</li>
@@ -150,6 +120,9 @@ export default async function LandingPage() {
 						</p>
 					</article>
 				</div>
+				<p className="mt-4 max-w-2xl text-muted-foreground text-footnote">
+					{t("exampleNote")}
+				</p>
 
 				<div className="mt-16 grid grid-cols-1 items-center gap-4 sm:grid-cols-2">
 					<div>
