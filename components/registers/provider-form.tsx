@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
+import { useParamOpen } from "@/components/ui/use-param-open";
 import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/enums";
 
 const PARTNER = [
@@ -89,19 +90,22 @@ export function ProviderForm({
 	members,
 	trigger,
 	triggerLabel,
+	openParam,
 }: {
 	initial?: ProviderDraft;
 	members: MemberOption[];
 	trigger?: "button" | "link";
 	// Beschriftung des Link-Triggers (z. B. „Als Dienstleister anlegen")
 	triggerLabel?: string;
+	// öffnet sich bei `?<openParam>=1` (Links aus dem Lebenszyklus)
+	openParam?: string;
 }) {
 	const isEdit = Boolean(initial?.providerId);
 	const t = useTranslations("Providers");
 	const tc = useTranslations("Common");
 	const gate = useGateFeedback();
 	const router = useRouter();
-	const [open, setOpen] = useState(false);
+	const [open, setOpen] = useParamOpen(openParam);
 	const [pending, start] = useTransition();
 	const [d, setD] = useState<ProviderDraft>(
 		initial ?? {

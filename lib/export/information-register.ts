@@ -178,8 +178,13 @@ export function buildInformationRegister(input: {
 	const country = (e.country ?? "DE").toUpperCase();
 	const authority = e.competentAuthority ?? (country === "DE" ? "BaFin" : "");
 
+	// Bedarf und abgelehnte Aufnahmen sind keine vertraglichen Vereinbarungen
 	const providers = input.providers.filter(
-		(p) => p.isIct && p.status !== "terminated",
+		(p) =>
+			p.isIct &&
+			p.status !== "terminated" &&
+			p.status !== "requested" &&
+			p.status !== "declined",
 	);
 	const functions = input.functions.filter((f) => f.status !== "retired");
 	const fnId = new Map(

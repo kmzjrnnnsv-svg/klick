@@ -510,22 +510,23 @@ export const WORKFLOW_GROUPS: WorkflowGroup[] = [
 	{
 		key: "lieferkette",
 		title: "Dienstleister",
-		lead: "Bewerten intern oder per Fragebogen. Der Lieferant braucht kein Konto.",
+		lead: "Vom Bedarf bis zum Ausstieg in Stufen. Bewerten intern oder per Fragebogen, der Lieferant braucht kein Konto.",
 		workflows: [
 			{
 				key: "provider-rating",
-				name: "Dienstleister bewerten",
+				name: "Dienstleister aufnehmen und bewerten",
 				summary:
-					"Steckbrief und Kriterien nach deiner Methode, mit Ampel und Wiedervorlage.",
+					"Vom gemeldeten Bedarf über Prüfung, Freigabe und Vertrag bis in den Betrieb, mit Ampel und Wiedervorlage.",
 				where: "Dienstleister",
-				trigger: "Neuer Dienstleister oder Wiedervorlage.",
+				trigger: "Jemand meldet Bedarf, oder die Wiedervorlage ist fällig.",
 				steps: [
-					"Steckbrief: Kritikalität, unterstützte Funktion, Auslagerung ja oder nein.",
-					"Kriterien bewerten, vorbelegt aus dem, was Klick schon weiß.",
-					"Abschluss mit Begründung; ein rotes Ergebnis braucht die Freigabe.",
+					"Bedarf melden; die Auslagerungsbeauftragte nimmt an oder lehnt mit Begründung ab.",
+					"Einstufen und Kriterien bewerten, vorbelegt aus dem, was Klick schon weiß; ein rotes Ergebnis braucht die Freigabe.",
+					"Jede Stufe zeigt, was noch fehlt: AV-Vertrag, Klauseln nach DORA Art. 30, Ausstiegsstrategie.",
+					"Aus der Bewertung ein Risiko mit Vorschlag für Eintritt und Schaden.",
 				],
 				result:
-					"Sorgfaltsprüfung, Risikoanalyse und nächste Bewertung am Dienstleister.",
+					"Sorgfaltsprüfung, Risikoanalyse, Vertrag und nächste Bewertung am Dienstleister, Stufe im Register.",
 			},
 			{
 				key: "supplier-portal",

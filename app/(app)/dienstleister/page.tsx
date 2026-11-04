@@ -11,6 +11,7 @@ import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
 import { PageHeader } from "@/components/page-header";
 import { ProviderForm } from "@/components/registers/provider-form";
+import { ProviderRequestForm } from "@/components/supplier/lifecycle-forms";
 import { RatingOverview } from "@/components/supplier/rating-overview";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -33,8 +34,15 @@ import { listMembersForPicker } from "@/lib/compliance/queries";
 import { linkIndex } from "@/lib/compliance/queries-links";
 import { listProviders } from "@/lib/compliance/queries-p2";
 import { latestRatingsByProvider } from "@/lib/compliance/queries-ratings";
+import { providerIdsWithRisk } from "@/lib/compliance/queries-suppliers";
+import {
+	PROVIDER_STAGES,
+	type ProviderStage,
+	providerStage,
+} from "@/lib/compliance/supplier-lifecycle";
 import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
+import { listOrgFrameworks } from "@/lib/org/queries";
 import { PAGE_SIZE, pageParam, pageSlice } from "@/lib/paging";
 import { cn } from "@/lib/utils";
 import { responsibleValue } from "@/lib/validation/responsible-ref";
@@ -53,19 +61,35 @@ async function ProvidersPage({
 	const t = await getTranslations("Providers");
 	const te = await getTranslations("Entity");
 	const tr = await getTranslations("Rating");
-	const { rows, members, links, ratings, pending } = await readOrg(
-		toOrgCtx(ctx),
-		async (tx) => ({
+	const { rows, members, links, ratings, pending, withRisk, dora } =
+		await readOrg(toOrgCtx(ctx), async (tx) => ({
 			rows: await listProviders(tx, ctx.orgId),
 			members: await listMembersForPicker(tx, ctx.orgId),
 			links: await linkIndex(tx, ctx.orgId),
 			ratings: await latestRatingsByProvider(tx, ctx.orgId),
 			pending: await pendingApprovalIds(tx, ctx.orgId, "provider"),
-		}),
-	);
+			withRisk: await providerIdsWithRisk(tx, ctx.orgId),
+			dora: (await listOrgFrameworks(tx, ctx.orgId)).some(
+				(f) => f.slug === "dora",
+			),
+		}));
+	const tl = await getTranslations("SupplierLifecycle");
 	const ta = await getTranslations("Approvals");
 	const today = new Date().toISOString().slice(0, 10);
 	const canEdit = allows(ctx, { provider: ["create", "update"] });
+	const canRequest = allows(ctx, { provider: ["create"] });
+	// Stufe im Lebenszyklus je Dienstleister (abgeleitet, L1)
+	const stageOf = new Map<string, ProviderStage>(
+		rows.map((r) => [
+			r.id,
+			providerStage(r, {
+				today,
+				approvalPending: pending.has(r.id),
+				dora,
+				hasRisk: withRisk.has(r.id),
+			}),
+		]),
+	);
 	const canExport = allows(ctx, { export: ["create"] });
 	const tabParam = one(sp.tab);
 	const tab =
@@ -174,6 +198,12 @@ async function ProvidersPage({
 	const crit = one(sp.criticality);
 	const pt = one(sp.partnerType);
 	const st = one(sp.status);
+	const stageParam = one(sp.stufe);
+	const stage = (PROVIDER_STAGES as readonly string[]).includes(
+		stageParam ?? "",
+	)
+		? (stageParam as ProviderStage)
+		: null;
 	const filtered = rows
 		.filter(
 			(r) =>
@@ -183,7 +213,8 @@ async function ProvidersPage({
 		.filter((r) => !crit || r.criticality === crit)
 		.filter((r) => !pt || r.partnerType === pt)
 		// abgelehnte Aufnahmen nur auf Wunsch (?status=declined)
-		.filter((r) => (st ? r.status === st : r.status !== "declined"));
+		.filter((r) => (st ? r.status === st : r.status !== "declined"))
+		.filter((r) => !stage || stageOf.get(r.id) === stage);
 	// Liste seitenweise zeichnen (Zähler über alle Treffer)
 	const paged = pageSlice(filtered, pageParam(sp.seite));
 	const columns: Column<Row>[] = [
@@ -211,6 +242,27 @@ async function ProvidersPage({
 					)}
 				</span>
 			),
+		},
+		{
+			key: "stage",
+			header: tl("colStage"),
+			className: "w-32",
+			cell: (r) => {
+				const s = stageOf.get(r.id) ?? "operate";
+				return (
+					<Badge
+						variant={
+							s === "operate"
+								? "success"
+								: s === "exit" || r.status === "declined"
+									? "muted"
+									: "outline"
+						}
+					>
+						{tl(`stage_${s}`)}
+					</Badge>
+				);
+			},
 		},
 		{
 			key: "type",
@@ -429,10 +481,19 @@ async function ProvidersPage({
 							action={importProvidersCsv}
 						/>
 					)}
+					{canRequest && <ProviderRequestForm members={members} />}
 					{canEdit && <ProviderForm members={members} />}
 				</span>
 			}
 			filters={[
+				{
+					key: "stufe",
+					label: tl("colStage"),
+					options: PROVIDER_STAGES.map((x) => ({
+						value: x,
+						label: tl(`stage_${x}`),
+					})),
+				},
 				{
 					key: "status",
 					label: t("status"),
@@ -497,4 +558,5 @@ export default withMessages(ProvidersPage, [
 	"Import",
 	"Organisation",
 	"Providers",
+	"SupplierLifecycle",
 ]);

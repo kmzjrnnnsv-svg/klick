@@ -326,6 +326,21 @@ export const REGISTERS: HelpArticle[] = [
 			"Dienstleister erfassen, einstufen, bewerten (intern oder per Fragebogen-Portal), Vertragsklauseln prüfen und das DORA-Informationsregister exportieren.",
 		sections: [
 			{
+				id: "ablauf",
+				heading: "Der Ablauf vom Bedarf bis zum Ausstieg",
+				body: [
+					"Jeder Dienstleister durchläuft acht Stufen: Bedarf, Einstufung, Prüfung, Freigabe, Vertrag, Onboarding, Betrieb und Ausstieg. Klick leitet die Stufe aus den Angaben ab. Aktuell ist die erste Stufe, in der noch ein Pflichtpunkt fehlt. Oben am Dienstleister siehst du die Stufen und was jetzt zu tun ist; jeder Punkt führt direkt ins passende Formular.",
+					"Welche Punkte Pflicht sind, hängt vom Dienstleister ab: Mit Personendaten brauchst du einen AV-Vertrag, bei IKT unter DORA die Klauseln nach Art. 30. Kritische oder wesentliche Dienstleister brauchen zusätzlich eine Risikoanalyse, eine Ausstiegsstrategie, die Liste der Unterauftragnehmer, die Zusage zum Wiederanlauf und einen Test des Ausstiegs im letzten Jahr.",
+				],
+				steps: [
+					"Wer etwas braucht, meldet den Bedarf im Register über „Bedarf melden“: was der Dienstleister tun soll und warum. Die oder der Auslagerungsbeauftragte erfährt davon.",
+					"Nimm den Bedarf an oder lehne ihn mit Begründung ab. Beim Annehmen startet der Ablauf „Dienstleister aufnehmen“, wenn du ihn eingerichtet hast.",
+					"Arbeite die Stufen ab: einstufen, bewerten, Vertrag erfassen, Angaben zu Auslagerung und Ausstieg ergänzen.",
+					"Sobald bis zum Onboarding alles steht, nimmst du den Dienstleister in Betrieb.",
+				],
+				tip: "Im Register filterst du nach Stufe, zum Beispiel alle Dienstleister, bei denen der Vertrag noch fehlt.",
+			},
+			{
 				id: "erfassen",
 				heading: "Dienstleister erfassen und einstufen",
 				steps: [
@@ -339,6 +354,14 @@ export const REGISTERS: HelpArticle[] = [
 				heading: "Interne Bewertung",
 				body: [
 					"Die interne Bewertung nutzt deinen Kriterienkatalog (14 Kriterien, dazu je nach Fall DORA, Auslagerung, Krypto-Partner, NIS2). Klick belegt Kriterien vor, du bewertest je Kriterium; jede Bewertung speichert sofort. Abschließen geht nur vollständig und bei schlechten Noten mit Begründung. Das Ergebnis setzt Sorgfaltsprüfung, letzte und nächste Bewertung; ein rotes Ergebnis braucht eine Freigabe.",
+				],
+			},
+			{
+				id: "risiko",
+				heading: "Risiko aus der Bewertung",
+				body: [
+					"Über „Als Risiko erfassen“ am Dienstleister oder an der Bewertung öffnet sich der Risiko-Assistent mit einem Vorschlag: Die Eintrittswahrscheinlichkeit folgt dem Ergebnis der Bewertung (rot hoch, gelb mittel, grün gering), der Schaden der Kritikalität. Ist der Dienstleister nicht ersetzbar, steigt der Schaden um eine Stufe. Der Vorschlag nennt seine Gründe; du entscheidest, ob du ihn übernimmst.",
+					"Ein Risiko zum Dienstleister zählt im Ablauf als Risikoanalyse.",
 				],
 			},
 			{
@@ -362,6 +385,7 @@ export const REGISTERS: HelpArticle[] = [
 			},
 		],
 		roles: [
+			"Bedarf melden: alle, die Dienstleister anlegen dürfen (auch eigene Rollen wie Einkauf).",
 			"Aufnehmen und bewerten: Bearbeiter:innen und Inhaber:innen.",
 			"Freigabe: Auslagerungsbeauftragte:r, bei kritischen dazu die Geschäftsleitung.",
 		],

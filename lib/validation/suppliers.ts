@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { ASSESSMENT_ANSWERS } from "@/db/schema/enums";
 import { ART30_CLAUSES } from "@/lib/compliance/catalog/art30-clauses";
-import { email, uuid } from "./common";
+import { email, shortText, uuid } from "./common";
+import { responsibleRef } from "./responsible";
 
 // Lieferantenbewertung (S6): interne Steuerung und Portal-Eingaben.
 
@@ -72,4 +73,53 @@ export const portalAnswerSchema = z
 export const portalFileSchema = z.object({
 	questionCode: code,
 	evidenceId: uuid,
+});
+
+// Lebenszyklus (L1): Bedarf melden, Bedarf annehmen/ablehnen, in Betrieb
+// nehmen, fehlende Angaben zu Auslagerung und Ausstieg
+export const providerRequestSchema = z.object({
+	name: shortText,
+	serviceDescription: z.string().trim().min(10).max(4000),
+	reason: z.string().trim().max(4000).optional(),
+	processesPersonalData: z.boolean().default(false),
+	isIct: z.boolean().default(true),
+	ownerUserId: responsibleRef,
+});
+
+export const providerStepSchema = z
+	.object({
+		providerId: uuid,
+		step: z.enum(["accept", "decline", "activate"]),
+		note: z.string().trim().max(2000).optional(),
+	})
+	.refine((v) => v.step !== "decline" || (v.note ?? "").length >= 10, {
+		message: "Begründung (mind. 10 Zeichen) fehlt",
+		path: ["note"],
+	});
+
+const subcontractor = z.object({
+	name: z.string().trim().min(1).max(200),
+	country: z.string().trim().max(2).optional(),
+	service: z.string().trim().max(200).optional(),
+});
+
+export const providerDetailsSchema = z.object({
+	providerId: uuid,
+	lei: z
+		.string()
+		.trim()
+		.toUpperCase()
+		.regex(/^[A-Z0-9]{18}[0-9]{2}$/, "LEI hat 20 Zeichen")
+		.nullable()
+		.optional()
+		.or(z.literal("").transform(() => null)),
+	substitutability: z
+		.enum(["easy", "difficult", "not_substitutable"])
+		.nullable()
+		.optional(),
+	dpaSignedAt: isoDate.nullable().optional(),
+	// null = noch nicht erfasst, [] = keine Unterauftragnehmer
+	subcontractors: z.array(subcontractor).max(50).nullable().optional(),
+	exitStrategy: z.string().trim().max(4000).nullable().optional(),
+	exitPlanTestedAt: isoDate.nullable().optional(),
 });
