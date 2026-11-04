@@ -74,8 +74,10 @@ function measureTargets(min: number): Finding[] {
 		let w = r.width;
 		let h = r.height;
 		// Unsichtbares Vorfeld (::before/::after, absolut mit negativem
-		// Abstand) zählt mit, solange das Element es nicht abschneidet
-		if (st.overflow === "visible") {
+		// Abstand) zählt mit, solange das Element es nicht abschneidet; ein
+		// statisches Element schneidet nie ab, denn das Vorfeld hängt dann
+		// am nächsten positionierten Vorfahren (Register-Zeile mit truncate)
+		if (st.overflow === "visible" || st.position === "static") {
 			for (const pseudo of ["::before", "::after"]) {
 				const ps = getComputedStyle(el, pseudo);
 				if (ps.content === "none" || ps.position !== "absolute") continue;

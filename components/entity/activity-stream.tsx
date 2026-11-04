@@ -55,7 +55,12 @@ export function ActivityStream({
 											external?.has(e.comment.authorUserId),
 									)}
 								/>
-								<time dateTime={e.at.toISOString()}>{fmt.format(e.at)}</time>
+								<time
+									dateTime={e.at.toISOString()}
+									className="shrink-0 whitespace-nowrap"
+								>
+									{fmt.format(e.at)}
+								</time>
 							</div>
 							<div className="rounded-md bg-muted/50 px-3 py-2">
 								<MarkdownView
@@ -70,16 +75,21 @@ export function ActivityStream({
 				return (
 					<li key={`h-${e.item.id}`} className="flex flex-col gap-1">
 						<div className="flex items-center justify-between gap-2 text-muted-foreground text-footnote">
-							<span className="inline-flex items-center gap-1.5">
+							<span className="inline-flex min-w-0 items-center gap-1.5">
 								<UserChip
 									name={name ?? labels.system}
 									external={Boolean(
 										e.item.actorUserId && external?.has(e.item.actorUserId),
 									)}
 								/>
-								<span>· {labels.changed}</span>
+								<span className="shrink-0">· {labels.changed}</span>
 							</span>
-							<time dateTime={e.at.toISOString()}>{fmt.format(e.at)}</time>
+							<time
+								dateTime={e.at.toISOString()}
+								className="shrink-0 whitespace-nowrap"
+							>
+								{fmt.format(e.at)}
+							</time>
 						</div>
 						{e.item.changes.length > 0 ? (
 							<ul className="flex flex-col gap-0.5 pl-1 text-footnote">

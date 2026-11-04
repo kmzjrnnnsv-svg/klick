@@ -12,6 +12,7 @@ import {
 	Section,
 } from "@/components/entity/entity-layout";
 import { EvidenceForm } from "@/components/entity/evidence-form";
+import { LinkedText } from "@/components/entity/linked-text";
 import { OwnerAssignee } from "@/components/entity/owner-assignee";
 import { QuickCreateTask } from "@/components/entity/quick-create-task";
 import { RequestEvidence } from "@/components/entity/request-evidence";
@@ -298,7 +299,7 @@ async function ControlDetailPage({
 											<p className="truncate">{task.title}</p>
 											{task.description && (
 												<p className="mt-0.5 whitespace-pre-line break-words text-footnote text-muted-foreground">
-													{task.description}
+													<LinkedText text={task.description} />
 												</p>
 											)}
 											<p className="text-muted-foreground text-footnote">
@@ -332,6 +333,14 @@ async function ControlDetailPage({
 				code={code}
 				orgFrameworks={[...orgFrameworks]}
 				statusByRequirement={cov?.result.byRequirement}
+				applicability={
+					new Map(
+						[...(cov?.applicabilityDetail ?? [])].map(([k, d]) => [
+							k,
+							d.applicable,
+						]),
+					)
+				}
 				showAll={showAll}
 				allHref={`/controls/${encodeURIComponent(code)}?alle=1#wer-verlangt-das`}
 				mineHref={`/controls/${encodeURIComponent(code)}#wer-verlangt-das`}

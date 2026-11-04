@@ -1,4 +1,5 @@
 import { Link2 } from "lucide-react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import type { RelationHint } from "@/lib/compliance/relation-hints";
 
@@ -48,7 +49,30 @@ export function RelationHintBox({
 					})}
 				</p>
 			))}
-			{bare.length > 0 && (
+			{hint.additions.length > 0 && (
+				<div className="flex flex-col gap-1">
+					<p className="font-medium">{t("hintAdditions")}</p>
+					<ul className="flex list-disc flex-col gap-1 pl-5">
+						{hint.additions.map((a) => (
+							<li key={a.text}>
+								{a.text}{" "}
+								<span className="text-muted-foreground">
+									({a.names.join(", ")})
+								</span>
+							</li>
+						))}
+					</ul>
+					{hint.moreAdditions > 0 && (
+						<Link
+							href={`/controls/${encodeURIComponent(hint.control)}#wer-verlangt-das`}
+							className="self-start text-primary hover:underline underline-offset-4"
+						>
+							{t("hintAdditionsMore", { n: hint.moreAdditions })}
+						</Link>
+					)}
+				</div>
+			)}
+			{bare.length > 0 && hint.additions.length === 0 && (
 				<p className="text-muted-foreground">
 					{t("hintPartialMany", {
 						names: bare.map((p) => p.name).join(", "),
