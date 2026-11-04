@@ -91,6 +91,8 @@ async function upsertProviderImpl(
 				contractStart: d.contractStart ?? null,
 				contractEnd: d.contractEnd ?? null,
 				noticePeriodDays: d.noticePeriodDays ?? null,
+				rtoHours: d.rtoHours ?? null,
+				rpoHours: d.rpoHours ?? null,
 				...(await ownerColumns(tx, c.orgId, d.ownerUserId, c.userId)),
 				notes: d.notes ?? null,
 			};
@@ -243,6 +245,9 @@ async function upsertAssetImpl(
 				endOfLifeAt: d.endOfLifeAt ?? null,
 				supportEndAt: d.supportEndAt ?? null,
 				maintenance: d.maintenance ?? null,
+				rtoHours: d.rtoHours ?? null,
+				rpoHours: d.rpoHours ?? null,
+				redundancy: d.redundancy ?? null,
 				maintenanceUntil: d.maintenanceUntil ?? null,
 				lastPatchedAt: d.lastPatchedAt ?? null,
 			};

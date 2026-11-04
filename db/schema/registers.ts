@@ -35,6 +35,10 @@ export {
 
 // Register ohne Abhängigkeit auf grc.ts: Dienstleister, Assets, Prozesse.
 
+// Ausweichweg eines Assets im Notfall: keiner, kalt (Ersatz muss erst
+// aufgebaut werden), warm (bereit, Umschalten von Hand), heiß (läuft mit)
+export const ASSET_REDUNDANCY = ["none", "cold", "warm", "hot"] as const;
+export type AssetRedundancy = (typeof ASSET_REDUNDANCY)[number];
 export type ContractClauses = Record<string, boolean | string>;
 export type DueDiligence = Record<string, boolean | string | null>;
 // Geführte BIA je Prozess (lib/bcm/bia.ts): je Schadensart der Risikomethode
@@ -116,6 +120,10 @@ export const providers = pgTable(
 		contractClauses: json<ContractClauses>(),
 		exitStrategy: text(),
 		exitPlanTestedAt: date(),
+		// Notfall (N2): was der Vertrag zusagt — Wiederanlauf und höchstens
+		// verlorene Daten in Stunden; Abgleich mit den Prozessen in bcmChain
+		rtoHours: integer(),
+		rpoHours: integer(),
 		riskAnalysisAt: date(),
 		dueDiligence: json<DueDiligence>(),
 		lastAssessmentAt: date(),
@@ -212,6 +220,11 @@ export const assets = pgTable(
 		maintenanceUntil: date(),
 		lastPatchedAt: date(),
 		siteId: uuid().references(() => sites.id, { onDelete: "set null" }),
+		// Notfall (N2): wie schnell das Asset wieder läuft und wie alt der
+		// Datenstand danach höchstens ist (Sicherungsabstand), Ausweichweg
+		rtoHours: integer(),
+		rpoHours: integer(),
+		redundancy: text({ enum: ASSET_REDUNDANCY }),
 		// pending/declined: Aufnahme wartet bzw. abgelehnt (asset.create)
 		status: text({ enum: ["active", "retired", "pending", "declined"] })
 			.notNull()

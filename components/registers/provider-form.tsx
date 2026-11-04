@@ -78,6 +78,8 @@ export type ProviderDraft = {
 	contractEnd?: string | null;
 	dataLocations?: string[] | null;
 	noticePeriodDays?: number | null;
+	rtoHours?: number | null;
+	rpoHours?: number | null;
 	ownerUserId?: string | null;
 	notes?: string | null;
 };
@@ -150,6 +152,8 @@ export function ProviderForm({
 									.map((x) => x.trim())
 									.filter(Boolean),
 								noticePeriodDays: d.noticePeriodDays ?? null,
+								rtoHours: d.rtoHours ?? null,
+								rpoHours: d.rpoHours ?? null,
 								ownerUserId: d.ownerUserId ?? null,
 								notes: d.notes ?? undefined,
 							});
@@ -359,6 +363,38 @@ export function ProviderForm({
 								onChange={(e) =>
 									set(
 										"noticePeriodDays",
+										e.target.value === "" ? null : Number(e.target.value),
+									)
+								}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="pv-rto">{t("rtoHours")}</Label>
+							<Input
+								id="pv-rto"
+								type="number"
+								inputMode="numeric"
+								min={0}
+								value={d.rtoHours ?? ""}
+								onChange={(e) =>
+									set(
+										"rtoHours",
+										e.target.value === "" ? null : Number(e.target.value),
+									)
+								}
+							/>
+						</div>
+						<div className="flex flex-col gap-1.5">
+							<Label htmlFor="pv-rpo">{t("rpoHours")}</Label>
+							<Input
+								id="pv-rpo"
+								type="number"
+								inputMode="numeric"
+								min={0}
+								value={d.rpoHours ?? ""}
+								onChange={(e) =>
+									set(
+										"rpoHours",
 										e.target.value === "" ? null : Number(e.target.value),
 									)
 								}

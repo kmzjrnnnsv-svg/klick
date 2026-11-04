@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
 import { BiaSummary } from "@/components/bcm/bia-summary";
+import { ChainSection } from "@/components/bcm/chain-section";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -33,6 +34,7 @@ import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
 import { biaIssues } from "@/lib/bcm/bia";
+import { bcmChain } from "@/lib/bcm/chain";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -419,6 +421,32 @@ async function ProcessDetailPage({
 					issues={biaIssues(p)}
 					canEdit={canEdit}
 					current={{ rtoHours: p.rtoHours, mtpdHours: p.mtpdHours }}
+				/>
+			</Section>
+
+			<Section title={t("chainTitle")}>
+				<p className="mb-3 text-muted-foreground text-footnote">
+					{t("chainLead")}
+				</p>
+				<ChainSection
+					chain={bcmChain(p, [
+						...linkedAssets.map((a) => ({
+							kind: "asset" as const,
+							id: a.id,
+							name: a.name,
+							rtoHours: a.rtoHours,
+							rpoHours: a.rpoHours,
+							redundancy: a.redundancy,
+						})),
+						...linkedProviders.map((v) => ({
+							kind: "provider" as const,
+							id: v.id,
+							name: v.name,
+							rtoHours: v.rtoHours,
+							rpoHours: v.rpoHours,
+						})),
+					])}
+					target={{ rtoHours: p.rtoHours, rpoHours: p.rpoHours }}
 				/>
 			</Section>
 

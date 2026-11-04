@@ -256,6 +256,15 @@ export const REGISTERS: HelpArticle[] = [
 					"Kritische oder wichtige Prozesse brauchen jedes Jahr eine Notfallübung. Plane sie im Testprogramm und trag dort das Ergebnis ein. Erst dann gilt der Prozess als geübt.",
 					"Verknüpf Assets, Dienstleister und den Standort. Die Abhängigkeitskarte zeigt, wo viele kritische Prozesse an einem Dienstleister hängen (Konzentrationsrisiko).",
 				],
+			},
+			{
+				id: "kette",
+				heading: "Ist das Ziel im Notfall erreichbar?",
+				body: [
+					"Ein Prozess läuft erst wieder, wenn alles läuft, wovon er abhängt. Trag deshalb an jedem Asset unter „Im Notfall“ ein, wie schnell es wieder läuft, wie alt der Datenstand danach höchstens ist und welchen Ausweichweg es gibt. An Dienstleistern trägst du ein, was der Vertrag zusagt.",
+					"Am Prozess zeigt „Im Notfall: Abhängigkeiten“ die langsamste Abhängigkeit als erreichbaren Wiederanlauf und den größten Datenverlust. Liegt eine Abhängigkeit über dem RTO oder RPO, ist sie rot markiert; fehlt ein Wert, ist das Ziel noch nicht prüfbar.",
+					"Kritische Prozesse, deren Abhängigkeiten das Ziel verfehlen, meldet „Als Nächstes“, die Abhängigkeitskarte markiert sie mit „Ziel nicht erreichbar“.",
+				],
 				tip: "Die RTO darf nie größer sein als die MTPD. Klick lehnt das im Formular ab und zeigt es am Prozess rot an.",
 			},
 		],

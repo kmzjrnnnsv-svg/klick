@@ -95,6 +95,7 @@ export async function loadOrgStatus(
 			controlsStarted,
 			processesWithoutAccountable: counts.processesWithoutA,
 			processesWithoutBia: counts.processesWithoutBia,
+			processesChainBroken: counts.processesChainBroken,
 			riskProposals: proposals.proposals.length,
 			teamInvited: counts.members > 1 || counts.invitations > 0,
 			// bestätigt, sobald es Risiken gibt, die Methode bestätigt ist oder
@@ -131,6 +132,7 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 		overdueNcs,
 		processesWithoutA,
 		processesWithoutBia,
+		processesChainBroken,
 		members,
 		invitations,
 		risks,
@@ -157,6 +159,18 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 			select count(*)::int as n from processes
 			where organization_id = ${orgId} and status <> 'retired'
 			  and criticality <> 'standard' and bia is null`),
+		tx.execute<{ n: number }>(sql`
+			select count(*)::int as n from processes p
+			where p.organization_id = ${orgId} and p.status = 'active'
+			  and p.criticality <> 'standard'
+			  and (exists (select 1 from process_assets pa
+			      join assets a on a.id = pa.asset_id
+			      where pa.organization_id = ${orgId} and pa.process_id = p.id
+			        and (a.rto_hours > p.rto_hours or a.rpo_hours > p.rpo_hours))
+			    or exists (select 1 from process_providers pv
+			      join providers v on v.id = pv.provider_id
+			      where pv.organization_id = ${orgId} and pv.process_id = p.id
+			        and (v.rto_hours > p.rto_hours or v.rpo_hours > p.rpo_hours)))`),
 		tx.execute<{ n: number }>(sql`
 			select count(*)::int as n from member where organization_id = ${orgId}`),
 		tx.execute<{ n: number }>(sql`
@@ -196,6 +210,7 @@ async function countFacts(tx: OrgTx, orgId: string, today: string) {
 		overdueNcs: n(overdueNcs),
 		processesWithoutA: n(processesWithoutA),
 		processesWithoutBia: n(processesWithoutBia),
+		processesChainBroken: n(processesChainBroken),
 		members: n(members),
 		invitations: n(invitations),
 		risks: n(risks),

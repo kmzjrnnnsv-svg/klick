@@ -197,6 +197,8 @@ async function ProviderPage({
 								contractEnd: p.contractEnd,
 								dataLocations: p.dataLocations,
 								noticePeriodDays: p.noticePeriodDays,
+								rtoHours: p.rtoHours,
+								rpoHours: p.rpoHours,
 								ownerUserId: responsibleValue(p),
 								notes: p.notes,
 							}}

@@ -10,7 +10,11 @@ import {
 	EXTERNAL_KINDS,
 	RISK_CATEGORIES,
 } from "@/db/schema/grc";
-import { PROVIDER_CATEGORIES, PROVIDER_STATUSES } from "@/db/schema/registers";
+import {
+	ASSET_REDUNDANCY,
+	PROVIDER_CATEGORIES,
+	PROVIDER_STATUSES,
+} from "@/db/schema/registers";
 import { RISK_SOURCE_KINDS } from "@/lib/compliance/risk-sources";
 import { INCIDENT_STATUSES } from "@/lib/entities/incident";
 import { RISK_STATUSES } from "@/lib/entities/risk";
@@ -328,6 +332,15 @@ export const setIncidentStatusSchema = z.object({
 });
 
 // ── Dienstleister & Assets ─────────────────────────────────────────────────
+// Stunden für Wiederanlauf und Datenverlust (N2)
+const bcmHours = z.coerce
+	.number()
+	.int()
+	.min(0)
+	.max(100_000)
+	.nullable()
+	.optional();
+
 export const providerSchema = z.object({
 	providerId: uuid.optional(),
 	name: shortText,
@@ -379,6 +392,9 @@ export const providerSchema = z.object({
 		.optional(),
 	ownerUserId: responsibleRef,
 	notes: longText.optional(),
+	// Notfall (N2): Zusage im Vertrag
+	rtoHours: bcmHours,
+	rpoHours: bcmHours,
 });
 
 export const retireAssetSchema = z.object({
@@ -420,6 +436,10 @@ export const assetSchema = z.object({
 	maintenance: z.enum(["contract", "internal", "none"]).nullable().optional(),
 	maintenanceUntil: optionalDate,
 	lastPatchedAt: optionalDate,
+	// Notfall (N2): Wiederanlauf, Datenstand, Ausweichweg
+	rtoHours: bcmHours,
+	rpoHours: bcmHours,
+	redundancy: z.enum(ASSET_REDUNDANCY).nullable().optional(),
 });
 
 // ── Schulungen ─────────────────────────────────────────────────────────────

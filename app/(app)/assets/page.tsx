@@ -245,6 +245,9 @@ async function AssetsPage({ searchParams }: { searchParams: Promise<Search> }) {
 							maintenance: r.maintenance,
 							maintenanceUntil: r.maintenanceUntil,
 							lastPatchedAt: r.lastPatchedAt,
+							rtoHours: r.rtoHours,
+							rpoHours: r.rpoHours,
+							redundancy: r.redundancy,
 						}}
 					/>
 				) : null,

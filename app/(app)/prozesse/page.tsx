@@ -242,6 +242,7 @@ async function ProcessesPage({
 								criticalProcesses: t("criticalProcessesShort"),
 								processes: t("processesShort"),
 								rto: "RTO",
+								chainMiss: t("chainMissShort"),
 								crit: critLabel,
 							}}
 						/>

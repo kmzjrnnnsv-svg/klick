@@ -43,6 +43,7 @@ import {
 } from "@/db/schema";
 import type { LicenceStage } from "@/db/schema/enums";
 import { approvalProgressFor } from "@/lib/approvals/service";
+import { bcmChain, chainBreaks } from "@/lib/bcm/chain";
 import { openAcceptances } from "@/lib/compliance/appointment-acceptance";
 import { isEffective } from "@/lib/compliance/appointments";
 import type { OrgTx } from "@/lib/db/with-org";
@@ -157,6 +158,9 @@ export async function getProcessByCode(tx: OrgTx, orgId: string, code: string) {
 				name: assets.name,
 				type: assets.type,
 				providerId: assets.providerId,
+				rtoHours: assets.rtoHours,
+				rpoHours: assets.rpoHours,
+				redundancy: assets.redundancy,
 			})
 			.from(processAssets)
 			.innerJoin(assets, eq(assets.id, processAssets.assetId))
@@ -167,6 +171,8 @@ export async function getProcessByCode(tx: OrgTx, orgId: string, code: string) {
 				name: providers.name,
 				criticality: providers.criticality,
 				country: providers.country,
+				rtoHours: providers.rtoHours,
+				rpoHours: providers.rpoHours,
 			})
 			.from(processProviders)
 			.innerJoin(providers, eq(providers.id, processProviders.providerId))
@@ -219,6 +225,8 @@ export type DependencyNode = {
 		providerName: string | null;
 	}[];
 	providers: { id: string; name: string; criticality: string }[];
+	// Abhängigkeiten, die das Ziel des Prozesses verfehlen (lib/bcm/chain.ts)
+	chainBreaks: number;
 };
 
 // Abhängigkeitskarte Prozess → System → Dienstleister (DORA Art. 8, Businessplan 17.12 AP3).
@@ -243,6 +251,9 @@ export async function dependencyMap(
 				name: assets.name,
 				type: assets.type,
 				providerId: assets.providerId,
+				rtoHours: assets.rtoHours,
+				rpoHours: assets.rpoHours,
+				redundancy: assets.redundancy,
 			})
 			.from(processAssets)
 			.innerJoin(assets, eq(assets.id, processAssets.assetId))
@@ -253,6 +264,8 @@ export async function dependencyMap(
 				id: providers.id,
 				name: providers.name,
 				criticality: providers.criticality,
+				rtoHours: providers.rtoHours,
+				rpoHours: providers.rpoHours,
 			})
 			.from(processProviders)
 			.innerJoin(providers, eq(providers.id, processProviders.providerId))
@@ -297,6 +310,27 @@ export async function dependencyMap(
 						: null,
 				})),
 			providers: [...merged.values()],
+			chainBreaks: chainBreaks(
+				bcmChain(p, [
+					...pa
+						.filter((x) => x.processId === p.id)
+						.map((x) => ({
+							kind: "asset" as const,
+							id: x.id,
+							name: x.name,
+							rtoHours: x.rtoHours,
+							rpoHours: x.rpoHours,
+							redundancy: x.redundancy,
+						})),
+					...direct.map((x) => ({
+						kind: "provider" as const,
+						id: x.id,
+						name: x.name,
+						rtoHours: x.rtoHours,
+						rpoHours: x.rpoHours,
+					})),
+				]),
+			),
 		};
 	});
 }
