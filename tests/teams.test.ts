@@ -1,5 +1,10 @@
 import { execFileSync } from "node:child_process";
-import { createPublicKey, verify } from "node:crypto";
+import {
+	constants,
+	createPublicKey,
+	verify,
+	X509Certificate,
+} from "node:crypto";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -318,8 +323,17 @@ describe("Graph-Client", () => {
 		const [h, p, sig] = jwt.split(".") as [string, string, string];
 		const header = JSON.parse(Buffer.from(h, "base64url").toString());
 		const payload = JSON.parse(Buffer.from(p, "base64url").toString());
-		expect(header).toMatchObject({ alg: "RS256", typ: "JWT" });
-		expect(header.x5t).toMatch(/^[A-Za-z0-9_-]{27}$/);
+		expect(header).toMatchObject({ alg: "PS256", typ: "JWT" });
+		expect(header.x5t).toBeUndefined();
+		// SHA-256 über das DER des Zertifikats
+		const cert = new X509Certificate(
+			readFileSync(join(dir, "cert.pem"), "utf8"),
+		);
+		expect(header["x5t#S256"]).toBe(
+			Buffer.from(cert.fingerprint256.replaceAll(":", ""), "hex").toString(
+				"base64url",
+			),
+		);
 		expect(payload).toMatchObject({
 			iss: "cid",
 			sub: "cid",
@@ -332,7 +346,11 @@ describe("Graph-Client", () => {
 			verify(
 				"sha256",
 				Buffer.from(`${h}.${p}`),
-				pub,
+				{
+					key: pub,
+					padding: constants.RSA_PKCS1_PSS_PADDING,
+					saltLength: constants.RSA_PSS_SALTLEN_DIGEST,
+				},
 				Buffer.from(sig, "base64url"),
 			),
 		).toBe(true);
