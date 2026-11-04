@@ -237,7 +237,7 @@ export function QuestionCard({
 				<div className="mt-2">
 					<button
 						type="button"
-						className="flex items-center gap-1 text-primary text-footnote hover:underline"
+						className="hit-area flex items-center gap-1 text-primary text-footnote hover:underline"
 						aria-expanded={showMore}
 						aria-controls={`${id}-more`}
 						onClick={() => setShowMore((v) => !v)}

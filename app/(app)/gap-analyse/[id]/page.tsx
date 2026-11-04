@@ -24,6 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
+import { ListKeys } from "@/components/ui/list-keys";
 import type { ImplStatus } from "@/db/schema/enums";
 import {
 	applyChanges,
@@ -327,141 +328,149 @@ async function AssessmentPage({
 	return (
 		// Fragen als geteilte Ansicht: ab 1024 px steht der Kopf, Kapitel und
 		// Fragen scrollen je für sich (data-split-*, styles/base.css)
-		<div data-split-page={step === "fragen" ? "" : undefined}>
-			<PageHeader
-				compact
-				back={{ href: "/gap-analyse", label: tNav("gapAnalysis") }}
-				eyebrow={`${a.code} · ${t(`status_${a.status}`)}${a.asOf ? ` · Stichtag ${fmtDate.format(new Date(a.asOf))}` : ""}`}
-				title={a.title}
-				lead={t("progress", {
-					answered: score.progress.answered,
-					total: score.progress.total,
-				})}
-				actions={
-					<div className="flex flex-wrap gap-2">
-						{productId && (
-							<Link
-								href={`/produkte/${productId}?tab=checkliste`}
-								className={buttonVariants({ variant: "outline", size: "sm" })}
-							>
-								{t("toProduct")}
-							</Link>
-						)}
-						{providerId && (
-							<Link
-								href={`/dienstleister/${providerId}?tab=bewertungen`}
-								className={buttonVariants({ variant: "outline", size: "sm" })}
-							>
-								{t("toProvider")}
-							</Link>
-						)}
-						{/* Kopf bleibt stehen: höchstens vier Rahmenwerke, Rest gezählt */}
-						{a.frameworks.slice(0, SHOWN_FRAMEWORKS).map((s) => (
-							<Badge key={s} variant="muted">
-								{shortFrameworkName(s, catalog)}
-							</Badge>
-						))}
-						{a.frameworks.length > SHOWN_FRAMEWORKS && (
-							<Badge
-								variant="muted"
-								title={a.frameworks
-									.slice(SHOWN_FRAMEWORKS)
-									.map((s) => shortFrameworkName(s, catalog))
-									.join(", ")}
-							>
-								{t("moreFrameworks", {
-									count: a.frameworks.length - SHOWN_FRAMEWORKS,
-								})}
-							</Badge>
-						)}
-					</div>
-				}
-			/>
-
-			<nav aria-label="Schritte" className="mb-5">
-				<ol className="flex flex-wrap gap-2 text-subhead">
-					{STEPS.map((s) => (
-						<li key={s}>
-							<Link
-								href={stepHref(s)}
-								aria-current={step === s ? "step" : undefined}
-								className={cn(
-									"inline-flex rounded-xl bg-card px-3 py-1.5 transition-colors hover:bg-muted",
-									step === s && "border-primary bg-primary/5 font-medium",
-								)}
-							>
-								{t(`step_${s}`)}
-							</Link>
-						</li>
-					))}
-				</ol>
-				<div
-					className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
-					role="progressbar"
-					aria-valuemin={0}
-					aria-valuemax={score.progress.total}
-					aria-valuenow={score.progress.answered}
-					aria-label={t("progress", {
+		// Ab 1024 px bündig (data-split-page="flush", wie die Einstellungen):
+		// Kopf oben mit Rand, darunter die Kapitel an der Seitenleiste der App
+		// und die Fragen in Lesebreite
+		<div
+			data-split-page={step === "fragen" ? "flush" : undefined}
+			className={cn(step === "fragen" && "@container")}
+		>
+			<div className={cn(step === "fragen" && "lg:px-5 lg:pt-6")}>
+				<PageHeader
+					compact
+					back={{ href: "/gap-analyse", label: tNav("gapAnalysis") }}
+					eyebrow={`${a.code} · ${t(`status_${a.status}`)}${a.asOf ? ` · Stichtag ${fmtDate.format(new Date(a.asOf))}` : ""}`}
+					title={a.title}
+					lead={t("progress", {
 						answered: score.progress.answered,
 						total: score.progress.total,
 					})}
-				>
-					<div
-						className="h-full rounded-full bg-primary"
-						style={{
-							width: `${score.progress.total > 0 ? (100 * score.progress.answered) / score.progress.total : 0}%`,
-						}}
-					/>
-				</div>
-			</nav>
-
-			{closed && (
-				<p className="mb-4 rounded-2xl bg-card p-3 text-subhead">
-					{t("readOnly")}
-				</p>
-			)}
-
-			{step === "fragen" && (canAnswer || missing > 0) && (
-				<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-					{canAnswer ? (
-						<nav
-							aria-label={t("viewLabel")}
-							className="inline-flex rounded-xl bg-muted p-0.5 text-subhead"
-						>
-							{(["fokus", "liste"] as const).map((v) => (
+					actions={
+						<div className="flex flex-wrap gap-2">
+							{productId && (
 								<Link
-									key={v}
-									href={
-										v === "fokus"
-											? focusHref()
-											: stepHref("fragen", "&ansicht=liste")
-									}
-									aria-current={view === v ? "true" : undefined}
+									href={`/produkte/${productId}?tab=checkliste`}
+									className={buttonVariants({ variant: "outline", size: "sm" })}
+								>
+									{t("toProduct")}
+								</Link>
+							)}
+							{providerId && (
+								<Link
+									href={`/dienstleister/${providerId}?tab=bewertungen`}
+									className={buttonVariants({ variant: "outline", size: "sm" })}
+								>
+									{t("toProvider")}
+								</Link>
+							)}
+							{/* Kopf bleibt stehen: höchstens vier Rahmenwerke, Rest gezählt */}
+							{a.frameworks.slice(0, SHOWN_FRAMEWORKS).map((s) => (
+								<Badge key={s} variant="muted">
+									{shortFrameworkName(s, catalog)}
+								</Badge>
+							))}
+							{a.frameworks.length > SHOWN_FRAMEWORKS && (
+								<Badge
+									variant="muted"
+									title={a.frameworks
+										.slice(SHOWN_FRAMEWORKS)
+										.map((s) => shortFrameworkName(s, catalog))
+										.join(", ")}
+								>
+									{t("moreFrameworks", {
+										count: a.frameworks.length - SHOWN_FRAMEWORKS,
+									})}
+								</Badge>
+							)}
+						</div>
+					}
+				/>
+
+				<nav aria-label="Schritte" className="mb-5">
+					<ol className="flex flex-wrap gap-2 text-subhead">
+						{STEPS.map((s) => (
+							<li key={s}>
+								<Link
+									href={stepHref(s)}
+									aria-current={step === s ? "step" : undefined}
 									className={cn(
-										"hit-area rounded-lg px-3 py-1.5",
-										view === v && "bg-card font-medium shadow-sm",
+										"inline-flex items-center rounded-xl bg-card px-3 py-1.5 transition-colors hover:bg-muted pointer-coarse:min-h-11",
+										step === s && "border-primary bg-primary/5 font-medium",
 									)}
 								>
-									{t(`view_${v}`)}
+									{t(`step_${s}`)}
 								</Link>
-							))}
-						</nav>
-					) : (
-						<span />
-					)}
-					{missing > 0 && (
-						<p className="flex flex-wrap items-center gap-2 text-footnote text-muted-foreground">
-							{t("shortCheckLine", {
-								shown: a.questions.length,
-								total: a.questions.length + missing,
-							})}
-							{canExtend && (
-								<ExtendButton assessmentId={a.id} missing={missing} />
-							)}
-						</p>
-					)}
-				</div>
-			)}
+							</li>
+						))}
+					</ol>
+					<div
+						className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+						role="progressbar"
+						aria-valuemin={0}
+						aria-valuemax={score.progress.total}
+						aria-valuenow={score.progress.answered}
+						aria-label={t("progress", {
+							answered: score.progress.answered,
+							total: score.progress.total,
+						})}
+					>
+						<div
+							className="h-full rounded-full bg-primary"
+							style={{
+								width: `${score.progress.total > 0 ? (100 * score.progress.answered) / score.progress.total : 0}%`,
+							}}
+						/>
+					</div>
+				</nav>
+
+				{closed && (
+					<p className="mb-4 rounded-2xl bg-card p-3 text-subhead">
+						{t("readOnly")}
+					</p>
+				)}
+
+				{step === "fragen" && (canAnswer || missing > 0) && (
+					<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+						{canAnswer ? (
+							<nav
+								aria-label={t("viewLabel")}
+								className="inline-flex rounded-xl bg-muted p-0.5 text-subhead"
+							>
+								{(["fokus", "liste"] as const).map((v) => (
+									<Link
+										key={v}
+										href={
+											v === "fokus"
+												? focusHref()
+												: stepHref("fragen", "&ansicht=liste")
+										}
+										aria-current={view === v ? "true" : undefined}
+										className={cn(
+											"hit-area rounded-lg px-3 py-1.5",
+											view === v && "bg-card font-medium shadow-sm",
+										)}
+									>
+										{t(`view_${v}`)}
+									</Link>
+								))}
+							</nav>
+						) : (
+							<span />
+						)}
+						{missing > 0 && (
+							<p className="flex flex-wrap items-center gap-2 text-footnote text-muted-foreground">
+								{t("shortCheckLine", {
+									shown: a.questions.length,
+									total: a.questions.length + missing,
+								})}
+								{canExtend && (
+									<ExtendButton assessmentId={a.id} missing={missing} />
+								)}
+							</p>
+						)}
+					</div>
+				)}
+			</div>
 
 			{step === "fragen" &&
 				view === "fokus" &&
@@ -487,178 +496,191 @@ async function AssessmentPage({
 					return (
 						<div
 							data-split-body
-							className="grid grid-cols-1 gap-6 lg:grid-cols-[14rem_1fr]"
+							className="grid grid-cols-1 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-0 lg:border-border/60 lg:border-t @min-[100rem]:grid-cols-[17rem_minmax(0,1fr)]"
 						>
-							<nav aria-label={t("chapters")} data-split-pane>
+							<nav
+								aria-label={t("chapters")}
+								data-split-pane
+								className="lg:border-border/60 lg:border-r lg:px-3 lg:pt-3"
+							>
 								<KeepActiveVisible active={chapter} />
-								<ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
-									{sections.map((s) => {
-										const doneIn = answeredIn(s.code);
-										return (
-											<li key={s.code}>
-												<Link
-													href={focusHref(firstOpenIn(s.code)?.code)}
-													aria-current={s.code === chapter ? "page" : undefined}
-													className={cn(
-														"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-subhead hover:bg-muted",
-														s.code === chapter && "bg-muted font-medium",
-													)}
-												>
-													<span className="truncate">{s.title}</span>
-													<span
+								<ListKeys>
+									<ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+										{sections.map((s) => {
+											const doneIn = answeredIn(s.code);
+											return (
+												<li key={s.code}>
+													<Link
+														href={focusHref(firstOpenIn(s.code)?.code)}
+														aria-current={
+															s.code === chapter ? "page" : undefined
+														}
 														className={cn(
-															"text-footnote tabular-nums",
-															doneIn === s.count
-																? "text-success"
-																: "text-muted-foreground",
+															"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-subhead hover:bg-muted pointer-coarse:min-h-11",
+															s.code === chapter && "bg-muted font-medium",
 														)}
 													>
-														{t("chapterProgress", {
-															answered: doneIn,
-															total: s.count,
-														})}
-													</span>
-												</Link>
-											</li>
-										);
-									})}
-								</ul>
+														<span className="truncate">{s.title}</span>
+														<span
+															className={cn(
+																"text-footnote tabular-nums",
+																doneIn === s.count
+																	? "text-success"
+																	: "text-muted-foreground",
+															)}
+														>
+															{t("chapterProgress", {
+																answered: doneIn,
+																total: s.count,
+															})}
+														</span>
+													</Link>
+												</li>
+											);
+										})}
+									</ul>
+								</ListKeys>
 							</nav>
-							<div data-split-pane className="min-w-0">
-								{!current ? (
-									<section className="flex flex-col items-start gap-4 rounded-2xl bg-card p-6 sm:p-8">
-										<h2 className="font-semibold text-title-2">
-											{t("focusDoneTitle")}
-										</h2>
-										<p className="text-callout text-muted-foreground">
-											{t("focusDoneLead", {
-												total: a.questions.length,
-											})}
-										</p>
-										<div className="flex flex-wrap gap-2">
-											<Link
-												href={stepHref("ergebnis")}
-												className={buttonVariants()}
-											>
-												{t("toResult")}
-											</Link>
-											<Link
-												href={stepHref("fragen", "&ansicht=liste")}
-												className={buttonVariants({ variant: "outline" })}
-											>
-												{t("focusDoneList")}
-											</Link>
-											{canExtend && (
-												<ExtendButton assessmentId={a.id} missing={missing} />
-											)}
-										</div>
-									</section>
-								) : (
-									(() => {
-										const q = current;
-										const row = answerBy.get(q.code);
-										const fromControl = q.controlCode
-											? (data.controlEvidence.get(q.controlCode) ?? [])
-											: [];
-										const own = (row?.evidenceIds ?? []).map((eid) => ({
-											id: eid,
-											title: data.evidence.get(eid)?.title ?? eid,
-										}));
-										const ownIds = new Set(own.map((d) => d.id));
-										const documents = [
-											...own,
-											...fromControl
-												.filter((d) => !ownIds.has(d.id))
-												.map((d) => ({ ...d, fromControl: true })),
-										];
-										const plain = q.controlCode
-											? CONTROL_EXPLAINERS[q.controlCode]
-											: undefined;
-										const nextQ = nextOpen(idx);
-										const prevQ = idx > 0 ? a.questions[idx - 1] : null;
-										const linkable = data.allEvidence
-											.filter(
-												(e) =>
-													!ownIds.has(e.id) &&
-													!fromControl.some((d) => d.id === e.id),
-											)
-											.map((e) => ({ id: e.id, title: e.title }));
-										return (
-											<FocusQuestion
-												key={q.code}
-												assessmentId={a.id}
-												questionCode={q.code}
-												statement={plain?.what ?? q.text}
-												why={plain ? plain.why : (q.help ?? null)}
-												technical={
-													q.controlCode ? `${q.controlCode} · ${q.text}` : null
-												}
-												position={{
-													index: idx + 1,
+							<div data-split-pane className="min-w-0 lg:px-8 lg:pt-6">
+								{/* Lesebreite, auf breiten Bildschirmen mittig */}
+								<div className="mx-auto w-full max-w-[52rem]">
+									{!current ? (
+										<section className="flex flex-col items-start gap-4 rounded-2xl bg-card p-6 sm:p-8">
+											<h2 className="font-semibold text-title-2">
+												{t("focusDoneTitle")}
+											</h2>
+											<p className="text-callout text-muted-foreground">
+												{t("focusDoneLead", {
 													total: a.questions.length,
-													chapter: q.sectionTitle,
-												}}
-												initial={{
-													answer: row?.answer ?? null,
-													comment: row?.comment ?? null,
-													documents: documents.length,
-												}}
-												nextHref={nextQ ? focusHref(nextQ.code) : doneHref}
-												prevHref={prevQ ? focusHref(prevQ.code) : null}
-												members={data.members}
-												canAnswer={canAnswer}
-												canDelegate={canAnswer && canTasks}
-											>
-												<QuestionCard
-													key={`${q.code}-${row?.answer ?? ""}-${row?.comment ?? ""}`}
+												})}
+											</p>
+											<div className="flex flex-wrap gap-2">
+												<Link
+													href={stepHref("ergebnis")}
+													className={buttonVariants()}
+												>
+													{t("toResult")}
+												</Link>
+												<Link
+													href={stepHref("fragen", "&ansicht=liste")}
+													className={buttonVariants({ variant: "outline" })}
+												>
+													{t("focusDoneList")}
+												</Link>
+												{canExtend && (
+													<ExtendButton assessmentId={a.id} missing={missing} />
+												)}
+											</div>
+										</section>
+									) : (
+										(() => {
+											const q = current;
+											const row = answerBy.get(q.code);
+											const fromControl = q.controlCode
+												? (data.controlEvidence.get(q.controlCode) ?? [])
+												: [];
+											const own = (row?.evidenceIds ?? []).map((eid) => ({
+												id: eid,
+												title: data.evidence.get(eid)?.title ?? eid,
+											}));
+											const ownIds = new Set(own.map((d) => d.id));
+											const documents = [
+												...own,
+												...fromControl
+													.filter((d) => !ownIds.has(d.id))
+													.map((d) => ({ ...d, fromControl: true })),
+											];
+											const plain = q.controlCode
+												? CONTROL_EXPLAINERS[q.controlCode]
+												: undefined;
+											const nextQ = nextOpen(idx);
+											const prevQ = idx > 0 ? a.questions[idx - 1] : null;
+											const linkable = data.allEvidence
+												.filter(
+													(e) =>
+														!ownIds.has(e.id) &&
+														!fromControl.some((d) => d.id === e.id),
+												)
+												.map((e) => ({ id: e.id, title: e.title }));
+											return (
+												<FocusQuestion
+													key={q.code}
 													assessmentId={a.id}
-													question={q}
-													na={
-														subjectScoped || !q.controlCode
-															? null
-															: {
-																	allowed: naAllowed(q, catalog),
-																	...naImpactOf(q, catalog),
-																}
+													questionCode={q.code}
+													statement={plain?.what ?? q.text}
+													why={plain ? plain.why : (q.help ?? null)}
+													technical={
+														q.controlCode
+															? `${q.controlCode} · ${q.text}`
+															: null
 													}
+													position={{
+														index: idx + 1,
+														total: a.questions.length,
+														chapter: q.sectionTitle,
+													}}
 													initial={{
 														answer: row?.answer ?? null,
 														comment: row?.comment ?? null,
-														naReason: row?.naReason ?? null,
-														naConfirmation:
-															data.naConfirmations.get(q.code) ?? null,
-														documents,
+														documents: documents.length,
 													}}
-													hint={
-														q.controlCode && !subjectScoped
-															? relationHint(
-																	q.controlCode,
-																	{
-																		frameworks: a.frameworks,
-																		applicability,
-																		catalog,
-																	},
-																	(topic) =>
-																		tes(
-																			`topic_${topic.replace(":", "_")}` as "topic_retention",
-																		),
-																)
-															: undefined
-													}
-													statusLabel={statusLabel(q.controlCode)}
-													frameworkNames={fwNames}
+													nextHref={nextQ ? focusHref(nextQ.code) : doneHref}
+													prevHref={prevQ ? focusHref(prevQ.code) : null}
 													members={data.members}
-													existingEvidence={linkable}
 													canAnswer={canAnswer}
 													canDelegate={canAnswer && canTasks}
-													canImportDocument={allows(ctx, {
-														document: ["create"],
-													})}
-												/>
-											</FocusQuestion>
-										);
-									})()
-								)}
+												>
+													<QuestionCard
+														key={`${q.code}-${row?.answer ?? ""}-${row?.comment ?? ""}`}
+														assessmentId={a.id}
+														question={q}
+														na={
+															subjectScoped || !q.controlCode
+																? null
+																: {
+																		allowed: naAllowed(q, catalog),
+																		...naImpactOf(q, catalog),
+																	}
+														}
+														initial={{
+															answer: row?.answer ?? null,
+															comment: row?.comment ?? null,
+															naReason: row?.naReason ?? null,
+															naConfirmation:
+																data.naConfirmations.get(q.code) ?? null,
+															documents,
+														}}
+														hint={
+															q.controlCode && !subjectScoped
+																? relationHint(
+																		q.controlCode,
+																		{
+																			frameworks: a.frameworks,
+																			applicability,
+																			catalog,
+																		},
+																		(topic) =>
+																			tes(
+																				`topic_${topic.replace(":", "_")}` as "topic_retention",
+																			),
+																	)
+																: undefined
+														}
+														statusLabel={statusLabel(q.controlCode)}
+														frameworkNames={fwNames}
+														members={data.members}
+														existingEvidence={linkable}
+														canAnswer={canAnswer}
+														canDelegate={canAnswer && canTasks}
+														canImportDocument={allows(ctx, {
+															document: ["create"],
+														})}
+													/>
+												</FocusQuestion>
+											);
+										})()
+									)}
+								</div>
 							</div>
 						</div>
 					);
@@ -680,49 +702,58 @@ async function AssessmentPage({
 					return (
 						<div
 							data-split-body
-							className="grid grid-cols-1 gap-6 lg:grid-cols-[14rem_1fr]"
+							className="grid grid-cols-1 gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-0 lg:border-border/60 lg:border-t @min-[100rem]:grid-cols-[17rem_minmax(0,1fr)]"
 						>
-							<nav aria-label={t("chapters")} data-split-pane>
+							<nav
+								aria-label={t("chapters")}
+								data-split-pane
+								className="lg:border-border/60 lg:border-r lg:px-3 lg:pt-3"
+							>
 								<KeepActiveVisible active={chapter} />
-								<ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
-									{sections.map((s) => {
-										const done = answeredIn(s.code);
-										return (
-											<li key={s.code}>
-												<Link
-													href={stepHref(
-														"fragen",
-														`&ansicht=liste&kapitel=${s.code}`,
-													)}
-													aria-current={s.code === chapter ? "page" : undefined}
-													className={cn(
-														"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-subhead hover:bg-muted",
-														s.code === chapter && "bg-muted font-medium",
-													)}
-												>
-													<span className="truncate">{s.title}</span>
-													<span
+								<ListKeys>
+									<ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible">
+										{sections.map((s) => {
+											const done = answeredIn(s.code);
+											return (
+												<li key={s.code}>
+													<Link
+														href={stepHref(
+															"fragen",
+															`&ansicht=liste&kapitel=${s.code}`,
+														)}
+														aria-current={
+															s.code === chapter ? "page" : undefined
+														}
 														className={cn(
-															"text-footnote tabular-nums",
-															done === s.count
-																? "text-success"
-																: "text-muted-foreground",
+															"flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2 py-1.5 text-subhead hover:bg-muted pointer-coarse:min-h-11",
+															s.code === chapter && "bg-muted font-medium",
 														)}
 													>
-														{t("chapterProgress", {
-															answered: done,
-															total: s.count,
-														})}
-													</span>
-												</Link>
-											</li>
-										);
-									})}
-								</ul>
+														<span className="truncate">{s.title}</span>
+														<span
+															className={cn(
+																"text-footnote tabular-nums",
+																done === s.count
+																	? "text-success"
+																	: "text-muted-foreground",
+															)}
+														>
+															{t("chapterProgress", {
+																answered: done,
+																total: s.count,
+															})}
+														</span>
+													</Link>
+												</li>
+											);
+										})}
+									</ul>
+								</ListKeys>
 							</nav>
 							{/* key: ein neues Kapitel beginnt oben */}
 							<ChapterPane
 								key={chapter}
+								className="lg:px-8"
 								title={sections[idx]?.title ?? ""}
 								total={questions.length}
 								answered={answeredIn(chapter)}

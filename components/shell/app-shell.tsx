@@ -137,9 +137,12 @@ export async function AppShell({
 						/>
 					</div>
 				</header>
+				{/* Breite wächst mit dem Bildschirm, aber nicht endlos: 72rem bis
+				    Laptop, 88rem ab 1600 px, 100rem ab 2240 px Fensterbreite;
+				    geteilte Seiten (data-split-page="flush") nutzen alles */}
 				<main
 					id="inhalt"
-					className="mx-auto w-full max-w-6xl grow px-4 py-6 sm:px-6 sm:py-8"
+					className="mx-auto w-full max-w-6xl grow px-4 py-6 sm:px-6 sm:py-8 min-[100rem]:max-w-[88rem] min-[140rem]:max-w-[100rem]"
 				>
 					{children}
 				</main>

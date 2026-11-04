@@ -65,7 +65,7 @@ function RefLinks({ refs }: { refs: readonly AdditionRef[] }) {
 							{j > 0 && ", "}
 							<Link
 								href={`/rahmenwerke/${r.slug}/${encodeURIComponent(r.code)}`}
-								className="whitespace-nowrap hover:underline underline-offset-4"
+								className="hit-area whitespace-nowrap hover:underline underline-offset-4"
 							>
 								{r.code}
 							</Link>

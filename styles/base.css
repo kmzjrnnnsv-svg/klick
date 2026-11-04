@@ -358,7 +358,7 @@ h1 {
 	}
 	/* Kopfzeile einer Spalte klebt an ihrem oberen Rand, nicht unter der
 	   Kopfleiste der App; Sprungziele landen knapp darunter */
-	main > [data-split-page] [data-split-pane] > [data-pane-head] {
+	main > [data-split-page] [data-split-pane] [data-pane-head] {
 		top: 0;
 	}
 	main > [data-split-page] [data-split-pane] [data-answered] {
@@ -375,9 +375,14 @@ h1 {
 		font-size: var(--text-title-2);
 		line-height: var(--text-title-2--line-height);
 	}
-	/* bündig (data-split-page="flush", Einstellungen wie in macOS/iPadOS):
-	   die Liste liegt direkt an der Seitenleiste der App, der Inhalt nimmt
-	   die restliche Breite; Abstände tragen die Spalten selbst */
+}
+
+/* bündig (data-split-page="flush", Einstellungen, Hilfe, Gap-Analyse,
+   Detailseiten — wie in macOS/iPadOS): die Liste liegt direkt an der
+   Seitenleiste der App, ein Inspektor am rechten Rand, der Inhalt nimmt die
+   restliche Breite; Abstände tragen die Spalten selbst. Ab 1024 px Breite,
+   auch bei niedrigem Fenster (dann scrollt die Seite als Ganzes). */
+@media (min-width: 64rem) {
 	main:has(> [data-split-page="flush"]) {
 		max-width: none;
 		margin: 0;
