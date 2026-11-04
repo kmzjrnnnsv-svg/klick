@@ -35,6 +35,7 @@ export const PERMIT_KINDS = [
 	"member_reset_access",
 	"integration_token",
 	"sso_provider_remove",
+	"identity_source_remove",
 	"owner_add",
 	"owner_remove",
 ] as const satisfies readonly SecurityChangeKind[];

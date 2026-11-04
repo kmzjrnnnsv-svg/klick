@@ -20,6 +20,11 @@ export const EXPORT_EXCLUDED: ReadonlySet<string> = new Set([
 	"push_subscriptions",
 ]);
 
+// Spalten mit Zugangsdaten in sonst exportierten Tabellen: werden nie
+// entschlüsselt, im Export steht null (Identität: Okta-Token, Google-Schlüssel)
+export const EXPORT_REDACTED_COLUMNS: ReadonlyMap<string, readonly string[]> =
+	new Map([["identity_sources", ["secret_enc"]]]);
+
 // Alle Tabellen mit organization_id aus dem Drizzle-Schema (Reflexion, wie
 // db/rls.ts) — neue Tabellen landen automatisch im Export.
 export function orgTablesFromSchema(
@@ -56,7 +61,12 @@ export async function decryptRows(
 	for (const row of rows) {
 		const copy: ExportRow = { ...row };
 		const problems: string[] = [];
+		const redacted = EXPORT_REDACTED_COLUMNS.get(table) ?? [];
 		for (const [col, val] of Object.entries(row)) {
+			if (redacted.includes(col)) {
+				copy[col] = null;
+				continue;
+			}
 			if (!isEncryptedField(val)) continue;
 			try {
 				copy[col] = await decryptField(

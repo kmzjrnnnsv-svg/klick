@@ -280,6 +280,10 @@ export const orgSettings = pgTable(
 		// Unterschriften nur mit Sicherheitsschlüssel (AP9.1b,
 		// lib/signatures/policy.ts); Lockern nur über Vier-Augen
 		signaturePolicy: json<Record<string, unknown>>().notNull().default({}),
+		// Identität anbinden (Teil D, lib/identity/policy.ts): Schwellen der
+		// automatischen Prüfungen; gelesen nur über identityPolicyOf, Lockern
+		// nur über Vier-Augen (Art identity_policy)
+		identityPolicy: json<Record<string, unknown>>().notNull().default({}),
 		// Standard (nach Rahmenwerk) oder individuell (ADR-024)
 		governanceMode: text({ enum: GOVERNANCE_MODES })
 			.notNull()

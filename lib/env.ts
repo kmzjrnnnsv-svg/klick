@@ -138,6 +138,14 @@ export const envSchema = z.object({
 	TEAMS_CERT_FILE: z.string().startsWith("/").optional(),
 	// ID der Teams-App im Manifest (fest, damit Kund:innen die App erkennen)
 	TEAMS_APP_ID: z.guid().default("6c7d8f4e-2b1a-4c3d-9e8f-7a6b5c4d3e2f"),
+	// Identität anbinden (Teil D): eigene App-Registrierung „Klick Identität“
+	// für mehrere Organisationen, nur Leserechte (User.Read.All,
+	// AuditLog.Read.All, RoleManagement.Read.Directory, Organization.Read.All).
+	// Zertifikat bevorzugt; ein Geheimnis geht nur mit
+	// PROD_ACCEPT_RISKS=identity_secret. Ohne Client-ID ist Entra aus.
+	IDENTITY_MS_CLIENT_ID: z.guid().optional(),
+	IDENTITY_MS_CLIENT_SECRET: z.string().optional(),
+	IDENTITY_MS_CERT_FILE: z.string().startsWith("/").optional(),
 	// Push-Benachrichtigungen (Web Push, VAPID): öffentlicher Schlüssel (65 Byte,
 	// base64url) und privater Schlüssel (32 Byte, Credential web_push_private_key;
 	// `pnpm push:keys`). Ohne beide ist Push aus.

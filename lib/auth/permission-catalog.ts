@@ -27,6 +27,7 @@ export const PERMISSION_AREAS: readonly PermissionArea[] = [
 			"control",
 			"assessment",
 			"custom_framework",
+			"identity",
 		],
 	},
 	{
