@@ -44,6 +44,8 @@ export function buildAssessmentMarkdown(input: {
 	>;
 	score: AssessmentScore;
 	measures: readonly Measure[];
+	// Abschnitt „Umsetzungsplan“ (nur Gap-Analysen, planMarkdownLines)
+	planLines?: readonly string[];
 	generatedAt?: Date;
 }): string {
 	const s = input.score;
@@ -87,6 +89,7 @@ export function buildAssessmentMarkdown(input: {
 			);
 		lines.push("");
 	}
+	if (input.planLines) lines.push(...input.planLines);
 	lines.push("## Fragen und Bewertung", "");
 	let section = "";
 	for (const q of input.questions) {

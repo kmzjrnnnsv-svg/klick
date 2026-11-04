@@ -43,7 +43,12 @@ import {
 	naOpenShare,
 } from "@/lib/assessments/na";
 import { naConfirmations } from "@/lib/assessments/na-approval";
-import { berlinToday, implementationPlan } from "@/lib/assessments/plan-server";
+import { laneLabelFor } from "@/lib/assessments/plan-export";
+import {
+	berlinToday,
+	implementationPlan,
+	laneLabelDeps,
+} from "@/lib/assessments/plan-server";
 import {
 	effectiveAnswer,
 	questionVerdict,
@@ -59,7 +64,6 @@ import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
 import { CONTROL_EXPLAINERS } from "@/lib/compliance/catalog/control-explainers";
 import { deriveCoverage } from "@/lib/compliance/coverage";
 import { exclusionAllowedForKey, naImpact } from "@/lib/compliance/exclusions";
-import { type FunctionKey, functionLabel } from "@/lib/compliance/function-key";
 import { STATIC_CATALOG } from "@/lib/compliance/org-catalog";
 import {
 	fmtDate,
@@ -225,27 +229,11 @@ async function AssessmentPage({
 					}),
 				)
 			: null;
-	const tf = await getTranslations("Functions");
-	const tcl = await getTranslations("Controls");
-	const memberName = new Map(data.members.map((m) => [m.userId, m.name]));
-	const laneLabel = (lane: string): string => {
-		if (lane.startsWith("f:"))
-			return functionLabel(
-				lane.slice(2) as FunctionKey,
-				(fn) => tf(fn),
-				data.roleNames,
-			);
-		if (lane.startsWith("u:"))
-			return memberName.get(lane.slice(2)) ?? t("planPerson");
-		const area = lane.slice(2);
-		return t("planNoOwner", {
-			area: tcl.has(`domain_${area}` as "domain_risk")
-				? tcl(`domain_${area}` as "domain_risk")
-				: area === "privacy"
-					? t("planAreaPrivacy")
-					: area,
-		});
-	};
+	const laneDeps = await laneLabelDeps({
+		members: data.members,
+		roleNames: data.roleNames,
+	});
+	const laneLabel = (lane: string) => laneLabelFor(lane, laneDeps);
 	const alreadyExcluded = new Set(
 		[...(cov?.applicabilityDetail ?? [])]
 			.filter(([, d]) => d.source === "manual" && !d.applicable)
@@ -944,6 +932,7 @@ async function AssessmentPage({
 							today={berlinToday()}
 							laneLabel={laneLabel}
 							frameworkName={(slug) => fwNames[slug] ?? slug}
+							exportable={allows(ctx, { export: ["create"] })}
 						/>
 					)}
 					{(() => {

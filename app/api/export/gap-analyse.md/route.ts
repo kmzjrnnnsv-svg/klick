@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { productMeasures, proposeMeasures } from "@/lib/assessments/measures";
+import { planMarkdownLines } from "@/lib/assessments/plan-export";
+import { loadPlanExport } from "@/lib/assessments/plan-server";
 import { scoreAssessment } from "@/lib/assessments/score";
 import { answerStates } from "@/lib/assessments/state";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -31,6 +33,8 @@ export async function GET(req: Request) {
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => ({
 		detail: await getAssessmentDetail(tx, ctx.orgId, id),
 		profile: await getOrgProfile(tx, ctx.orgId),
+		// Umsetzungsplan nur für Gap-Analysen (nicht Lieferant/Produkt)
+		plan: await loadPlanExport(tx, ctx.orgId, id),
 	}));
 	const d = data.detail;
 	if (!d || !data.profile) return new NextResponse(null, { status: 404 });
@@ -77,6 +81,7 @@ export async function GET(req: Request) {
 			a.kind === "product" || a.kind === "supplier"
 				? productMeasures({ questions: a.questions, answers: states })
 				: proposeMeasures({ questions: a.questions, answers: states, plan }),
+		planLines: data.plan ? planMarkdownLines(data.plan) : undefined,
 	});
 	const mark = await auditExport(ctx, "assessment_md", a.questions.length, {
 		assessment: a.code,

@@ -5,6 +5,7 @@ import {
 	type GanttGroup,
 	type GanttTone,
 } from "@/components/charts/gantt";
+import { buttonVariants } from "@/components/ui/button";
 import type { MeasureKind } from "@/lib/assessments/measures";
 import type { ImplementationPlan } from "@/lib/assessments/plan-server";
 import { CONTROL_BY_CODE } from "@/lib/compliance/catalog";
@@ -41,10 +42,13 @@ export async function ImplementationPlanSection({
 	today,
 	laneLabel,
 	frameworkName,
+	exportable = false,
 }: {
 	assessmentId: string;
 	plan: ImplementationPlan;
 	editable: boolean;
+	// Recht export:create: PDF und CSV des Plans
+	exportable?: boolean;
 	today: string;
 	laneLabel: (lane: string) => string;
 	frameworkName: (slug: string) => string;
@@ -246,6 +250,22 @@ export async function ImplementationPlanSection({
 							</li>
 						))}
 					</ol>
+					{exportable && (
+						<div className="flex flex-wrap gap-2">
+							<a
+								href={`/api/export/umsetzungsplan.pdf?id=${assessmentId}`}
+								className={buttonVariants({ variant: "outline", size: "sm" })}
+							>
+								{t("planExportPdf")}
+							</a>
+							<a
+								href={`/api/export/umsetzungsplan.csv?id=${assessmentId}`}
+								className={buttonVariants({ variant: "outline", size: "sm" })}
+							>
+								{t("planExportCsv")}
+							</a>
+						</div>
+					)}
 					<details className="text-subhead">
 						<summary className="min-h-11 cursor-pointer py-2 font-medium text-primary">
 							{t("planTable")}
