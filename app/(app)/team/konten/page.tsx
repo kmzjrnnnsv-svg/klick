@@ -308,11 +308,16 @@ async function AccountsPage({
 			title={t("title")}
 			lead={t("lead")}
 			actions={
-				canExport ? (
+				<span className="flex flex-wrap gap-2">
 					<Button asChild variant="secondary">
-						<ExportLink href={csvHref}>{t("csv")}</ExportLink>
+						<Link href="/team/zugriffspruefung">{t("toReview")}</Link>
 					</Button>
-				) : undefined
+					{canExport && (
+						<Button asChild variant="secondary">
+							<ExportLink href={csvHref}>{t("csv")}</ExportLink>
+						</Button>
+					)}
+				</span>
 			}
 			summary={summary}
 			filters={[

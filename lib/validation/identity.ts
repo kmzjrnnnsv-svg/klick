@@ -3,6 +3,7 @@ import {
 	IDENTITY_POLICY_BOUNDS,
 	type IdentityPolicyKey,
 } from "@/lib/identity/policy";
+import { REVIEW_DECISIONS, REVIEW_SCOPES } from "@/lib/identity/review-rules";
 import { EXCEPTION_KINDS } from "@/lib/identity/types";
 
 // Identität anbinden (Teil D): Eingaben der Einstellungen
@@ -71,3 +72,29 @@ export const identityPolicySchema = z
 		path: ["recertFailDays"],
 		message: "identity_recert_order",
 	});
+
+// Zugriffsprüfung (I2)
+export const startAccessReviewSchema = z.object({
+	sourceId: z.uuid(),
+	title: z.string().trim().min(3).max(200),
+	dueAt: z
+		.union([z.literal(""), z.string().regex(ISO_DAY)])
+		.transform((v) => (v === "" ? null : v)),
+	scope: z.enum(REVIEW_SCOPES),
+	reviewerUserId: z.uuid(),
+});
+
+export const decideAccessReviewSchema = z.object({
+	itemId: z.uuid(),
+	decision: z.enum(REVIEW_DECISIONS),
+	note: z
+		.string()
+		.trim()
+		.max(1000)
+		.optional()
+		.transform((v) => v || null),
+});
+
+export const accessReviewIdSchema = z.object({
+	reviewId: z.uuid(),
+});
