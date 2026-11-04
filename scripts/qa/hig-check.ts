@@ -87,7 +87,13 @@ function measureTargets(min: number): Finding[] {
 				// Element selbst ohne Position: das Vorfeld legt sich über den
 				// nächsten positionierten Vorfahren (Register-Zeile am Handy)
 				if (st.position === "static" && el instanceof HTMLElement) {
-					const cb = el.offsetParent?.getBoundingClientRect();
+					// nächster positionierter Vorfahr — nicht offsetParent, das
+					// in Tabellen die Zelle liefert, obwohl das Vorfeld an der
+					// positionierten Zeile hängt
+					let host = el.parentElement;
+					while (host && getComputedStyle(host).position === "static")
+						host = host.parentElement;
+					const cb = host?.getBoundingClientRect();
 					if (
 						cb &&
 						Number.parseFloat(ps.top) <= 0 &&
@@ -262,6 +268,12 @@ async function open(page: Page, path: string) {
 			await new Promise((r) => setTimeout(r, 60));
 		}
 		window.scrollTo(0, 0);
+	});
+	// Scroll-gebundene Animationen (animation-timeline: view()) laufen beim
+	// Zurückscrollen wieder rückwärts — gemessen wird der Endzustand
+	await page.addStyleTag({
+		content:
+			"*,*::before,*::after{animation:none!important;transition:none!important}",
 	});
 	await page.waitForTimeout(800);
 	return res?.status() ?? 0;

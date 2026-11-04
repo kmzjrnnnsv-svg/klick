@@ -29,7 +29,7 @@ export function RemindButton({
 	return (
 		<Button
 			type="button"
-			size="sm"
+			size="icon-sm"
 			variant="ghost"
 			disabled={pending || disabled}
 			title={disabled ? t("remindedRecently") : t("remindLabel", { name })}

@@ -179,7 +179,7 @@ export function TeamsPanel({
 										spellCheck={false}
 										autoComplete="off"
 										disabled={!isOwner || pending}
-										className="sm:w-96"
+										className="sm:max-w-96"
 									/>
 									{isOwner && (
 										<Button

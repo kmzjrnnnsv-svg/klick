@@ -12,6 +12,10 @@ import {
 	NewTrigger,
 } from "@wallet/components/form-dialog";
 import {
+	useWalletError,
+	useWalletErrorText,
+} from "@wallet/components/wallet/use-wallet-error";
+import {
 	WALLET_ACCOUNT_PURPOSES,
 	type WalletAccountPurpose,
 } from "@wallet/db/schema";
@@ -30,7 +34,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { errorText } from "@/components/ui/error-text";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Label } from "@/components/ui/label";
 import {
 	Select,
@@ -40,29 +44,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/components/ui/toast";
 import type { WalletNetwork } from "@/lib/wallet/core/networks";
-
-type Result = {
-	ok: boolean;
-	error?: string;
-	fieldErrors?: Record<string, string[]>;
-};
-
-// Fehler der Wallet-Actions → Text (error_<code>), sonst zod-Meldung bzw.
-// allgemeiner Hinweis
-function useWalletError() {
-	const t = useTranslations("Wallet");
-	const tc = useTranslations("Common");
-	return (res: Result): void => {
-		const key = `error_${res.error ?? ""}`;
-		const first = Object.values(res.fieldErrors ?? {})[0]?.[0];
-		if (t.has(key as never)) toast.error(t(key as never));
-		else if (first && t.has(`error_${first}` as never))
-			toast.error(t(`error_${first}` as never));
-		else toast.error(first ?? errorText(tc, res));
-	};
-}
 
 function SimpleSelect<T extends string>({
 	id,
@@ -108,7 +90,8 @@ export function NewAccountDialog({
 	const t = useTranslations("Wallet");
 	const tc = useTranslations("Common");
 	const router = useRouter();
-	const onError = useWalletError();
+	const errorText = useWalletErrorText();
+	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(defaultOpen);
 	const [pending, start] = useTransition();
 	const [created, setCreated] = useState<string | null>(null);
@@ -121,6 +104,7 @@ export function NewAccountDialog({
 	const [historyFrom, setHistoryFrom] = useState("");
 
 	function reset() {
+		setError(null);
 		setCreated(null);
 		setName("");
 		setAccountKey("");
@@ -128,6 +112,7 @@ export function NewAccountDialog({
 	}
 
 	function submit() {
+		setError(null);
 		start(async () => {
 			const res = await createWalletAccount({
 				name,
@@ -136,7 +121,7 @@ export function NewAccountDialog({
 				purpose,
 				historyFrom,
 			});
-			if (!res.ok) return onError(res);
+			if (!res.ok) return setError(errorText(res));
 			setCreated(res.data.address);
 			router.refresh();
 		});
@@ -256,6 +241,7 @@ export function NewAccountDialog({
 								</div>
 							</>
 						)}
+						<FormAlert message={error} />
 						<DialogFooter>
 							<Button
 								type="button"
@@ -282,7 +268,8 @@ export function EditAccountDialog({
 }) {
 	const t = useTranslations("Wallet");
 	const router = useRouter();
-	const onError = useWalletError();
+	const errorText = useWalletErrorText();
+	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [name, setName] = useState(account.name);
@@ -293,13 +280,15 @@ export function EditAccountDialog({
 			open={open}
 			setOpen={setOpen}
 			pending={pending}
+			error={error}
 			onSubmit={() =>
 				start(async () => {
+					setError(null);
 					const res = await updateWalletAccount({
 						id: account.id,
 						name,
 					});
-					if (!res.ok) return onError(res);
+					if (!res.ok) return setError(errorText(res));
 					setOpen(false);
 					router.refresh();
 				})

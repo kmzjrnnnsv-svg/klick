@@ -13,6 +13,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +31,7 @@ export function FormDialog({
 	disabled,
 	children,
 	wide,
+	error,
 }: {
 	title: string;
 	lead?: string;
@@ -41,6 +43,8 @@ export function FormDialog({
 	disabled?: boolean;
 	children: ReactNode;
 	wide?: boolean;
+	// Fehler der Action über dem Absenden-Knopf (nicht als Toast)
+	error?: string | null;
 }) {
 	const tc = useTranslations("Common");
 	return (
@@ -59,6 +63,7 @@ export function FormDialog({
 						{lead && <DialogDescription>{lead}</DialogDescription>}
 					</DialogHeader>
 					{children}
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button
 							type="button"

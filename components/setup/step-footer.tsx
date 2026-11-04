@@ -37,7 +37,7 @@ export function StepFooter({
 				<button
 					type="button"
 					disabled={pending}
-					className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
+					className="hit-area text-muted-foreground underline-offset-4 hover:text-foreground hover:underline disabled:opacity-50"
 					onClick={() =>
 						start(async () => {
 							const res = await deferSetup();

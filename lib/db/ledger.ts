@@ -177,12 +177,18 @@ export function insertAnchor(
 	});
 }
 
+// Reihum: nie versuchte zuerst, dann die am längsten nicht versuchten —
+// hängen mehr als `limit` Anker (Kalender bestätigt nie), kommen neuere
+// trotzdem an die Reihe, statt hinter den alten zu warten
 export function pendingAnchors(limit = 20): Promise<LedgerAnchor[]> {
 	return globalDb
 		.select()
 		.from(ledgerAnchors)
 		.where(eq(ledgerAnchors.status, "pending"))
-		.orderBy(ledgerAnchors.createdAt)
+		.orderBy(
+			sql`${ledgerAnchors.lastUpgradeAt} asc nulls first`,
+			ledgerAnchors.createdAt,
+		)
 		.limit(limit);
 }
 

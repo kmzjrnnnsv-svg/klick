@@ -1,13 +1,14 @@
 "use client";
 
 import { createPayout } from "@wallet/app/actions/wallet-send";
-import { useWalletError } from "@wallet/components/wallet/use-wallet-error";
+import { useWalletErrorText } from "@wallet/components/wallet/use-wallet-error";
 import type { PayoutSpeed } from "@wallet/db/schema";
 import { Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -48,7 +49,8 @@ export function SendForm({
 	destinations: Destination[];
 }) {
 	const t = useTranslations("Wallet");
-	const onError = useWalletError();
+	const errorText = useWalletErrorText();
+	const [error, setError] = useState<string | null>(null);
 	const router = useRouter();
 	const [pending, start] = useTransition();
 	const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
@@ -70,6 +72,7 @@ export function SendForm({
 	const dest = dests.find((d) => d.id === destId);
 
 	function submit() {
+		setError(null);
 		start(async () => {
 			const res = await createPayout({
 				accountId,
@@ -78,7 +81,7 @@ export function SendForm({
 				addressBookId: destId,
 				speed,
 			});
-			if (!res.ok) return onError(res);
+			if (!res.ok) return setError(errorText(res));
 			toast.success(t("sendCreated"));
 			router.push(`/payouts/${res.data.id}`);
 		});
@@ -207,6 +210,7 @@ export function SendForm({
 			<p className="rounded-xl bg-muted px-3 py-2 text-subhead">
 				{t("sendHint")}
 			</p>
+			<FormAlert message={error} />
 			<div>
 				<Button type="submit" disabled={pending || !destId || !amount}>
 					<Send aria-hidden />

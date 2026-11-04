@@ -1,7 +1,7 @@
 "use client";
 
 import { freezeSigner } from "@wallet/app/actions/wallet-send";
-import { useWalletError } from "@wallet/components/wallet/use-wallet-error";
+import { useWalletErrorText } from "@wallet/components/wallet/use-wallet-error";
 import { OctagonX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -16,6 +16,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
@@ -25,7 +26,8 @@ import { toast } from "@/components/ui/toast";
 export function FreezeSignerButton() {
 	const t = useTranslations("Wallet");
 	const router = useRouter();
-	const onError = useWalletError();
+	const errorText = useWalletErrorText();
+	const [error, setError] = useState<string | null>(null);
 	const [open, setOpen] = useState(false);
 	const [pending, start] = useTransition();
 	const [reason, setReason] = useState("");
@@ -42,9 +44,10 @@ export function FreezeSignerButton() {
 					className="flex flex-col gap-4"
 					onSubmit={(e) => {
 						e.preventDefault();
+						setError(null);
 						start(async () => {
 							const res = await freezeSigner({ reason });
-							if (!res.ok) return onError(res);
+							if (!res.ok) return setError(errorText(res));
 							toast.success(t("secFrozenDone"));
 							setOpen(false);
 							router.refresh();
@@ -67,6 +70,7 @@ export function FreezeSignerButton() {
 							maxLength={160}
 						/>
 					</div>
+					<FormAlert message={error} />
 					<DialogFooter>
 						<Button type="submit" variant="destructive" disabled={pending}>
 							{pending ? t("secFreezing") : t("secFreezeSubmit")}

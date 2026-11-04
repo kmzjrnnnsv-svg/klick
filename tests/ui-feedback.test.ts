@@ -45,6 +45,31 @@ describe("Rückmeldungen", () => {
 		expect(hits).toEqual([]);
 	});
 
+	it("both.money: Formulare zeigen Fehler über dem Knopf, nicht als Toast", () => {
+		// useWalletError ist der Toast-Weg für Knöpfe ohne Formular; ein
+		// Formular (eigenes <form> oder FormDialog) nimmt useWalletErrorText
+		// mit FormAlert, sonst liegt die Meldung am Handy über dem Knopf.
+		// je Komponente prüfen (eine Datei kann Knöpfe und Formulare haben)
+		const hits: string[] = [];
+		for (const f of files) {
+			if (!f.startsWith("apps/wallet/") || !f.endsWith(".tsx")) continue;
+			const src = readFileSync(join(ROOT, f), "utf8");
+			for (const part of src.split(/\n(?=export function )/)) {
+				if (
+					/\buseWalletError\(\)/.test(part) &&
+					/<form\b|<FormDialog\b/.test(part)
+				)
+					hits.push(`${f}: ${/export function (\w+)/.exec(part)?.[1]}`);
+			}
+		}
+		expect(hits).toEqual([]);
+		const send = readFileSync(
+			join(ROOT, "apps/wallet/components/wallet/send-form.tsx"),
+			"utf8",
+		);
+		expect(send).toContain("<FormAlert message={error} />");
+	});
+
 	it("Fehlercode wird zum Satz mit nächstem Schritt", () => {
 		const tc = (key: string, v?: { ref: string }) =>
 			v ? `${key}:${v.ref}` : key;
