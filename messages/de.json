@@ -5462,6 +5462,7 @@
 	"Setup": {
 		"aiQuestion": "Darf eine KI deines Anbieters Inhalte lesen?",
 		"aiLead": "Klick kann Fassungen vergleichen, Entwürfe schreiben und Nachweise prüfen lassen, mit einer KI und dem Schlüssel deiner Organisation. Schlüssel und Freischaltung kommen später unter Einstellungen > KI; vorher geht nichts an eine KI. Streng geheime Inhalte nie.",
+		"identityHint": "Konten automatisch prüfen: Später verbindest du unter Einstellungen > Integrationen > „Konten und Anmeldungen“ Microsoft Entra ID, Google Workspace oder Okta, nur lesend. Dann prüft Klick jeden Tag MFA, Admins und Austritte.",
 		"ai_none": "Nein, keine Inhalte",
 		"ai_internal": "Öffentliche und interne Inhalte",
 		"ai_confidential": "Bis vertraulich",

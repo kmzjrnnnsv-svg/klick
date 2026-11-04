@@ -426,6 +426,10 @@ export function ItDataStep({
 				))}
 			</fieldset>
 
+			<p className="rounded-xl bg-muted/40 p-3 text-footnote text-muted-foreground">
+				{t("identityHint")}
+			</p>
+
 			<div className="flex justify-end">
 				<Button type="submit" disabled={pending}>
 					{t("saveNext")}
