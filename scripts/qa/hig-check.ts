@@ -82,6 +82,19 @@ function measureTargets(min: number): Finding[] {
 				const grow = (v: string) => Math.max(0, -Number.parseFloat(v) || 0);
 				w = Math.max(w, r.width + grow(ps.left) + grow(ps.right));
 				h = Math.max(h, r.height + grow(ps.top) + grow(ps.bottom));
+				// Element selbst ohne Position: das Vorfeld legt sich über den
+				// nächsten positionierten Vorfahren (Register-Zeile am Handy)
+				if (st.position === "static" && el instanceof HTMLElement) {
+					const cb = el.offsetParent?.getBoundingClientRect();
+					if (
+						cb &&
+						Number.parseFloat(ps.top) <= 0 &&
+						Number.parseFloat(ps.bottom) <= 0
+					) {
+						w = Math.max(w, cb.width);
+						h = Math.max(h, cb.height);
+					}
+				}
 			}
 		}
 		// Checkbox/Radio: das Label ist Teil der Tippfläche
