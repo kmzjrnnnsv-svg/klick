@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import {
 	accessTokens,
 	assessmentAnswers,
@@ -8,11 +8,39 @@ import {
 	processes,
 	processProviders,
 	providers,
+	risks,
 } from "@/db/schema";
 import type { OrgTx } from "@/lib/db/with-org";
 import { userNames } from "./queries";
 
 // Lieferantenbewertung (S6): Detailseite des Dienstleisters und Portalansicht.
+
+// Dienstleister mit mindestens einem Risiko im Register (Bezug oder Herkunft)
+// — für den Punkt „Risikoanalyse“ im Lebenszyklus (L1)
+export async function providerIdsWithRisk(
+	tx: OrgTx,
+	orgId: string,
+): Promise<Set<string>> {
+	const rows = await tx
+		.select({
+			providerId: risks.providerId,
+			sourceId: risks.sourceEntityId,
+			sourceType: risks.sourceEntityType,
+		})
+		.from(risks)
+		.where(
+			and(
+				eq(risks.organizationId, orgId),
+				or(isNotNull(risks.providerId), eq(risks.sourceEntityType, "provider")),
+			),
+		);
+	const out = new Set<string>();
+	for (const r of rows) {
+		if (r.providerId) out.add(r.providerId);
+		if (r.sourceType === "provider" && r.sourceId) out.add(r.sourceId);
+	}
+	return out;
+}
 
 export async function getProviderDetail(tx: OrgTx, orgId: string, id: string) {
 	const [p] = await tx

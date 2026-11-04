@@ -119,7 +119,11 @@ async function upsertProviderImpl(
 						providerId,
 					]);
 					if (waiting.size > 0) throw new StatusLocked();
-					if (before.status === "declined") {
+					// aus „Bedarf“ wie aus „Abgelehnt“: Aufnahme beantragen
+					if (
+						(before.status === "declined" || before.status === "requested") &&
+						patch.status !== "declined"
+					) {
 						const merged = { ...before, ...patch };
 						const gate = await gateApproval(
 							tx,

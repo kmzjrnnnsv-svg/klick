@@ -8,6 +8,7 @@ import { SCENARIO_BY_CODE } from "@/lib/compliance/catalog/risk-scenarios";
 import { getOrgCoverageCached } from "@/lib/compliance/page-data";
 import { loadRiskSource } from "@/lib/compliance/queries-risk-sources";
 import { loadRiskWizardData } from "@/lib/compliance/queries-risk-wizard";
+import { levelCount } from "@/lib/compliance/risk-method";
 import { plusMonths } from "@/lib/compliance/risk-service";
 import {
 	fallbackForSource,
@@ -15,6 +16,10 @@ import {
 	scenarioForSource,
 	sourceNote,
 } from "@/lib/compliance/risk-sources";
+import {
+	supplierImpactDimension,
+	supplierRiskSuggestion,
+} from "@/lib/compliance/supplier-risk";
 import { readOrg } from "@/lib/db/with-org";
 import { getOrgSettings } from "@/lib/org/queries";
 
@@ -58,11 +63,36 @@ async function NewRiskPage({
 	const provider = source?.providerId ?? one(sp.dienstleister);
 	const process = source?.processId ?? one(sp.prozess);
 	const asset = source?.assetId ?? one(sp.asset);
+	// Aus Dienstleister oder Bewertung: Eintritt und Schaden vorschlagen (L2)
+	const supplier =
+		source && (source.kind === "provider" || source.kind === "provider_rating")
+			? supplierRiskSuggestion(
+					{
+						ratingTraffic: source.ratingTraffic,
+						criticality: source.providerCriticality,
+						substitutability: source.substitutability,
+					},
+					levelCount(data.method),
+				)
+			: null;
+	const supplierDim = supplier
+		? supplierImpactDimension(data.method.dimensions)
+		: null;
 	const initial: RiskDraft = {
 		scenarioCode: scenario?.code ?? null,
 		title: scenario?.title ?? fallback?.title ?? "",
 		category: scenario?.category ?? fallback?.category ?? "operational",
-		impactDescription: [scenario?.impactHint, source ? sourceNote(source) : ""]
+		impactDescription: [
+			scenario?.impactHint,
+			source ? sourceNote(source) : "",
+			supplier?.because.length
+				? t("supplierSuggestion", {
+						because: supplier.because
+							.map((b) => t(`supplierBecause_${b}`))
+							.join(", "),
+					})
+				: "",
+		]
 			.filter(Boolean)
 			.join("\n\n"),
 		existingMeasures: "",
@@ -89,8 +119,9 @@ async function NewRiskPage({
 			data.providers.some((p) => p.id === provider)
 				? provider
 				: "",
-		impactDetail: {},
-		likelihood: null,
+		impactDetail:
+			supplier && supplierDim ? { [supplierDim]: supplier.impact } : {},
+		likelihood: supplier?.likelihood ?? null,
 		treatment: "mitigate",
 		treatmentNote: "",
 		measures: [],

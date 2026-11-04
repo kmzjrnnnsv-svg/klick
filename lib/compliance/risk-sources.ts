@@ -76,6 +76,10 @@ export type RiskSourceData = {
 	// fachliche Merkmale für die Szenario-Wahl
 	providerCritical?: boolean;
 	ratingTraffic?: "red" | "amber" | "green" | null;
+	// Dienstleister: Kritikalität und Ersetzbarkeit (Vorschlag für Eintritt
+	// und Schaden, lib/compliance/supplier-risk.ts)
+	providerCriticality?: string;
+	substitutability?: string | null;
 	assetType?: string;
 	lifecycle?:
 		| "expired"

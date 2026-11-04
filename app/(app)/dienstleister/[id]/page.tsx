@@ -17,6 +17,8 @@ import { withMessages } from "@/components/i18n/with-messages";
 import { ProviderForm } from "@/components/registers/provider-form";
 import { DecisionRequestsBlock } from "@/components/resolutions/decision-requests-block";
 import { SourceRisksBlock } from "@/components/risks/source-risks";
+import { ProviderDetailsForm } from "@/components/supplier/lifecycle-forms";
+import { LifecyclePanel } from "@/components/supplier/lifecycle-panel";
 import { StartRatingButton } from "@/components/supplier/start-rating-button";
 import {
 	ContractClausesForm,
@@ -26,7 +28,7 @@ import {
 } from "@/components/supplier/supplier-forms";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { approvalBarFor } from "@/lib/approvals/bar";
+import { approvalBarFor, pendingApprovalIds } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
@@ -41,12 +43,17 @@ import {
 	userNames,
 } from "@/lib/compliance/queries";
 import { listProviderRatings } from "@/lib/compliance/queries-ratings";
-import { getProviderDetail } from "@/lib/compliance/queries-suppliers";
+import {
+	getProviderDetail,
+	providerIdsWithRisk,
+} from "@/lib/compliance/queries-suppliers";
 import { supplierQuestions } from "@/lib/compliance/supplier-assessment";
+import { providerLifecycle } from "@/lib/compliance/supplier-lifecycle";
 import { TRAFFIC_TONE } from "@/lib/compliance/supplier-rating";
 import { readOrg } from "@/lib/db/with-org";
 import { TASK_STATUS } from "@/lib/entities/task";
 import { mergeActivity, toHistoryItems } from "@/lib/history";
+import { listOrgFrameworks } from "@/lib/org/queries";
 import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 const TABS = [
@@ -90,15 +97,28 @@ async function ProviderPage({
 	const te = await getTranslations("Entity");
 	const ts = await getTranslations("Status");
 	const tev = await getTranslations("Evidence");
+	const tl = await getTranslations("SupplierLifecycle");
 	const data = await readOrg(toOrgCtx(ctx), async (tx) => {
 		const d = await getProviderDetail(tx, ctx.orgId, id);
 		if (!d) return null;
-		const [comments, history, members, tasks, ratings] = await Promise.all([
+		const [
+			comments,
+			history,
+			members,
+			tasks,
+			ratings,
+			frameworks,
+			withRisk,
+			waiting,
+		] = await Promise.all([
 			listComments(tx, ctx.orgId, "provider", id),
 			historyFor(tx, `provider:${id}`),
 			listMembersForPicker(tx, ctx.orgId),
 			listTasks(tx, ctx.orgId, { entityType: "provider", entityId: id }),
 			listProviderRatings(tx, ctx.orgId, id),
+			listOrgFrameworks(tx, ctx.orgId),
+			providerIdsWithRisk(tx, ctx.orgId),
+			pendingApprovalIds(tx, ctx.orgId, "provider", [id]),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -110,7 +130,19 @@ async function ProviderPage({
 			id,
 			ownerUserId: d.provider.ownerUserId,
 		});
-		return { ...d, comments, history, members, tasks, ratings, names, bar };
+		return {
+			...d,
+			comments,
+			history,
+			members,
+			tasks,
+			ratings,
+			names,
+			bar,
+			dora: frameworks.some((f) => f.slug === "dora"),
+			hasRisk: withRisk.has(id),
+			approvalPending: waiting.size > 0,
+		};
 	});
 	if (!data) notFound();
 	const p = data.provider;
@@ -145,6 +177,12 @@ async function ProviderPage({
 			: ("nis2-sw" as const);
 	const now = new Date();
 	const nextDue = p.nextAssessmentAt ? new Date(p.nextAssessmentAt) : null;
+	const lifecycle = providerLifecycle(p, {
+		today: now.toISOString().slice(0, 10),
+		approvalPending: data.approvalPending,
+		dora: data.dora,
+		hasRisk: data.hasRisk,
+	});
 	const entries = mergeActivity(
 		toHistoryItems(data.history),
 		data.comments.map((c) => ({
@@ -178,6 +216,7 @@ async function ProviderPage({
 						<ProviderForm
 							members={data.members}
 							trigger="link"
+							openParam="bearbeiten"
 							initial={{
 								providerId: p.id,
 								name: p.name,
@@ -332,6 +371,13 @@ async function ProviderPage({
 				eligible={data.bar.eligible}
 				currentUserId={ctx.userId}
 			/>
+			<LifecyclePanel
+				lifecycle={lifecycle}
+				providerId={p.id}
+				status={p.status}
+				canEdit={canEdit}
+				approvalPending={data.approvalPending}
+			/>
 			<UrlTabs
 				base={base}
 				active={tab}
@@ -407,6 +453,92 @@ async function ProviderPage({
 								{p.notes}
 							</p>
 						)}
+					</Section>
+					<Section
+						title={tl("detailsTitle")}
+						actions={
+							canEdit ? (
+								<ProviderDetailsForm
+									providerId={p.id}
+									openParam="angaben"
+									initial={{
+										lei: p.lei,
+										substitutability: p.substitutability,
+										dpaSignedAt: p.dpaSignedAt,
+										subcontractors: p.subcontractors,
+										exitStrategy: p.exitStrategy,
+										exitPlanTestedAt: p.exitPlanTestedAt,
+									}}
+								/>
+							) : null
+						}
+					>
+						<dl className="grid grid-cols-1 gap-x-6 gap-y-2 text-subhead sm:grid-cols-2">
+							<div>
+								<dt className="text-muted-foreground text-footnote">
+									{tl("substitutability")}
+								</dt>
+								<dd>
+									{p.substitutability
+										? tl(`subst_${p.substitutability}`)
+										: tl("notRecorded")}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-footnote">
+									{tl("lei")}
+								</dt>
+								<dd className="font-mono" translate="no">
+									{p.lei ?? "—"}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-footnote">
+									{tl("dpaSignedAt")}
+								</dt>
+								<dd>
+									{p.dpaSignedAt
+										? fmtDate.format(new Date(p.dpaSignedAt))
+										: p.processesPersonalData
+											? tl("dpaOpen")
+											: "—"}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-footnote">
+									{tl("subcontractors")}
+								</dt>
+								<dd>
+									{p.subcontractors === null
+										? tl("notRecorded")
+										: p.subcontractors.length === 0
+											? tl("noSubcontractors")
+											: p.subcontractors
+													.map((s) =>
+														s.country ? `${s.name} (${s.country})` : s.name,
+													)
+													.join(", ")}
+								</dd>
+							</div>
+							<div className="sm:col-span-2">
+								<dt className="text-muted-foreground text-footnote">
+									{tl("exitStrategy")}
+								</dt>
+								<dd className="whitespace-pre-line">
+									{p.exitStrategy ?? tl("notRecorded")}
+								</dd>
+							</div>
+							<div>
+								<dt className="text-muted-foreground text-footnote">
+									{tl("exitPlanTestedAt")}
+								</dt>
+								<dd>
+									{p.exitPlanTestedAt
+										? fmtDate.format(new Date(p.exitPlanTestedAt))
+										: tl("notRecorded")}
+								</dd>
+							</div>
+						</dl>
 					</Section>
 					<Section title={t("dueDiligence")}>
 						{dd?.method === "rating" ? (
@@ -750,6 +882,7 @@ export default withMessages(ProviderPage, [
 	"Resolutions",
 	"Settings",
 	"Status",
+	"SupplierLifecycle",
 	"Suppliers",
 	"Tasks",
 ]);

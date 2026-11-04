@@ -780,6 +780,8 @@ export const PROVIDER_CATEGORIES = [
 ] as const;
 
 export const PROVIDER_STATUSES = [
+	// Bedarf gemeldet, noch nicht aufgenommen (Lebenszyklus L1)
+	"requested",
 	"active",
 	"onboarding",
 	"paused",

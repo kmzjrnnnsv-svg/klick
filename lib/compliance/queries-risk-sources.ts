@@ -41,7 +41,11 @@ export async function loadRiskSource(
 	switch (kind) {
 		case "provider": {
 			const [p] = await tx
-				.select({ name: providers.name, criticality: providers.criticality })
+				.select({
+					name: providers.name,
+					criticality: providers.criticality,
+					substitutability: providers.substitutability,
+				})
 				.from(providers)
 				.where(and(eq(providers.id, id), eq(providers.organizationId, orgId)));
 			if (!p) return null;
@@ -51,6 +55,8 @@ export async function loadRiskSource(
 				label: `Dienstleister „${p.name}“`,
 				href: `/dienstleister/${id}`,
 				providerCritical: p.criticality !== "standard",
+				providerCriticality: p.criticality,
+				substitutability: p.substitutability,
 				providerId: id,
 			};
 		}
@@ -62,6 +68,7 @@ export async function loadRiskSource(
 					traffic: providerRatings.traffic,
 					name: providers.name,
 					criticality: providers.criticality,
+					substitutability: providers.substitutability,
 				})
 				.from(providerRatings)
 				.innerJoin(providers, eq(providers.id, providerRatings.providerId))
@@ -81,6 +88,8 @@ export async function loadRiskSource(
 				href: `/dienstleister/${r.providerId}/bewertung/${id}`,
 				ratingTraffic: r.traffic ?? null,
 				providerCritical: r.criticality !== "standard",
+				providerCriticality: r.criticality,
+				substitutability: r.substitutability,
 				providerId: r.providerId,
 				detail: r.traffic ? `Ergebnis ${traffic}` : undefined,
 			};
