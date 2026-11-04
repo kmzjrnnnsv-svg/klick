@@ -49,12 +49,11 @@ describe("Abläufe auf /funktionen", () => {
 			expect(g.workflows.length).toBeGreaterThan(0);
 	});
 
-	it("verweist nur auf Bilder, die unter public/ liegen", () => {
-		for (const g of WORKFLOW_GROUPS) {
-			expect(g.image.src.startsWith("/"), g.key).toBe(true);
-			expect(existsSync(join("public", g.image.src)), g.image.src).toBe(true);
-			expect(g.image.alt, g.key).not.toBe("");
-		}
+	it("zeigt keine Bildschirmfotos aus Klick (Wunsch 03.11.2026)", () => {
+		for (const g of WORKFLOW_GROUPS)
+			expect(Object.keys(g), g.key).not.toContain("image");
+		// nur das Rundgang-Video liegt noch unter public/funktionen
+		expect(existsSync(join("public", "leistungen"))).toBe(false);
 	});
 
 	it("nutzt keinen Gedankenstrich als Satzzeichen", () => {

@@ -6,10 +6,8 @@ import { InquiryForm } from "@/components/marketing/inquiry-form";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
 import { NOTICE_SERVICE, noticeMessage } from "@/lib/inquiries/rules";
-import { assetUrl } from "@/lib/marketing/asset-url";
 import { BILLING_NOTE, BILLING_TERMS } from "@/lib/marketing/billing";
 import { FAQ, SERVICES } from "@/lib/marketing/services";
-import { SHOTS } from "@/lib/marketing/shots";
 import { formatPrice } from "@/lib/pricing/resolve";
 import { cn } from "@/lib/utils";
 import s from "./leistungen.module.css";
@@ -20,7 +18,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 // Bildschirmfoto für den Einstieg (Beispieldaten), natürliche Größe
-const HERO = SHOTS.pruefungsreife;
 const TONES = [s.toneBlue, s.toneBrown, s.toneSky] as const;
 
 // /leistungen — unsere Beratung, übersichtlich: was, für wen, wie es
@@ -66,17 +63,6 @@ async function ServicesPage({
 						</Link>
 					</div>
 				</div>
-				<figure className={s.heroPic} data-r="">
-					{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto, CSP ohne Bild-Optimierer */}
-					<img
-						src={assetUrl(HERO.src)}
-						width={HERO.w}
-						height={HERO.h}
-						alt={t("heroImageAlt")}
-						fetchPriority="high"
-						decoding="async"
-					/>
-				</figure>
 			</section>
 
 			{/* Übersicht: fünf Leistungen auf einen Blick */}
@@ -159,17 +145,6 @@ async function ServicesPage({
 							{t("requestThis")}
 						</Link>
 					</div>
-					<figure className={cn(s.svcPic, TONES[i % 3])} data-r="">
-						{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto, CSP ohne Bild-Optimierer */}
-						<img
-							src={assetUrl(svc.image.src)}
-							width={svc.image.w}
-							height={svc.image.h}
-							alt={svc.image.alt}
-							loading="lazy"
-							decoding="async"
-						/>
-					</figure>
 				</section>
 			))}
 

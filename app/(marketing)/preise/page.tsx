@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { RevealRoot } from "@/components/marketing/reveal";
 import { loadPriceTable } from "@/lib/db/pricing";
-import { assetUrl } from "@/lib/marketing/asset-url";
 import {
 	BILLING_FAQ,
 	BILLING_NOTE,
@@ -11,7 +10,6 @@ import {
 	BILLING_TIMELINE,
 	withSeatPrice,
 } from "@/lib/marketing/billing";
-import { SHOTS } from "@/lib/marketing/shots";
 import { PRICE_ITEM_BY_KEY } from "@/lib/pricing/items";
 import { formatPrice } from "@/lib/pricing/resolve";
 import { cn } from "@/lib/utils";
@@ -24,9 +22,8 @@ const TIER_ITEM = {
 	licence: "plan:licence",
 } as const;
 const FEATURES = ["f1", "f2", "f3", "f4", "f5", "f6"] as const;
-const FAQ = ["q1", "q2", "q3", "q4"] as const;
+const FAQ_MAX = 5;
 const TONES = [s.toneBlue, s.toneBrown, s.toneSky] as const;
-const READINESS = SHOTS.pruefungsreife;
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations("Pricing");
@@ -96,36 +93,13 @@ export default async function PricingPage() {
 					))}
 				</ul>
 				<p className={s.note} data-r="">
-					{BILLING_NOTE}
+					{BILLING_NOTE} {t("readinessLead")}
 				</p>
-			</section>
 
-			{/* Woran du vorher siehst, ob es reicht */}
-			<section className={s.readiness} aria-labelledby="readiness-title">
-				<div className={s.readinessText}>
-					<h2 id="readiness-title" className={s.h2} data-r="">
-						{t("readinessTitle")}
-					</h2>
-					<p data-r="">{t("readinessLead")}</p>
-				</div>
-				<figure className={s.readinessPic} data-r="">
-					{/* biome-ignore lint/performance/noImgElement: statisches Bildschirmfoto, CSP ohne Bild-Optimierer */}
-					<img
-						src={assetUrl(READINESS.src)}
-						width={READINESS.w}
-						height={READINESS.h}
-						alt={t("readinessImageAlt")}
-						loading="lazy"
-						decoding="async"
-					/>
-				</figure>
-			</section>
-
-			{/* Software-Stufen */}
-			<section className={s.tiers} aria-labelledby="tiers-title">
-				<h2 id="tiers-title" className={s.h2} data-r="">
+				{/* Software-Stufen im selben Block: Regeln, dann die Beträge */}
+				<h3 id="tiers-title" className={s.h3} data-r="">
 					{t("tiersTitle")}
-				</h2>
+				</h3>
 				<p className={s.tiersLead} data-r="">
 					{t("tiersLead")}
 				</p>
@@ -159,14 +133,14 @@ export default async function PricingPage() {
 									))}
 								</ul>
 								<Link
-									href={tier === "licence" ? "/leistungen#anfrage" : "/login"}
+									href={`/leistungen?leistung=${encodeURIComponent(TIER_ITEM[tier])}#anfrage`}
 									className={cn(
 										s.button,
 										tier !== "growth" && s.buttonQuiet,
 										s.tierCta,
 									)}
 								>
-									{t(`${tier}Cta`)}
+									{t("tierCta")}
 								</Link>
 							</article>
 						);
@@ -183,16 +157,11 @@ export default async function PricingPage() {
 					{t("faqTitle")}
 				</h2>
 				<div className={s.faqList}>
-					{BILLING_FAQ.map((f) => (
+					{/* höchstens fünf Fragen: die wichtigsten zum Zahlungsmodell */}
+					{BILLING_FAQ.slice(0, FAQ_MAX).map((f) => (
 						<details key={f.q} className={s.faqItem} data-r="">
 							<summary className={s.faqQ}>{f.q}</summary>
 							<p className={s.faqA}>{withSeatPrice(f.a, seat)}</p>
-						</details>
-					))}
-					{FAQ.map((q) => (
-						<details key={q} className={s.faqItem} data-r="">
-							<summary className={s.faqQ}>{t(`${q}Q`)}</summary>
-							<p className={s.faqA}>{t(`${q}A`)}</p>
 						</details>
 					))}
 				</div>

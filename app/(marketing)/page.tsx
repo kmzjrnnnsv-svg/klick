@@ -20,7 +20,6 @@ import { computeSynergy } from "@/lib/compliance/synergy";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["how1", "how2", "how3"] as const;
-const PILLARS = ["pillar1", "pillar2", "pillar3"] as const;
 
 // Beispiel für „Ohne Klick / Mit Klick“: Schulungen versteht jede:r. Welche
 // Rahmenwerke das Control erfüllt, kommt aus den Katalog-Kanten, nicht aus dem Text.
@@ -73,13 +72,16 @@ export default async function LandingPage() {
 				<p className="mt-6 max-w-2xl text-title-3 text-muted-foreground leading-relaxed">
 					{t("lead")}
 				</p>
-				<div className="mt-10 flex flex-wrap gap-3">
-					<Link href="/login" className={cn(buttonVariants({ size: "lg" }))}>
-						{t("ctaLogin")}
+				<div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-3">
+					<Link
+						href="/leistungen#anfrage"
+						className={cn(buttonVariants({ size: "lg" }))}
+					>
+						{t("ctaContact")}
 					</Link>
 					<a
 						href="#so-gehts"
-						className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+						className="hit-area text-primary text-subhead hover:underline"
 					>
 						{t("ctaHow")}
 					</a>
@@ -166,7 +168,13 @@ export default async function LandingPage() {
 					</div>
 				</div>
 				<p className="mt-6 max-w-2xl text-muted-foreground text-subhead">
-					{t("numbersShared", { shared: SYNERGY.multiFrameworkControls })}
+					{t("numbersShared", { shared: SYNERGY.multiFrameworkControls })}{" "}
+					<Link
+						href="/funktionen#fuer-wen"
+						className="hit-area text-primary hover:underline"
+					>
+						{t("frameworksLink")}
+					</Link>
 				</p>
 			</section>
 
@@ -195,59 +203,6 @@ export default async function LandingPage() {
 				</ol>
 			</section>
 
-			<SectionDivider />
-
-			<section className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-				<p className="font-bold text-title-1 leading-snug sm:text-4xl">
-					„{t("sentence")}“
-				</p>
-			</section>
-
-			<SectionDivider />
-
-			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-bold text-title-2 sm:text-title-1">
-					{t("pillarsTitle")}
-				</h2>
-				<div className="mt-10 grid grid-cols-1 gap-10 sm:grid-cols-3">
-					{PILLARS.map((p) => (
-						<article key={p} className="flex flex-col gap-3">
-							<CheckIcon aria-hidden="true" className="size-5 text-primary" />
-							<h3 className="font-semibold text-title-3 leading-tight">
-								{t(`${p}Title`)}
-							</h3>
-							<p className="text-muted-foreground text-subhead leading-relaxed">
-								{t(`${p}Body`)}
-							</p>
-						</article>
-					))}
-				</div>
-			</section>
-
-			<SectionDivider />
-
-			<section className="mx-auto max-w-5xl px-4 sm:px-6">
-				<h2 className="font-bold text-title-2 sm:text-title-1">
-					{t("frameworksTitle")}
-				</h2>
-				<p className="mt-3 max-w-2xl text-muted-foreground">
-					{t("frameworksLead", {
-						frameworks: FRAMEWORKS.length,
-						requirements: SYNERGY.requirementCount,
-					})}
-				</p>
-				<ul className="mt-8 flex flex-wrap gap-2">
-					{FRAMEWORKS.map((f) => (
-						<li
-							key={f.slug}
-							className="rounded-full border border-border/70 px-3 py-1 text-subhead"
-						>
-							{f.name}
-						</li>
-					))}
-				</ul>
-			</section>
-
 			<section className="mx-auto max-w-5xl px-4 pt-20 pb-24 sm:px-6 sm:pt-28">
 				<div className="rounded-2xl bg-card/60 px-6 py-12 text-center sm:px-12">
 					<h2 className="font-bold text-title-1 sm:text-4xl">
@@ -256,21 +211,24 @@ export default async function LandingPage() {
 					<p className="mx-auto mt-4 max-w-xl text-muted-foreground leading-relaxed">
 						{t("ctaLead")}
 					</p>
-					<div className="mt-8 flex flex-wrap justify-center gap-3">
-						<Link href="/login" className={cn(buttonVariants({ size: "lg" }))}>
-							{t("ctaLogin")}
+					<div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3">
+						<Link
+							href="/leistungen#anfrage"
+							className={cn(buttonVariants({ size: "lg" }))}
+						>
+							{t("ctaContact")}
 						</Link>
 						<Link
 							href="/preise"
-							className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+							className="hit-area text-primary text-subhead hover:underline"
 						>
 							{t("ctaPricing")}
 						</Link>
 						<Link
-							href="/vertrauen"
-							className={cn(buttonVariants({ variant: "ghost", size: "lg" }))}
+							href="/login"
+							className="hit-area text-primary text-subhead hover:underline"
 						>
-							{t("ctaTrust")}
+							{t("ctaLogin")}
 						</Link>
 					</div>
 				</div>

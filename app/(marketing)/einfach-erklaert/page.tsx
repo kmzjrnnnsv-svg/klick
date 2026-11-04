@@ -113,7 +113,7 @@ export default async function SimplePage({
 				<p>
 					<Link
 						href="/funktionen#fuer-wen"
-						className="text-primary hover:underline underline-offset-4"
+						className="hit-area text-primary hover:underline underline-offset-4"
 					>
 						{t("publicForYou")}
 					</Link>

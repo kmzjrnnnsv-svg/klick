@@ -1,5 +1,3 @@
-import { SHOTS, type Shot } from "@/lib/marketing/shots";
-
 // Beratungsleistungen für /leistungen — Inhalt (DE, Du-Form). Ablauf und
 // Ergebnisdateien entsprechen dem, was Klick tatsächlich erzeugt
 // (Exporte unter /api/export/*). Beratung hat keinen öffentlichen Preis:
@@ -12,13 +10,9 @@ export type ServiceStep = {
 	files?: string[];
 };
 
-export type ServiceImage = Shot & { alt: string };
-
 export type Service = {
 	key: "gap" | "ai-check" | "cra" | "suppliers" | "pentest";
 	name: string;
-	// ein Bildschirmfoto aus Klick (Beispieldaten), lesbar groß gezeigt
-	image: ServiceImage;
 	short: string;
 	duration: string;
 	fits: string;
@@ -30,10 +24,6 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "gap",
 		name: "Gap-Analyse & Prüfungsreife",
-		image: {
-			...SHOTS.frage,
-			alt: "Gap-Analyse in Klick: eine Frage je Control mit Antwort, Erläuterung und Nachweis",
-		},
 		short: "Gap-Analyse",
 		duration: "2–4 Wochen",
 		fits: "Du willst wissen, wie weit ihr von ISO 27001, NIS2, DORA oder CRA entfernt seid – und was zuerst kommt.",
@@ -66,10 +56,6 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "ai-check",
 		name: "Security-Check für KI-gebaute Apps",
-		image: {
-			...SHOTS.sicherheit,
-			alt: "Security-Checks in Klick: Ampel, offene Befunde nach Schwere und was zuerst dran ist",
-		},
 		short: "KI-App-Check",
 		duration: "3–5 Arbeitstage",
 		fits: "Eure App entstand schnell mit KI-Werkzeugen und soll jetzt echte Kundendaten sehen.",
@@ -102,10 +88,6 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "cra",
 		name: "CRA-Readiness",
-		image: {
-			...SHOTS.produkt,
-			alt: "Produkt in Klick: offene CRA-Punkte bis zur Marktreife mit Stichtag",
-		},
 		short: "CRA-Readiness",
 		duration: "2–3 Wochen",
 		fits: "Eure Software oder Geräte kommen in der EU auf den Markt. Meldepflichten gelten seit 11.09.2026, alles andere ab 11.12.2027.",
@@ -138,10 +120,6 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "suppliers",
 		name: "Lieferantenprüfung für Software",
-		image: {
-			...SHOTS.vertrag,
-			alt: "Klausel-Checkliste nach DORA Art. 30 in Klick: Klausel für Klausel erfüllt oder offen",
-		},
 		short: "Lieferanten",
 		duration: "2–6 Wochen",
 		fits: "NIS2 oder DORA verlangen, dass ihr eure Software- und IKT-Lieferanten bewertet – nachweisbar.",
@@ -174,10 +152,6 @@ export const SERVICES: readonly Service[] = [
 	{
 		key: "pentest",
 		name: "Penetrationstest",
-		image: {
-			...SHOTS.cvss,
-			alt: "Befund erfassen in Klick: Schwere aus dem CVSS-Vektor, Reproduktion und Empfehlung",
-		},
 		short: "Pentest",
 		duration: "5–8 Testtage + Nachtest",
 		fits: "Web-App oder API vor dem Go-live, jährlich oder weil Aufsicht und Kunden es verlangen.",

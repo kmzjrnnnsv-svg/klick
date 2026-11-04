@@ -62,14 +62,6 @@
 	color: var(--foreground);
 }
 
-.radio {
-	position: absolute;
-	width: 1px; /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
-	height: 1px; /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
-	opacity: 0;
-	pointer-events: none;
-}
-
 .h2 {
 	font-family: var(--font-sans);
 	font-weight: 600;
@@ -95,6 +87,14 @@
 	padding-top: clamp(56px, 11svh, 120px);
 	position: relative;
 	z-index: 1;
+	/* Der Textblock liegt über der Bühne (Spalte 6): seine leere Fläche
+	   darf die Rahmenwerk-Chips darunter nicht abdecken, sonst reagiert nur
+	   die „+Zahl“ rechts davon. Text und Knopf bleiben klickbar. */
+	pointer-events: none;
+}
+.heroText > * {
+	width: fit-content;
+	pointer-events: auto;
 }
 .heroTitle {
 	font-family: var(--font-sans);
@@ -112,7 +112,8 @@
 	margin-top: 28px;
 }
 .stage {
-	grid-column: 5 / 13;
+	/* ab Spalte 6: der Titel läuft sonst über die schräge Ecke der Bühne */
+	grid-column: 6 / 13;
 	grid-row: 1;
 	align-self: end;
 	margin-right: calc(var(--edge) * -1);
@@ -123,7 +124,7 @@
 }
 /* Zwei Hinweise unter dem Ausschnitt: was „+N“ heißt, Maßnahme = Control */
 .stageNotes {
-	grid-column: 5 / 13;
+	grid-column: 6 / 13;
 	grid-row: 2;
 	display: grid;
 	align-content: start;
@@ -153,225 +154,7 @@
 	}
 }
 
-/* ── Ergebnisse: Namen links, Blatt rechts ──────────────────────────── */
-.outputs {
-	position: relative;
-	display: grid;
-	grid-template-columns: repeat(12, minmax(0, 1fr));
-	column-gap: 24px;
-	margin-top: 160px;
-	padding: 0 var(--edge);
-}
-.outputNames {
-	grid-column: 1 / 6;
-	display: flex;
-	flex-direction: column;
-	align-items: flex-start;
-	gap: 10px;
-	padding-top: 72px;
-}
-.outputName {
-	font-family: var(--font-sans);
-	font-weight: 600;
-	font-size: var(--s2);
-	line-height: 1.08;
-	color: var(--soft);
-	cursor: pointer;
-	transition: color 160ms ease;
-}
-.outputName:hover {
-	color: var(--foreground);
-}
-.outputNote {
-	margin-top: 28px !important;
-	font-size: var(--s5);
-	color: var(--soft);
-}
-.outputs:has([id="out-soa"]:checked) label[for="out-soa"],
-.outputs:has([id="out-evidence"]:checked) label[for="out-evidence"],
-.outputs:has([id="out-package"]:checked) label[for="out-package"],
-.outputs:has([id="out-incident"]:checked) label[for="out-incident"],
-.outputs:has([id="out-recon"]:checked) label[for="out-recon"] {
-	color: var(--foreground);
-}
-.outputs:has([id="out-soa"]:focus-visible) label[for="out-soa"],
-.outputs:has([id="out-evidence"]:focus-visible) label[for="out-evidence"],
-.outputs:has([id="out-package"]:focus-visible) label[for="out-package"],
-.outputs:has([id="out-incident"]:focus-visible) label[for="out-incident"],
-.outputs:has([id="out-recon"]:focus-visible) label[for="out-recon"] {
-	outline: 2px solid var(--primary);
-	outline-offset: 4px;
-}
-.sheetStage {
-	grid-column: 7 / 13;
-	position: relative;
-	height: 88svh;
-	min-height: 620px;
-	max-height: 860px;
-	margin-right: calc(var(--edge) * -1);
-	background: var(--field);
-	overflow: hidden;
-}
-.sheetSlot {
-	position: absolute;
-	top: 72px;
-	left: 64px;
-	opacity: 0;
-	visibility: hidden;
-	transition:
-		opacity 200ms ease,
-		visibility 0ms linear 200ms;
-}
-.outputs:has([id="out-soa"]:checked) [data-sheet="soa"],
-.outputs:has([id="out-evidence"]:checked) [data-sheet="evidence"],
-.outputs:has([id="out-package"]:checked) [data-sheet="package"],
-.outputs:has([id="out-incident"]:checked) [data-sheet="incident"],
-.outputs:has([id="out-recon"]:checked) [data-sheet="recon"] {
-	opacity: 1;
-	visibility: visible;
-	transition: opacity 200ms ease;
-}
 
-/* Blätter: Klicks Oberfläche (data-ui) — innen gelten App-Konventionen */
-.sheet {
-	width: 560px;
-	min-height: 720px;
-	padding: 28px 28px 32px;
-	border-radius: 16px;
-	background: var(--card);
-	color: var(--card-foreground);
-	font-size: 0.875rem;
-	line-height: 1.45;
-}
-.sheetHead {
-	margin-bottom: 18px;
-}
-.sheetTitle {
-	font-weight: 600;
-	font-size: var(--text-callout);
-}
-.sheetSub {
-	margin-top: 4px !important;
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.sheetSums {
-	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 8px;
-	margin: 0 0 18px;
-}
-.sheetSums div {
-	padding: 10px 12px;
-	border-radius: 10px;
-	background: var(--muted);
-}
-.sheetSums dt {
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.sheetSums dd {
-	margin: 2px 0 0;
-	font-weight: 600;
-	font-size: 1.125rem;
-	font-variant-numeric: tabular-nums;
-}
-.sheetTable {
-	width: 100%;
-	border-collapse: collapse;
-	font-variant-numeric: tabular-nums;
-}
-.sheetTable th {
-	padding: 6px 8px 6px 0;
-	border-bottom: 1px solid var(--border); /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
-	color: var(--muted-foreground);
-	font-weight: 400;
-	font-size: var(--text-footnote);
-	text-align: left;
-}
-.sheetTable td {
-	padding: 9px 8px 9px 0;
-	border-bottom: 1px solid var(--border); /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
-	vertical-align: top;
-}
-.sheetTable tr[data-short] td {
-	color: var(--destructive);
-}
-.code {
-	color: var(--muted-foreground);
-	font-variant-numeric: tabular-nums;
-}
-.cellNote {
-	display: block;
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.sheetLabel {
-	margin-top: 14px !important;
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.sheetList {
-	margin: 2px 0 0;
-	padding-left: 18px;
-	list-style: disc;
-}
-.sigs {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
-	margin-top: 18px;
-}
-.sig {
-	padding: 10px 12px;
-	border-radius: 10px;
-	background: var(--muted);
-}
-.sigName {
-	font-weight: 600;
-}
-.sigMeta {
-	color: var(--primary);
-	font-size: var(--text-footnote);
-	font-variant-numeric: tabular-nums;
-}
-.sheetAlert {
-	margin-top: 16px !important;
-	padding: 10px 12px;
-	border-radius: 10px;
-	background: color-mix(in oklch, var(--destructive) 10%, var(--card));
-	color: var(--foreground);
-}
-.clocks {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-.clock {
-	display: flex;
-	justify-content: space-between;
-	gap: 16px;
-	padding: 12px 0;
-	border-bottom: 1px solid var(--border); /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
-}
-.clockLabel {
-	font-weight: 600;
-}
-.clockRule,
-.clockState {
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.clockDue {
-	text-align: right;
-	white-space: nowrap;
-	font-variant-numeric: tabular-nums;
-}
-.clock[data-done] .clockState {
-	color: var(--primary);
-}
-
-/* ── Nachweise je Normpunkt: ISO 27001 Kapitel 4–10 ─────────────────── */
 /* ── Rundgang (Video) ─────────────────────────────────────────────── */
 .tour {
 	margin-top: 160px;
@@ -399,6 +182,7 @@
 	color: var(--muted-foreground);
 }
 
+/* ── Nachweise je Normpunkt: ISO 27001 Kapitel 4–10 ─────────────────── */
 .clauses {
 	margin-top: 160px;
 	padding: 0 var(--edge);
@@ -458,187 +242,6 @@
 	font-size: var(--s5);
 }
 
-/* ── Grundablauf: Aussagen links, angehefteter Ausschnitt rechts ─────── */
-.steps {
-	margin-top: 200px;
-	padding: 0 var(--edge);
-}
-.stepsRoot {
-	display: grid;
-	grid-template-columns: repeat(12, minmax(0, 1fr));
-	column-gap: 24px;
-}
-.stepsText {
-	grid-column: 1 / 6;
-}
-.stepsHeading {
-	font-family: var(--font-sans);
-	font-weight: 600;
-	font-size: var(--s3);
-	line-height: 1.15;
-	margin-bottom: 24px !important;
-}
-.step {
-	min-height: 70svh;
-	padding-top: 8svh;
-}
-.stepTitle {
-	font-family: var(--font-sans);
-	font-weight: 600;
-	font-size: var(--s3);
-	line-height: 1.2;
-	color: var(--soft);
-	transition: color 200ms ease;
-}
-.stepNote {
-	max-width: 36ch;
-	margin-top: 12px !important;
-	color: var(--soft);
-}
-.step[data-active] .stepTitle,
-.step[data-active] .stepNote {
-	color: var(--foreground);
-}
-.stepsStage {
-	grid-column: 7 / 13;
-	position: sticky;
-	top: 14svh;
-	align-self: start;
-	display: grid;
-	height: 560px;
-	margin-right: calc(var(--edge) * -1);
-	padding: 56px;
-	background: var(--accent);
-	overflow: hidden;
-}
-.stepsState {
-	grid-area: 1 / 1;
-	opacity: 0;
-	transform: translateY(16px);
-	transition:
-		opacity 240ms ease,
-		transform 240ms ease;
-}
-.stepsState[data-active] {
-	opacity: 1;
-	transform: none;
-}
-.stepInline {
-	display: none;
-}
-
-.frag {
-	width: 460px;
-	max-width: 100%;
-	padding: 20px 22px;
-	border-radius: 16px;
-	border: 1px solid var(--border); /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
-	background: var(--card);
-	color: var(--card-foreground);
-	font-size: 0.875rem;
-	line-height: 1.45;
-}
-.fragTitle {
-	font-weight: 600;
-	font-size: var(--text-callout);
-}
-.fragSub {
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.fragLabel {
-	margin-top: 16px !important;
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.fragStatus {
-	display: inline-block;
-	margin-top: 10px !important;
-	padding: 2px 10px;
-	border-radius: 8px;
-	background: var(--primary-fill);
-	color: #fff;
-	font-size: var(--text-footnote);
-}
-.fragList,
-.fragFiles {
-	margin: 10px 0 0;
-	padding: 0;
-	list-style: none;
-}
-.fragList li {
-	display: flex;
-	align-items: baseline;
-	gap: 10px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--border); /* taste-skill-ignore: data-ui bzw. verstecktes Radio */
-}
-.fragList li[data-off] {
-	color: var(--muted-foreground);
-}
-.fragFiles li {
-	padding: 6px 0;
-}
-.check {
-	position: relative;
-	flex: none;
-	width: 16px;
-	height: 16px;
-	border-radius: 6px;
-	background: var(--muted);
-}
-.check[data-on] {
-	background: var(--primary-fill);
-}
-.check[data-on]::after {
-	content: "";
-	position: absolute;
-	left: 5px;
-	top: 2px;
-	width: 5px;
-	height: 9px;
-	border: solid #fff; /* taste-skill-ignore: Häkchen im data-ui-Ausschnitt */
-	border-width: 0 2px 2px 0;
-	transform: rotate(45deg);
-}
-.fragName {
-	flex: 1;
-}
-.fragNote {
-	color: var(--muted-foreground);
-	font-size: var(--text-footnote);
-}
-.fragNum {
-	min-width: 2.5ch;
-	text-align: right;
-	font-variant-numeric: tabular-nums;
-}
-.fragTags {
-	margin-top: 4px !important;
-}
-.score {
-	margin-top: 14px !important;
-	font-weight: 600;
-	font-size: 2.25rem;
-	font-variant-numeric: tabular-nums;
-}
-.score span {
-	font-weight: 400;
-	font-size: 0.875rem;
-	color: var(--muted-foreground);
-}
-.bar {
-	height: 8px;
-	margin-top: 8px;
-	border-radius: 999px;
-	background: var(--muted);
-	overflow: hidden;
-}
-.bar span {
-	display: block;
-	height: 100%;
-	background: var(--primary-fill);
-}
 
 /* ── Alle Abläufe (Apple HIG): Index als Seitenleiste
    (components/marketing/atlas-index), je Bereich eine eingerückte
@@ -661,9 +264,8 @@
 }
 .group {
 	display: grid;
-	grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
-	grid-template-rows: auto 1fr;
-	column-gap: 48px;
+	grid-template-columns: minmax(0, 720px);
+	grid-template-rows: auto auto auto;
 	padding-bottom: 80px;
 	scroll-margin-top: 88px;
 }
@@ -770,6 +372,36 @@
 .row[open] .rowChevron {
 	transform: rotate(90deg);
 }
+/* „Alle ansehen“: der Rest eines Bereichs hinter einem Klick (details) */
+.more {
+	grid-column: 1;
+	margin-top: 8px;
+}
+.more > .rows {
+	margin-top: 8px;
+}
+.moreHead {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 44px;
+	padding: 0 16px;
+	color: var(--primary);
+	font-size: var(--text-subhead);
+	cursor: pointer;
+	list-style: none;
+}
+.moreHead::-webkit-details-marker {
+	display: none;
+}
+.moreHead:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 2px;
+	border-radius: 8px;
+}
+.more[open] > .moreHead .rowChevron {
+	transform: rotate(90deg);
+}
 .rowBody {
 	display: flex;
 	flex-direction: column;
@@ -806,28 +438,6 @@
 	color: var(--soft);
 	font-variant-numeric: tabular-nums;
 }
-/* Bild als Karte, Ecken konzentrisch (20 − 12 = 8) */
-.groupPic {
-	position: sticky;
-	top: 96px;
-	grid-column: 2;
-	grid-row: 1 / span 2;
-	align-self: start;
-	margin: 0;
-	padding: 12px;
-	border-radius: 20px;
-	background: var(--card);
-}
-.groupPic img {
-	display: block;
-	width: 100%;
-	height: auto;
-	max-height: 62svh;
-	object-fit: cover;
-	object-position: top left;
-	border-radius: 8px;
-	background: var(--field);
-}
 
 /* ── Was gilt für dich? (components/marketing/audience-guide) ───────── */
 .fit {
@@ -863,81 +473,8 @@
 	text-decoration: underline;
 }
 
-/* ── Fragen: Liste links, Antwort rechts ─────────────────────────────── */
-.faq {
-	position: relative;
-	display: grid;
-	grid-template-columns: repeat(12, minmax(0, 1fr));
-	grid-auto-rows: min-content;
-	column-gap: 24px;
-	margin-top: 200px;
-	padding: 0 var(--edge);
-}
-.faqWord {
-	grid-column: 1 / 6;
-	margin-bottom: 12px !important;
-	font-size: var(--s4) !important;
-	font-weight: 400 !important;
-	color: var(--soft);
-}
-.faqItem {
-	display: contents;
-}
-.faqQ {
-	grid-column: 1 / 6;
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	min-height: 44px;
-	color: var(--soft);
-	cursor: pointer;
-	transition: color 150ms ease;
-}
-.faqQ:hover {
-	color: var(--foreground);
-}
-.faqDot {
-	width: 8px;
-	height: 8px;
-	border-radius: 50%;
-	background: var(--soft);
-	flex: none;
-	transition: background-color 150ms ease;
-}
-.faqItem:has(.radio:checked) .faqQ {
-	color: var(--foreground);
-}
-.faqItem:has(.radio:checked) .faqDot {
-	background: var(--primary-fill);
-}
-.faqItem:has(.radio:focus-visible) .faqQ {
-	outline: 2px solid var(--primary);
-	outline-offset: 2px;
-}
-.faqA {
-	grid-column: 7 / 13;
-	grid-row: 1 / span 9;
-	align-self: start;
-	position: sticky;
-	top: 120px;
-	max-width: 30ch;
-	font-family: var(--font-sans);
-	font-weight: 600;
-	font-size: var(--s3);
-	line-height: 1.3;
-	opacity: 0;
-	visibility: hidden;
-	transition:
-		opacity 150ms ease,
-		visibility 0ms linear 150ms;
-}
-.faqItem:has(.radio:checked) .faqA {
-	opacity: 1;
-	visibility: visible;
-	transition: opacity 150ms ease;
-}
 
-/* ── Abschluss: eine Reihe Kacheln ──────────────────────────────────── */
+/* ── Abschluss: eine Fläche mit der Hauptaktion ─────────────────────── */
 .cta {
 	display: grid;
 	grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -946,35 +483,8 @@
 	margin-bottom: 120px;
 	padding: 0 var(--edge);
 }
-.ctaSide {
-	grid-column: 1 / 3;
-	height: 360px;
-	margin-left: calc(var(--edge) * -1);
-	border-radius: 0 16px 16px 0;
-	overflow: hidden;
-	background: var(--field);
-}
-.ctaSide img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-	object-position: left top;
-	animation: drift 18s ease-in-out infinite alternate;
-}
-@keyframes drift {
-	to {
-		transform: scale(1.12) translateX(-6%);
-	}
-}
-.ctaFlat {
-	grid-column: 11 / 13;
-	margin-left: 0;
-	margin-right: calc(var(--edge) * -1);
-	border-radius: 16px 0 0 16px;
-	background: var(--primary-fill);
-}
 .ctaMain {
-	grid-column: 3 / 11;
+	grid-column: 1 / 13;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
@@ -1023,15 +533,34 @@
 	transform: translateY(24px);
 }
 
+/* ── Schmaler Bildschirm (Tablet quer, kleines Fenster) ──────────────────
+   Hier liefe der Einleitungstext über die Rahmenwerk-Chips und verdeckte
+   sie: Text oben, Bühne darunter, keine Überlappung. */
+@media (min-width: 901px) and (max-width: 1279px) {
+	.hero {
+		min-height: 0;
+		grid-template-rows: auto auto auto;
+	}
+	.heroText {
+		grid-column: 1 / 10;
+	}
+	.stage {
+		grid-column: 2 / 13;
+		grid-row: 2;
+		margin-top: 48px;
+	}
+	.stageNotes {
+		grid-column: 2 / 13;
+		grid-row: 3;
+	}
+}
+
 /* ── Telefon ─────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
 	.page {
 		--edge: 16px;
 	}
 	.hero,
-	.outputs,
-	.stepsRoot,
-	.faq,
 	.cta {
 		grid-template-columns: minmax(0, 1fr);
 	}
@@ -1041,16 +570,7 @@
 	}
 	.heroText,
 	.stage,
-	.outputNames,
-	.sheetStage,
-	.stepsText,
-	.stepsStage,
-	.faqWord,
-	.faqQ,
-	.faqA,
-	.ctaMain,
-	.ctaSide,
-	.ctaFlat {
+	.ctaMain {
 		grid-column: 1;
 	}
 	.heroText {
@@ -1075,60 +595,6 @@
 		grid-row: auto;
 		padding: 0;
 	}
-	.outputs {
-		margin-top: 96px;
-	}
-	.outputNames {
-		flex-direction: row;
-		flex-wrap: wrap;
-		gap: 8px 20px;
-		padding: 0 0 20px;
-	}
-	.outputName {
-		font-size: var(--s3);
-	}
-	.outputNote {
-		display: none;
-	}
-	.sheetStage {
-		height: 70svh;
-		min-height: 520px;
-		margin: 0 calc(var(--edge) * -1);
-	}
-	.sheetSlot {
-		top: 16px;
-		right: 16px;
-		left: 16px;
-	}
-	.sheet {
-		width: auto;
-		min-height: 0;
-		padding: 20px 18px 24px;
-	}
-	.steps {
-		margin-top: 120px;
-	}
-	.stepsStage {
-		display: none;
-	}
-	.step {
-		min-height: 0;
-		padding: 0 0 48px;
-	}
-	.stepTitle {
-		font-size: var(--s3);
-	}
-	.step .stepTitle,
-	.step .stepNote {
-		color: var(--foreground);
-	}
-	.stepInline {
-		display: block;
-		margin: 20px calc(var(--edge) * -1) 0;
-		padding: 24px 16px;
-		background: var(--accent);
-		overflow: hidden;
-	}
 	.atlas {
 		grid-template-columns: minmax(0, 1fr);
 		margin-top: 120px;
@@ -1144,40 +610,11 @@
 	.groupHead {
 		padding: 0 4px;
 	}
-	.groupPic {
-		position: static;
-		grid-column: 1;
-		grid-row: 2;
-		margin-bottom: 16px;
-		padding: 8px;
-		border-radius: 16px;
-	}
-	.groupPic img {
-		max-height: 44svh;
-	}
-	.rows {
-		grid-row: 3;
-	}
 	.fit {
 		margin-top: 120px;
 	}
 	.fitNotes {
 		padding: 0;
-	}
-	.faq {
-		margin-top: 120px;
-	}
-	.faqA {
-		grid-row: auto;
-		position: static;
-		display: none;
-		max-width: none;
-		padding: 0 0 16px 20px;
-		font-family: inherit;
-		font-size: var(--text-body);
-	}
-	.faqItem:has(.radio:checked) .faqA {
-		display: block;
 	}
 	.cta {
 		margin-top: 120px;
@@ -1188,43 +625,17 @@
 		min-height: 300px;
 		padding: 28px 20px;
 	}
-	.ctaSide {
-		height: 120px;
-		margin: 0;
-		border-radius: 16px;
-	}
-	.cta {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
-	.ctaMain {
-		grid-column: 1 / -1;
-		grid-row: 1;
-	}
-	.ctaSide {
-		grid-column: 1;
-	}
-	.ctaFlat {
-		grid-column: 2;
-		margin: 0;
-	}
 }
 
 @media (prefers-reduced-motion: reduce) {
 	.stage,
-	.stageInner,
-	.ctaSide img {
+	.stageInner {
 		animation: none;
 	}
 	.page[data-js] [data-r]:not([data-in]) {
 		transform: none;
 	}
-	.stepsState {
-		transform: none;
-	}
 	.button,
-	.stepsState,
-	.sheetSlot,
-	.faqA,
 	.rowHead,
 	.rowChevron {
 		transition: none;
