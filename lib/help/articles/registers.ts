@@ -249,15 +249,19 @@ export const REGISTERS: HelpArticle[] = [
 				id: "bia",
 				heading: "Business-Impact-Analyse",
 				steps: [
-					"Bewerte je Prozess, was ein Ausfall nach Stunden und Tagen bedeutet.",
-					"Leg die maximal tolerierbare Ausfallzeit, die Wiederanlaufzeit (RTO) und den tolerierbaren Datenverlust (RPO) fest.",
-					"Markier kritische oder wichtige Funktionen. Für sie verlangt das Testprogramm jährliche Notfalltests.",
-					"Verknüpf Assets, Dienstleister und Standorte. Die Abhängigkeitskarte zeigt, wo viele kritische Prozesse an einem Dienstleister hängen (Konzentrationsrisiko).",
+					"Öffne den Prozess und wähle „BIA durchführen“.",
+					"Bewerte je Schadensart deiner Risikomethode, wie groß der Schaden nach 4 Stunden, 8 Stunden, einem Tag, drei Tagen, einer und zwei Wochen wäre. Eine höhere Stufe gilt automatisch auch für spätere Zeitstufen.",
+					"Leg fest, ab welcher Stufe der Schaden nicht mehr tragbar ist, und wie viele Stunden Datenverlust höchstens tragbar sind.",
+					"Klick schlägt vor: maximal tragbare Ausfallzeit (MTPD) = erste untragbare Zeitstufe, Wiederanlaufzeit (RTO) = die Zeitstufe davor, RPO = tragbarer Datenverlust, dazu die Kritikalität. Mit „Speichern und Zielzeiten übernehmen“ stehen die Werte am Prozess.",
+					"Kritische oder wichtige Prozesse brauchen jedes Jahr eine Notfallübung. Plane sie im Testprogramm und trag dort das Ergebnis ein. Erst dann gilt der Prozess als geübt.",
+					"Verknüpf Assets, Dienstleister und den Standort. Die Abhängigkeitskarte zeigt, wo viele kritische Prozesse an einem Dienstleister hängen (Konzentrationsrisiko).",
 				],
+				tip: "Die RTO darf nie größer sein als die MTPD. Klick lehnt das im Formular ab und zeigt es am Prozess rot an.",
 			},
 		],
 		automation: [
-			"Aktivieren und wesentliche Änderungen eines Prozesses können eine Freigabe verlangen (im individuellen Modus gestaltbar).",
+			"Aktivieren und wesentliche Änderungen eines Prozesses können eine Freigabe verlangen (im individuellen Modus gestaltbar). Übernommene Zielzeiten aus der BIA zählen als Änderung.",
+			"„Als Nächstes“ meldet kritische Prozesse ohne BIA, der Prozess zeigt eine BIA, die älter als ein Jahr ist.",
 		],
 		norms: [
 			{

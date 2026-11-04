@@ -1,7 +1,9 @@
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ApprovalBar } from "@/components/approvals/approval-bar";
+import { BiaSummary } from "@/components/bcm/bia-summary";
 import { ActivityStream } from "@/components/entity/activity-stream";
 import { CommentForm } from "@/components/entity/comment-form";
 import {
@@ -23,12 +25,14 @@ import {
 } from "@/components/processes/process-forms";
 import { SourceRisks } from "@/components/risks/source-risks";
 import { Badge } from "@/components/ui/badge";
+import { sites } from "@/db/schema";
 import { ROLE_FUNCTIONS } from "@/db/schema/enums";
 import { approvalBarFor } from "@/lib/approvals/bar";
 import { historyFor } from "@/lib/audit";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { biaIssues } from "@/lib/bcm/bia";
 import { CONTROLS } from "@/lib/compliance/catalog";
 import { fmtDate } from "@/lib/compliance/page-data";
 import {
@@ -52,6 +56,7 @@ import {
 	mergeActivity,
 	toHistoryItems,
 } from "@/lib/history";
+import { orgRiskMethod } from "@/lib/org/queries";
 import { responsibleValue } from "@/lib/validation/responsible-ref";
 
 const IMPL_KEY = {
@@ -105,6 +110,8 @@ async function ProcessDetailPage({
 			providers,
 			risks,
 			documents,
+			siteRows,
+			method,
 		] = await Promise.all([
 			listComments(tx, ctx.orgId, "process", id),
 			historyFor(tx, `process:${id}`),
@@ -115,6 +122,12 @@ async function ProcessDetailPage({
 			canEdit ? listProviders(tx, ctx.orgId) : [],
 			canEdit ? listRisks(tx, ctx.orgId) : [],
 			canEdit ? listDocuments(tx, ctx.orgId) : [],
+			tx
+				.select({ id: sites.id, name: sites.name })
+				.from(sites)
+				.where(eq(sites.organizationId, ctx.orgId))
+				.orderBy(sites.name),
+			orgRiskMethod(tx, ctx.orgId),
 		]);
 		const names = await userNames(tx, [
 			...history.map((h) => h.actorUserId),
@@ -138,6 +151,8 @@ async function ProcessDetailPage({
 			providers,
 			risks,
 			documents,
+			siteRows,
+			method,
 			names,
 		};
 	});
@@ -156,7 +171,10 @@ async function ProcessDetailPage({
 		members,
 		tasks,
 		names,
+		siteRows,
+		method,
 	} = data;
+	const site = siteRows.find((x) => x.id === p.siteId) ?? null;
 
 	const functionLabels = Object.fromEntries(
 		ROLE_FUNCTIONS.map((f) => [f, tf(f)]),
@@ -200,6 +218,7 @@ async function ProcessDetailPage({
 						<ProcessForm
 							trigger="link"
 							members={members}
+							sites={siteRows}
 							initial={{
 								processId: p.id,
 								name: p.name,
@@ -214,6 +233,7 @@ async function ProcessDetailPage({
 								impactNotes: p.impactNotes,
 								inputs: p.inputs,
 								outputs: p.outputs,
+								siteId: p.siteId,
 								reviewAt: p.reviewAt,
 							}}
 						/>
@@ -253,6 +273,7 @@ async function ProcessDetailPage({
 							fallback={tc("noDeputy")}
 						/>
 					</MetaItem>
+					{site && <MetaItem label={t("site")}>{site.name}</MetaItem>}
 				</>
 			}
 			aside={
@@ -390,6 +411,15 @@ async function ProcessDetailPage({
 						{t("reviewAt")}: {fmtDate.format(new Date(p.reviewAt))}
 					</p>
 				)}
+				<BiaSummary
+					code={p.code}
+					bia={p.bia}
+					dimensions={method.dimensions}
+					impactLabels={method.impact}
+					issues={biaIssues(p)}
+					canEdit={canEdit}
+					current={{ rtoHours: p.rtoHours, mtpdHours: p.mtpdHours }}
+				/>
 			</Section>
 
 			<Section title={t("raci")}>

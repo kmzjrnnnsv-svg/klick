@@ -1,0 +1,1 @@
+ALTER TABLE "processes" ADD COLUMN "bia" jsonb;

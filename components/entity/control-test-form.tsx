@@ -35,9 +35,13 @@ import {
 export function ControlTestForm({
 	implementationId,
 	defaultMethod,
+	plannedTestId,
 }: {
 	implementationId: string;
 	defaultMethod?: ControlTestMethod | null;
+	// Ergebnis zu einem geplanten Test (Testprogramm): füllt die geplante
+	// Zeile, damit Prozess und Standort der Planung zählen
+	plannedTestId?: string;
 }) {
 	const t = useTranslations("Tests");
 	const tc = useTranslations("Common");
@@ -54,10 +58,16 @@ export function ControlTestForm({
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button size="sm" variant="outline">
-					<Plus />
-					{t("new")}
-				</Button>
+				{plannedTestId ? (
+					<Button size="sm" variant="outline">
+						{t("record")}
+					</Button>
+				) : (
+					<Button size="sm" variant="outline">
+						<Plus />
+						{t("new")}
+					</Button>
+				)}
 			</DialogTrigger>
 			<DialogContent>
 				<form
@@ -72,6 +82,7 @@ export function ControlTestForm({
 								scope: scope || undefined,
 								notes: notes || undefined,
 								nextTestAt: nextTestAt || null,
+								plannedTestId,
 							});
 							if (!res.ok) return void toast.error(errorText(tc, res));
 							toast.success(t("created"));
@@ -81,7 +92,7 @@ export function ControlTestForm({
 					}}
 				>
 					<DialogHeader>
-						<DialogTitle>{t("new")}</DialogTitle>
+						<DialogTitle>{plannedTestId ? t("record") : t("new")}</DialogTitle>
 						<DialogDescription>{t("lead")}</DialogDescription>
 					</DialogHeader>
 					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

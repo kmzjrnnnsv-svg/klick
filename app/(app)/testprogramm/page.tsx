@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { ControlTestForm } from "@/components/entity/control-test-form";
 import { RegisterFilters } from "@/components/entity/register-filters";
 import { UserChip } from "@/components/entity/user-chip";
 import { withMessages } from "@/components/i18n/with-messages";
@@ -335,7 +336,7 @@ async function TestProgrammePage({
 								<TableHead>Control</TableHead>
 								<TableHead className="w-36">{t("method")}</TableHead>
 								<TableHead className="w-40">{t("process")}</TableHead>
-								<TableHead className="w-28">{t("result")}</TableHead>
+								<TableHead className="w-40">{t("result")}</TableHead>
 								<TableHead className="w-36">{t("tester")}</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -389,6 +390,12 @@ async function TestProgrammePage({
 											>
 												{tt(`result_${x.result}` as "result_pass")}
 											</Badge>
+										) : canPlan && !x.testedAt && x.implementationId ? (
+											<ControlTestForm
+												implementationId={x.implementationId}
+												defaultMethod={x.method}
+												plannedTestId={x.id}
+											/>
 										) : (
 											<Badge variant="outline">{t("open")}</Badge>
 										)}

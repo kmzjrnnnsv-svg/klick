@@ -25,6 +25,7 @@ import { pendingApprovalIds } from "@/lib/approvals/bar";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
+import { fmtDate } from "@/lib/compliance/page-data";
 import { listMembersForPicker } from "@/lib/compliance/queries";
 import { dependencyMap, listProcesses } from "@/lib/compliance/queries-p3";
 import { readOrg } from "@/lib/db/with-org";
@@ -149,6 +150,7 @@ async function ProcessesPage({
 									<TableHead className="w-20 text-right">RTO</TableHead>
 									<TableHead className="w-20 text-right">RPO</TableHead>
 									<TableHead className="w-20 text-right">MTPD</TableHead>
+									<TableHead className="w-28">BIA</TableHead>
 									<TableHead className="w-40">{t("raciA")}</TableHead>
 									<TableHead className="w-28 text-right">
 										{t("dependencies")}
@@ -172,14 +174,36 @@ async function ProcessesPage({
 												{critLabel[r.criticality]}
 											</Badge>
 										</TableCell>
-										<TableCell className="text-right">
-											{r.rtoHours ?? "—"} h
+										<TableCell
+											className={
+												r.rtoHours !== null &&
+												r.mtpdHours !== null &&
+												r.rtoHours > r.mtpdHours
+													? "text-right text-destructive tabular-nums"
+													: "text-right tabular-nums"
+											}
+										>
+											{r.rtoHours === null ? "–" : `${r.rtoHours} h`}
 										</TableCell>
-										<TableCell className="text-right">
-											{r.rpoHours ?? "—"} h
+										<TableCell className="text-right tabular-nums">
+											{r.rpoHours === null ? "–" : `${r.rpoHours} h`}
 										</TableCell>
-										<TableCell className="text-right">
-											{r.mtpdHours ?? "—"} h
+										<TableCell className="text-right tabular-nums">
+											{r.mtpdHours === null ? "–" : `${r.mtpdHours} h`}
+										</TableCell>
+										<TableCell className="text-footnote">
+											<Link
+												href={`/prozesse/${encodeURIComponent(r.code)}/bia`}
+												className={
+													r.bia
+														? "hover:underline"
+														: "text-destructive hover:underline"
+												}
+											>
+												{r.bia
+													? fmtDate.format(new Date(r.bia.assessedAt))
+													: t("biaMissing")}
+											</Link>
 										</TableCell>
 										<TableCell
 											className={r.accountable ? "" : "text-destructive"}

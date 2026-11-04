@@ -11,6 +11,7 @@ import {
 	processProviders,
 	processRaci,
 	processRisks,
+	sites,
 } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { GateBlocked } from "@/lib/approvals/gate-error";
@@ -65,7 +66,20 @@ async function upsertProcessImpl(input: unknown): Promise<UpsertProcessResult> {
 				outputs: d.outputs ?? null,
 				parentProcessId: d.parentProcessId ?? null,
 				reviewAt: d.reviewAt ?? null,
+				siteId: d.siteId ?? null,
 			};
+			// Standort nur aus dieser Organisation
+			if (values.siteId) {
+				const [site] = await tx
+					.select({ id: sites.id })
+					.from(sites)
+					.where(
+						and(eq(sites.id, values.siteId), eq(sites.organizationId, c.orgId)),
+					)
+					.limit(1);
+				if (!site)
+					return { result: { ok: false, error: "notFound" }, audit: [] };
+			}
 			if (processId) {
 				const [before] = await tx
 					.select()

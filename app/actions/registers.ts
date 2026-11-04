@@ -507,23 +507,33 @@ async function recordControlTestImpl(
 	const parsed = controlTestSchema.safeParse(input);
 	if (!parsed.success) return fromZod(parsed.error);
 	const d = parsed.data;
-	const id = await mutateOrg(toOrgCtx(c), async (tx) => {
-		const test = await insertControlTest(
-			tx,
-			{ orgId: c.orgId, userId: c.userId },
-			{
-				implementationId: d.implementationId,
-				method: d.method,
-				scope: d.scope,
-				testedAt: d.testedAt,
-				result: d.result,
-				notes: d.notes,
-				nextTestAt: d.nextTestAt,
-			},
-		);
-		return { result: test.id, audit: test.audits };
-	});
+	let id: string;
+	try {
+		id = await mutateOrg(toOrgCtx(c), async (tx) => {
+			const test = await insertControlTest(
+				tx,
+				{ orgId: c.orgId, userId: c.userId },
+				{
+					implementationId: d.implementationId,
+					method: d.method,
+					scope: d.scope,
+					testedAt: d.testedAt,
+					result: d.result,
+					notes: d.notes,
+					nextTestAt: d.nextTestAt,
+					plannedTestId: d.plannedTestId,
+				},
+			);
+			return { result: test.id, audit: test.audits };
+		});
+	} catch (e) {
+		// geplanter Test schon durchgeführt oder nicht in dieser Org
+		if (e instanceof Error && e.message === "notFound")
+			return { ok: false, error: "notFound" };
+		throw e;
+	}
 	revalidatePath("/controls", "layout");
+	revalidatePath("/testprogramm");
 	return { ok: true, data: { id } };
 }
 

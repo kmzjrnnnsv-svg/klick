@@ -478,6 +478,8 @@ export const controlTestSchema = z.object({
 	result: z.enum(["pass", "partial", "fail"]).optional(),
 	notes: longText.optional(),
 	nextTestAt: optionalDate,
+	// Ergebnis zu einem geplanten Test (Testprogramm)
+	plannedTestId: uuid.optional(),
 });
 
 // ── Freigaben ──────────────────────────────────────────────────────────────
