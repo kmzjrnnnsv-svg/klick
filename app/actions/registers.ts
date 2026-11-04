@@ -28,6 +28,8 @@ import {
 	ownerColumns,
 } from "@/lib/compliance/function-holders-service";
 import { mutateOrg } from "@/lib/db/with-org";
+import { implementationFor } from "@/lib/identity/service";
+import { IDENTITY_CHECKS } from "@/lib/identity/types";
 import { notify } from "@/lib/notifications/notify";
 import {
 	completeAssignments,
@@ -620,16 +622,39 @@ async function recordAccessReviewImpl(note: string): Promise<ActionResult> {
 			.select({ userId: member.userId, role: member.role })
 			.from(member)
 			.where(eq(member.organizationId, c.orgId));
+		// zählt im Testprogramm als Zugriffsprüfung an CC-IAM-05 (Klick selbst);
+		// die Prüfung „Rezertifizierung“ der Konten aus Entra ID braucht die
+		// Zugriffsprüfung unter Team > Konten
+		const impl = await implementationFor(tx, c.orgId, IDENTITY_CHECKS.recert);
+		const test = impl
+			? await insertControlTest(
+					tx,
+					{ orgId: c.orgId, userId: c.userId },
+					{
+						implementationId: impl,
+						method: "access_review",
+						scope: "Mitglieder und Rollen in Klick",
+						testedAt: new Date(),
+						testerUserId: c.userId,
+						result: "pass",
+						notes: `${members.length} Mitglieder geprüft`,
+						nonconformity: "skip",
+					},
+				)
+			: null;
 		return {
 			result: null,
-			audit: {
-				action: "access.review",
-				target: `organization:${c.orgId}`,
-				after: {
-					members: members.map((m) => ({ userId: m.userId, role: m.role })),
-					note: note.slice(0, 2000),
+			audit: [
+				...(test?.audits ?? []),
+				{
+					action: "access.review",
+					target: `organization:${c.orgId}`,
+					after: {
+						members: members.map((m) => ({ userId: m.userId, role: m.role })),
+						note: note.slice(0, 2000),
+					},
 				},
-			},
+			],
 		};
 	});
 	revalidatePath("/team");

@@ -139,6 +139,14 @@ export async function AutomaticCheckSection({
 								>
 									{t("autoAccounts")}
 								</Link>
+								{key === "recert" && (
+									<Link
+										href="/team/zugriffspruefung"
+										className="hit-area text-primary underline-offset-4 hover:underline"
+									>
+										{t("autoReview")}
+									</Link>
+								)}
 							</div>
 						)}
 					</div>

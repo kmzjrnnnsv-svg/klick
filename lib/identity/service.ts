@@ -722,7 +722,7 @@ async function writeCheckResult(
 	return audits;
 }
 
-async function implementationFor(
+export async function implementationFor(
 	tx: OrgTx,
 	orgId: string,
 	controlCode: string,

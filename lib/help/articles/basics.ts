@@ -413,6 +413,17 @@ export const BASICS: HelpArticle[] = [
 				tip: "Klick ändert nie etwas im Tenant. Deaktiviere Konten ausgeschiedener Personen selbst, sonst schlägt die Prüfung „Austritte“ nach der Frist an.",
 			},
 			{
+				id: "zugriffspruefung",
+				heading: "Zugriffsprüfung (Rezertifizierung)",
+				steps: [
+					"Öffne Team > Konten > Zugriffsprüfung und tipp auf „Zugriffsprüfung starten“. Wähl, welche Konten (alle, nur Admins, nur Mitglieder) und wer prüft.",
+					"Die prüfende Person entscheidet je Konto: bestätigen, anpassen oder entziehen. Anpassen und Entziehen brauchen eine kurze Notiz. „Alle offenen bestätigen“ hilft bei langen Listen.",
+					"Sind alle Konten entschieden, schließt du die Prüfung ab. Klick legt Aufgaben für Anpassen und Entziehen an und schreibt den Test „Zugriffsprüfung“ an CC-IAM-05.",
+					"Mit „Nachweis anlegen“ entsteht der Nachweis „Rezertifizierung von Zugriffsrechten“ mit der Kontenliste; eine zweite Person zeichnet ihn gegen.",
+				],
+				tip: "Die automatische Prüfung „Rezertifizierung“ zählt nur abgeschlossene Zugriffsprüfungen. Ist ein entzogenes Konto nach der Frist noch aktiv, schlägt „Austritte“ an.",
+			},
+			{
 				id: "externe",
 				heading: "Externe Zugänge",
 				body: [
