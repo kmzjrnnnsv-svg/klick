@@ -5,6 +5,7 @@ import {
 } from "@/lib/identity/policy";
 import { REVIEW_DECISIONS, REVIEW_SCOPES } from "@/lib/identity/review-rules";
 import { EXCEPTION_KINDS } from "@/lib/identity/types";
+import { oktaDomainOf } from "@/lib/okta/http";
 
 // Identität anbinden (Teil D): Eingaben der Einstellungen
 
@@ -33,6 +34,26 @@ export const entraConsentSchema = entraTenantSchema.extend({
 // domänenweite Delegierung liest
 export const googleConnectSchema = z.object({
 	adminEmail: z.email().trim().toLowerCase().max(254),
+	acknowledged: z.literal(true, { error: "identity_ack_required" }),
+});
+
+// Okta (I4): Okta-Adresse (auch als Link oder OIDC-Issuer) und API-Token
+export const oktaConnectSchema = z.object({
+	domain: z
+		.string()
+		.max(300)
+		.transform((v, c) => {
+			const d = oktaDomainOf(v);
+			if (!d) {
+				c.addIssue({ code: "custom", message: "okta_domain_invalid" });
+				return z.NEVER;
+			}
+			return d;
+		}),
+	token: z
+		.string()
+		.trim()
+		.regex(/^[A-Za-z0-9_-]{20,128}$/, "okta_token_format"),
 	acknowledged: z.literal(true, { error: "identity_ack_required" }),
 });
 

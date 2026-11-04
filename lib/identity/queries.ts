@@ -62,6 +62,8 @@ export type IdentitySourceView = {
 	accountCount: number | null;
 	lastError: string | null;
 	consentOpen: boolean;
+	// letzte vier Zeichen des Okta-Tokens, nie mehr
+	tokenHint: string | null;
 };
 
 export async function identitySourceViews(
@@ -83,14 +85,22 @@ export async function identitySourceViews(
 			accountCount: identitySources.accountCount,
 			lastError: identitySources.lastError,
 			consentExpiresAt: identitySources.consentExpiresAt,
+			settings: identitySources.settings,
 		})
 		.from(identitySources)
 		.where(eq(identitySources.organizationId, orgId))
 		.orderBy(asc(identitySources.provider));
-	return rows.map(({ consentExpiresAt, ...r }) => ({
-		...r,
-		consentOpen: consentExpiresAt !== null && consentExpiresAt > now,
-	}));
+	return rows.map(({ consentExpiresAt, settings, ...r }) => {
+		const hint = (settings as { tokenHint?: unknown } | null)?.tokenHint;
+		return {
+			...r,
+			consentOpen: consentExpiresAt !== null && consentExpiresAt > now,
+			tokenHint:
+				typeof hint === "string" && /^[A-Za-z0-9_-]{1,4}$/.test(hint)
+					? hint
+					: null,
+		};
+	});
 }
 
 export type CheckResultView = {

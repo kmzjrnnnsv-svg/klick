@@ -4,12 +4,16 @@ import { googleHttpsTransport } from "@/lib/google/http";
 import { createMsGet } from "@/lib/microsoft/graph-client";
 import { msHttpsTransport } from "@/lib/microsoft/http";
 import type { MsGet } from "@/lib/microsoft/types";
+import { createOktaGet, type OktaGet } from "@/lib/okta/client";
+import { oktaHttpsTransport } from "@/lib/okta/http";
 import { identityGoogleAccount, identityMsConfig } from "./config";
 import { fetchEntraSnapshot } from "./providers/entra";
 import { fetchGoogleSnapshot } from "./providers/google";
+import { fetchOktaSnapshot } from "./providers/okta";
 import {
 	applySnapshot,
 	evaluateIdentityChecks,
+	oktaTokenOf,
 	recordSyncError,
 	syncContext,
 } from "./service";
@@ -19,7 +23,12 @@ import type { ProviderResult, ProviderSnapshot } from "./types";
 // fragen, danach in einer kurzen Transaktion schreiben und die Prüfungen
 // fortschreiben. Fehler bleiben an der Quelle stehen; alte Daten bleiben.
 
-export type SyncDeps = { msGet?: MsGet; googleGet?: GoogleGet; now?: Date };
+export type SyncDeps = {
+	msGet?: MsGet;
+	googleGet?: GoogleGet;
+	oktaGet?: OktaGet;
+	now?: Date;
+};
 
 // Identität liest Seiten mit bis zu 999 Konten: längere Frist, mehr Platz
 export function identityMsGet(): MsGet | null {
@@ -37,6 +46,11 @@ export function identityGoogleGet(): GoogleGet | null {
 	return sa ? createGoogleGet(sa, googleHttpsTransport()) : null;
 }
 
+// Okta: Token der Kundin, nur an ihre Okta-Domain
+export function identityOktaGet(domain: string, token: string): OktaGet {
+	return createOktaGet(domain, token, oktaHttpsTransport(domain));
+}
+
 const adminEmailOf = (settings: unknown): string | null => {
 	const v = (settings as { adminEmail?: unknown } | null)?.adminEmail;
 	return typeof v === "string" && v.includes("@") ? v : null;
@@ -49,7 +63,16 @@ export async function syncIdentitySource(
 ): Promise<"ok" | "error" | "skipped"> {
 	const ctx = { orgId, userId: null };
 	const now = deps.now ?? new Date();
-	const pre = await readOrg(ctx, (tx) => syncContext(tx, orgId, sourceId));
+	// Okta-Token im Org-Kontext entschlüsseln, Netz danach ohne Transaktion
+	const pre = await readOrg(ctx, async (tx) => {
+		const c = await syncContext(tx, orgId, sourceId);
+		if (!c) return null;
+		const token =
+			c.source.provider === "okta"
+				? await oktaTokenOf(tx, orgId, c.source)
+				: null;
+		return { ...c, token };
+	});
 	if (!pre || pre.source.status === "pending_consent") return "skipped";
 	let snap: ProviderResult<ProviderSnapshot>;
 	if (pre.source.provider === "entra") {
@@ -64,7 +87,14 @@ export async function syncIdentitySource(
 			get && subject
 				? await fetchGoogleSnapshot(get, subject, pre.source.tenantKey)
 				: { ok: false, error: get ? "consent_missing" : "token_failed" };
-	} else snap = { ok: false, error: "bad_response" }; // Okta folgt (I4)
+	} else if (pre.source.provider === "okta") {
+		const get =
+			deps.oktaGet ??
+			(pre.token ? identityOktaGet(pre.source.tenantKey, pre.token) : null);
+		snap = get
+			? await fetchOktaSnapshot(get, pre.source.domains)
+			: { ok: false, error: "consent_missing" };
+	} else snap = { ok: false, error: "bad_response" };
 	return mutateOrg(ctx, async (tx) => {
 		if (!snap.ok) {
 			const audit = await recordSyncError(tx, ctx, pre.source, snap.error, now);

@@ -147,6 +147,7 @@ import {
 } from "@/lib/notifications/channels";
 import { IMMEDIATE_MAIL_KINDS } from "@/lib/notifications/notify";
 import { loadChannelPrefs, teamsActiveFor } from "@/lib/notifications/prefs";
+import { oktaDomainOf } from "@/lib/okta/http";
 import {
 	getOrgSettings,
 	listOpenAuditScopes,
@@ -1130,6 +1131,9 @@ async function renderSection(
 			]);
 			const entra = identity.sources.find((s) => s.provider === "entra");
 			const google = identity.sources.find((s) => s.provider === "google");
+			const okta = identity.sources.find((s) => s.provider === "okta");
+			const oktaSuggested =
+				sso.map((p) => oktaDomainOf(p.issuer ?? "")).find(Boolean) ?? null;
 			const entraTenant =
 				sso
 					.map((p) =>
@@ -1166,6 +1170,10 @@ async function renderSection(
 							clientId: googleClientId(),
 							scopes: GOOGLE_SCOPES,
 							source: google ? sourcePanelView(google) : null,
+						}}
+						okta={{
+							source: okta ? sourcePanelView(okta) : null,
+							suggestedDomain: oktaSuggested,
 						}}
 						policy={identity.policy}
 					/>
@@ -1233,6 +1241,7 @@ function sourcePanelView(s: IdentitySourceView) {
 		accountCount: s.accountCount,
 		lastError: s.lastError,
 		consentOpen: s.consentOpen,
+		tokenHint: s.tokenHint,
 	};
 }
 

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import {
 	connectGoogleWorkspace,
+	connectOkta,
 	disconnectIdentitySource,
 	saveIdentityPolicy,
 	startEntraConsent,
@@ -54,6 +55,7 @@ export type IdentitySourcePanelView = {
 	accountCount: number | null;
 	lastError: string | null;
 	consentOpen: boolean;
+	tokenHint: string | null;
 };
 
 // Fehler der Quelle, für die es einen eigenen Satz gibt
@@ -73,8 +75,8 @@ const SOURCE_ERRORS = [
 ] as const;
 type SourceError = (typeof SOURCE_ERRORS)[number];
 
-// Fehler beim Verbinden mit Google (Codes aus connectGoogleWorkspace)
-const GOOGLE_CONNECT_ERRORS = [
+// Fehler beim Verbinden (Codes aus connectGoogleWorkspace und connectOkta)
+const CONNECT_ERRORS = [
 	"google_delegation_missing",
 	"google_admin_invalid",
 	"google_throttled",
@@ -84,8 +86,23 @@ const GOOGLE_CONNECT_ERRORS = [
 	"google_other_customer",
 	"tenant_unbound",
 	"tenant_taken",
+	"okta_token_invalid",
+	"okta_forbidden",
+	"okta_throttled",
+	"okta_bad_response",
+	"okta_unreachable",
+	"okta_unbound",
+	"okta_taken",
+	"okta_other_org",
 ] as const;
-type GoogleConnectError = (typeof GOOGLE_CONNECT_ERRORS)[number];
+type ConnectError = (typeof CONNECT_ERRORS)[number];
+
+type Provider = "entra" | "google" | "okta";
+const PROVIDER_NAME: Record<Provider, string> = {
+	entra: "Microsoft Entra ID",
+	google: "Google Workspace",
+	okta: "Okta",
+};
 
 // Google-Delegierung in der Admin-Konsole (Sicherheit > API-Steuerung)
 const GOOGLE_DELEGATION_URL =
@@ -107,6 +124,7 @@ export function IdentityPanel({
 	canSync,
 	entra,
 	google,
+	okta,
 	policy,
 }: {
 	isOwner: boolean;
@@ -121,6 +139,10 @@ export function IdentityPanel({
 		clientId: string | null;
 		scopes: readonly string[];
 		source: IdentitySourcePanelView | null;
+	};
+	okta: {
+		source: IdentitySourcePanelView | null;
+		suggestedDomain: string | null;
 	};
 	policy: IdentityPolicy;
 }) {
@@ -138,11 +160,10 @@ export function IdentityPanel({
 		if (res.error === "step_up_required") return;
 		if (res.error === "identity_not_configured")
 			return setError(t("notConfigured"));
-		if ((GOOGLE_CONNECT_ERRORS as readonly string[]).includes(res.error ?? ""))
-			return setError(t(`connectError_${res.error as GoogleConnectError}`));
+		if ((CONNECT_ERRORS as readonly string[]).includes(res.error ?? ""))
+			return setError(t(`connectError_${res.error as ConnectError}`));
 		setError(errorText(tc, res));
 	};
-	const anyConfigured = entra.configured || google.clientId !== null;
 
 	return (
 		<Card>
@@ -151,43 +172,52 @@ export function IdentityPanel({
 				<CardDescription>{t("panelLead")}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6 text-subhead">
-				{!anyConfigured ? (
-					<p className="text-muted-foreground">{t("notConfigured")}</p>
-				) : (
-					<>
-						{entra.configured && (
-							<EntraSection
-								isOwner={isOwner}
-								canSync={canSync}
-								source={entra.source}
-								suggestedTenant={entra.suggestedTenant}
-								onError={setError}
-								fail={fail}
-							/>
-						)}
-						{google.clientId !== null && (
-							<GoogleSection
-								isOwner={isOwner}
-								canSync={canSync}
-								clientId={google.clientId}
-								scopes={google.scopes}
-								source={google.source}
-								onError={setError}
-								fail={fail}
-							/>
-						)}
-						<p className="text-footnote text-muted-foreground">
-							{t("privacy")}
-						</p>
-					</>
+				{entra.configured && (
+					<EntraSection
+						isOwner={isOwner}
+						canSync={canSync}
+						source={entra.source}
+						suggestedTenant={entra.suggestedTenant}
+						onError={setError}
+						fail={fail}
+					/>
 				)}
+				{google.clientId !== null && (
+					<GoogleSection
+						isOwner={isOwner}
+						canSync={canSync}
+						clientId={google.clientId}
+						scopes={google.scopes}
+						source={google.source}
+						onError={setError}
+						fail={fail}
+					/>
+				)}
+				<OktaSection
+					isOwner={isOwner}
+					canSync={canSync}
+					source={okta.source}
+					suggestedDomain={okta.suggestedDomain}
+					onError={setError}
+					fail={fail}
+				/>
+				{(!entra.configured || google.clientId === null) && (
+					<p className="text-footnote text-muted-foreground">
+						{!entra.configured && google.clientId === null
+							? t("notConfiguredBoth")
+							: t("notConfiguredOne", {
+									name: entra.configured
+										? "Google Workspace"
+										: "Microsoft Entra ID",
+								})}
+					</p>
+				)}
+				<p className="text-footnote text-muted-foreground">{t("privacy")}</p>
 				<FormAlert message={error} />
 			</CardContent>
-			{anyConfigured && (
-				<CardContent className="border-t pt-5">
-					<PolicyForm policy={policy} isOwner={isOwner} />
-				</CardContent>
-			)}
+			<CardContent className="border-t pt-5">
+				<PolicyForm policy={policy} isOwner={isOwner} />
+			</CardContent>
 		</Card>
 	);
 }
@@ -202,7 +232,7 @@ function SourceStatus({
 	onError,
 	fail,
 }: {
-	provider: "entra" | "google";
+	provider: Provider;
 	isOwner: boolean;
 	canSync: boolean;
 	source: IdentitySourcePanelView | null;
@@ -224,10 +254,10 @@ function SourceStatus({
 		source?.lastError &&
 		(SOURCE_ERRORS as readonly string[]).includes(source.lastError)
 			? t(
-					provider === "google" &&
+					provider !== "entra" &&
 						(source.lastError === "consent_missing" ||
 							source.lastError === "forbidden")
-						? `error_google_${source.lastError}`
+						? `error_${provider}_${source.lastError}`
 						: `error_${source.lastError as SourceError}`,
 				)
 			: source?.lastError
@@ -238,7 +268,7 @@ function SourceStatus({
 			<div className="flex flex-col gap-1.5">
 				<div className="flex flex-wrap items-center gap-2">
 					<span className="font-medium" translate="no">
-						{provider === "entra" ? "Microsoft Entra ID" : "Google Workspace"}
+						{PROVIDER_NAME[provider]}
 					</span>
 					<Badge
 						variant={
@@ -260,13 +290,29 @@ function SourceStatus({
 				</div>
 				{connected && source && (
 					<dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-footnote text-muted-foreground sm:grid-cols-[auto_1fr]">
-						<dt>{provider === "entra" ? t("tenant") : t("customerId")}</dt>
+						<dt>
+							{provider === "entra"
+								? t("tenant")
+								: provider === "google"
+									? t("customerId")
+									: t("oktaDomain")}
+						</dt>
 						<dd className="break-all font-mono" translate="no">
 							{source.tenantKey}
 						</dd>
+						{source.tokenHint && (
+							<>
+								<dt>{t("oktaToken")}</dt>
+								<dd className="font-mono" translate="no">
+									…{source.tokenHint}
+								</dd>
+							</>
+						)}
 						{source.domains.length > 0 && (
 							<>
-								<dt>{t("domains")}</dt>
+								<dt>
+									{provider === "okta" ? t("matchDomains") : t("domains")}
+								</dt>
 								<dd className="break-words" translate="no">
 									{source.domains.slice(0, 5).join(", ")}
 									{source.domains.length > 5 &&
@@ -292,9 +338,9 @@ function SourceStatus({
 					<ul className="flex flex-col gap-1 text-footnote text-muted-foreground">
 						{missing.map((m) => (
 							<li key={m}>
-								{provider === "google"
-									? t(`missing_google_${m}`)
-									: t(`missing_${m}`)}
+								{provider === "entra"
+									? t(`missing_${m}`)
+									: t(`missing_${provider}_${m}`)}
 							</li>
 						))}
 					</ul>
@@ -521,7 +567,7 @@ function GoogleSection({
 	const connected = source?.status === "active" || source?.status === "error";
 	return (
 		<section
-			className="flex flex-col gap-3 border-t pt-5"
+			className="flex flex-col gap-3 border-t pt-5 first:border-t-0 first:pt-0"
 			aria-label="Google Workspace"
 		>
 			<SourceStatus
@@ -597,6 +643,123 @@ function GoogleSection({
 						<Button
 							type="submit"
 							disabled={pending || !adminEmail.includes("@") || !ack}
+						>
+							{pending ? t("googleChecking") : t("googleConnect")}
+						</Button>
+					</div>
+				</form>
+			)}
+		</section>
+	);
+}
+
+// Okta (I4): API-Token einer Person mit Leserechten; Klick prüft sofort
+function OktaSection({
+	isOwner,
+	canSync,
+	source,
+	suggestedDomain,
+	onError,
+	fail,
+}: {
+	isOwner: boolean;
+	canSync: boolean;
+	source: IdentitySourcePanelView | null;
+	suggestedDomain: string | null;
+	onError: (m: string | null) => void;
+	fail: Fail;
+}) {
+	const t = useTranslations("Identity");
+	const router = useRouter();
+	const [pending, start] = useTransition();
+	const [domain, setDomain] = useState(
+		source?.tenantKey ?? suggestedDomain ?? "",
+	);
+	const [token, setToken] = useState("");
+	const [ack, setAck] = useState(false);
+	const connected = source?.status === "active" || source?.status === "error";
+	return (
+		<section
+			className="flex flex-col gap-3 border-t pt-5 first:border-t-0 first:pt-0"
+			aria-label="Okta"
+		>
+			<SourceStatus
+				provider="okta"
+				isOwner={isOwner}
+				canSync={canSync}
+				source={source}
+				onError={onError}
+				fail={fail}
+			/>
+			{isOwner && (
+				<form
+					className="flex flex-col gap-3 rounded-2xl bg-muted/40 p-4"
+					onSubmit={(e) => {
+						e.preventDefault();
+						start(async () => {
+							onError(null);
+							const res = await withStepUp(() =>
+								connectOkta({ domain, token, acknowledged: ack }),
+							);
+							if (!res.ok) {
+								const fields = res.fieldErrors ?? {};
+								if (fields.domain)
+									return onError(t("connectError_okta_domain_invalid"));
+								if (fields.token)
+									return onError(t("connectError_okta_token_format"));
+								return fail(res);
+							}
+							setToken("");
+							toast.success(t("oktaConnected"));
+							router.refresh();
+						});
+					}}
+				>
+					<span className="font-medium">
+						{connected ? t("oktaReconnectTitle") : t("oktaConnectTitle")}
+					</span>
+					<ol className="flex list-decimal flex-col gap-1 pl-5 text-footnote text-muted-foreground">
+						<li>{t("oktaStep1")}</li>
+						<li>{t("oktaStep2")}</li>
+						<li>{t("oktaStep3")}</li>
+					</ol>
+					<Label htmlFor="identity-okta-domain">{t("oktaDomainField")}</Label>
+					<Input
+						id="identity-okta-domain"
+						name="oktaDomain"
+						value={domain}
+						onChange={(e) => setDomain(e.target.value.trim())}
+						placeholder={t("oktaDomainPlaceholder")}
+						spellCheck={false}
+						autoComplete="off"
+						inputMode="url"
+						disabled={pending}
+						className="sm:w-96"
+					/>
+					<Label htmlFor="identity-okta-token">{t("oktaTokenField")}</Label>
+					<Input
+						id="identity-okta-token"
+						name="oktaToken"
+						type="password"
+						value={token}
+						onChange={(e) => setToken(e.target.value.trim())}
+						placeholder={
+							source?.tokenHint
+								? t("oktaTokenKeep", { hint: source.tokenHint })
+								: t("oktaTokenPlaceholder")
+						}
+						spellCheck={false}
+						autoComplete="off"
+						disabled={pending}
+						className="sm:w-96"
+					/>
+					<PrivacyAck id="identity-okta-ack" checked={ack} onChange={setAck} />
+					<div>
+						<Button
+							type="submit"
+							disabled={
+								pending || domain.length < 4 || token.length < 20 || !ack
+							}
 						>
 							{pending ? t("googleChecking") : t("googleConnect")}
 						</Button>

@@ -6,6 +6,7 @@ import type { z } from "zod";
 import { orgSettings } from "@/db/schema";
 import { safeAction } from "@/lib/actions/safe";
 import { requireOrg, requireStepUp, toOrgCtx } from "@/lib/auth/guards";
+import { listSsoProvidersForOrg } from "@/lib/auth/org";
 import { AuthError } from "@/lib/auth/session-rules";
 import { mutateOrg, type OrgTx, readOrg } from "@/lib/db/with-org";
 import { env } from "@/lib/env";
@@ -20,14 +21,20 @@ import {
 } from "@/lib/identity/manage";
 import { identityPolicyOf, identityPolicyRelaxed } from "@/lib/identity/policy";
 import { googleBound, googleCustomer } from "@/lib/identity/providers/google";
+import { oktaBound } from "@/lib/identity/providers/okta";
 import {
 	connectGoogleSource,
+	connectOktaSource,
 	disconnectSource,
 	identitySourcesOf,
 	ownerEmailsOf,
 	prepareEntraConsent,
 } from "@/lib/identity/service";
-import { identityGoogleGet, syncIdentitySource } from "@/lib/identity/sync";
+import {
+	identityGoogleGet,
+	identityOktaGet,
+	syncIdentitySource,
+} from "@/lib/identity/sync";
 import type { ProviderError } from "@/lib/identity/types";
 import { enqueue } from "@/lib/jobs/boss";
 import { IDENTITY_SYNC_SOURCE_JOB } from "@/lib/jobs/identity-sync";
@@ -47,6 +54,7 @@ import {
 	identityMatchSchema,
 	identityPolicySchema,
 	identitySourceIdSchema,
+	oktaConnectSchema,
 } from "@/lib/validation/identity";
 
 // Identität anbinden (Teil D): Verbinden und Trennen nur Inhaber:innen mit
@@ -172,6 +180,65 @@ async function connectGoogleWorkspaceImpl(
 	if (r.result === "taken") return { ok: false, error: "tenant_taken" };
 	if (r.result === "other_customer")
 		return { ok: false, error: "google_other_customer" };
+	if (r.sourceId) await firstSync(c.orgId, r.sourceId);
+	revalidatePath(PATH);
+	revalidatePath(ACCOUNTS);
+	return { ok: true, data: undefined };
+}
+
+// Fehler beim Verbinden mit Okta als Code für die Oberfläche
+function oktaConnectError(error: ProviderError): string {
+	if (error === "consent_missing") return "okta_token_invalid";
+	if (error === "forbidden") return "okta_forbidden";
+	if (error === "throttled") return "okta_throttled";
+	if (error === "bad_response" || error === "too_large")
+		return "okta_bad_response";
+	return "okta_unreachable";
+}
+
+// Okta verbinden (I4): Klick prüft das Token an der Okta-Domain, bindet nur,
+// wenn eine Inhaber:in dort ein aktives Konto ist, und speichert das Token
+// verschlüsselt. Zugeordnet wird über die Domains der gebundenen
+// Inhaber:innen und die bestätigten SSO-Domains der Org.
+async function connectOktaImpl(input: unknown): Promise<ActionResult> {
+	const g = await ownerStepUp();
+	if (!g.ok) return g;
+	const c = g.ctx;
+	const parsed = oktaConnectSchema.safeParse(input);
+	if (!parsed.success) return fromZod(parsed.error);
+	if (!getOrgLimiter().check(c.orgId).allowed)
+		return { ok: false, error: "rate_limited" };
+	const { domain, token } = parsed.data;
+	const get = identityOktaGet(domain, token);
+	const probe = await get("/api/v1/users?limit=1");
+	if (!probe.ok) return { ok: false, error: oktaConnectError(probe.error) };
+	if (probe.value.status !== 200)
+		return {
+			ok: false,
+			error:
+				probe.value.status === 403 ? "okta_forbidden" : "okta_bad_response",
+		};
+	const owners = await readOrg(toOrgCtx(c), (tx) => ownerEmailsOf(tx, c.orgId));
+	const bound = await oktaBound(get, owners);
+	if (bound.length === 0) return { ok: false, error: "okta_unbound" };
+	const sso = (await listSsoProvidersForOrg(c.orgId))
+		.filter((p) => p.domainVerified)
+		.map((p) => p.domain.toLowerCase());
+	const r = await mutateOrg(toOrgCtx(c), async (tx) => {
+		const x = await connectOktaSource(
+			tx,
+			{ orgId: c.orgId, userId: c.userId },
+			{
+				domain,
+				token,
+				domains: [...new Set([...bound, ...sso])].slice(0, 50),
+				now: new Date(),
+			},
+		);
+		return { result: x, audit: x.audit };
+	});
+	if (r.result === "taken") return { ok: false, error: "okta_taken" };
+	if (r.result === "other_org") return { ok: false, error: "okta_other_org" };
 	if (r.sourceId) await firstSync(c.orgId, r.sourceId);
 	revalidatePath(PATH);
 	revalidatePath(ACCOUNTS);
@@ -376,6 +443,7 @@ export const connectGoogleWorkspace = safeAction(
 	"connectGoogleWorkspace",
 	connectGoogleWorkspaceImpl,
 );
+export const connectOkta = safeAction("connectOkta", connectOktaImpl);
 export const syncIdentityNow = safeAction(
 	"syncIdentityNow",
 	syncIdentityNowImpl,
