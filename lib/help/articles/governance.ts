@@ -242,6 +242,7 @@ export const GOVERNANCE: HelpArticle[] = [
 					"Oben stehen die Summen: Aufwand je Jahr und der Anteil der oder des ISB in zwei Szenarien. In Szenario A schreiben die Fachbereiche selbst zu, in Szenario B schreibt und pflegt die oder der ISB alles. Daraus folgt der Stellenanteil bei 200 Arbeitstagen.",
 					"Jeder Punkt führt zur Stelle in Klick, an der du ihn erledigst, etwa zur Vorlage unter Dokumente, zu den Risiken oder zur Managementbewertung. Die Werte sind Richtwerte aus einem ISMS aus der Praxis.",
 					"Die Spalte „Stand in Klick“ zeigt, was schon erledigt ist: ob es zum Dokument eine gültige Fassung gibt und die Überprüfung ansteht, ob die ISB bestellt ist, wann Audit, Managementbewertung und Übung zuletzt waren, wie aktuell Risiken, BIA und Kennzahlen sind und ob Abweichungen, Schulungen oder Bewertungen von Dienstleistern überfällig sind. Punkte ohne Stand trägst du selbst nach.",
+					"Mit „Anpassen“ trägst du je Punkt ein, was in deiner Organisation gilt: „Entfällt“ mit Begründung (Unterpunkte entfallen mit), eine eigene Anzahl, etwa zwölf statt acht Risikoanalysen, oder einen eigenen Aufwand in PT. Der ISB-Anteil folgt im Verhältnis der Vorlage. Unter „Arbeitstage ändern“ legst du fest, mit wie vielen Arbeitstagen der Stellenanteil gerechnet wird. Jede Änderung steht im Verlauf.",
 				],
 			},
 			{

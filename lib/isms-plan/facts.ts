@@ -10,6 +10,7 @@ import {
 	managementReviews,
 	nonconformities,
 	objectives,
+	orgSettings,
 	processes,
 	providers,
 	risks,
@@ -20,6 +21,7 @@ import { effectiveAssignment } from "@/lib/compliance/appointments";
 import { ISMS_PROGRAMME } from "@/lib/compliance/catalog/isms-programme";
 import type { OrgTx } from "@/lib/db/with-org";
 import { currentVersionsByDocument } from "@/lib/documents/in-force";
+import { type IsmsPlanSettings, ismsPlanSettingsOf } from "./adjust";
 import { type DocFact, type IsmsFacts, yearBefore } from "./status";
 
 // Lader für den Stand je Punkt (P2a): nur Zähler und Daten, keine Inhalte.
@@ -265,4 +267,17 @@ export async function loadIsmsFacts(
 		incidents: { open: n(inc?.open) },
 		changes: { pending: n(chg?.pending) },
 	};
+}
+
+// Anpassungen der Org (P2b); ohne Zeile gilt die Vorlage
+export async function loadIsmsPlanSettings(
+	tx: OrgTx,
+	orgId: string,
+): Promise<IsmsPlanSettings> {
+	const [row] = await tx
+		.select({ ismsPlan: orgSettings.ismsPlan })
+		.from(orgSettings)
+		.where(eq(orgSettings.organizationId, orgId))
+		.limit(1);
+	return ismsPlanSettingsOf(row?.ismsPlan);
 }

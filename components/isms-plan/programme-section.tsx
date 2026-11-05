@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { IsmsAdjustDialog } from "@/components/isms-plan/adjust-dialog";
 import { Badge } from "@/components/ui/badge";
 import {
 	Table,
@@ -10,12 +11,15 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
-import type {
-	IsmsItem,
-	IsmsRetention,
-	IsmsSection,
-	Range,
+import {
+	ISMS_ITEM_BY_KEY,
+	type IsmsItem,
+	type IsmsRetention,
+	type IsmsSection,
+	type Range,
 } from "@/lib/compliance/catalog/isms-programme";
+import type { IsmsItemAdjust, IsmsOff } from "@/lib/isms-plan/adjust";
+import type { IsmsNumbers } from "@/lib/isms-plan/adjust-math";
 import { basisTimes, fmtDay, fmtRange } from "@/lib/isms-plan/format";
 import type { SectionTotals } from "@/lib/isms-plan/rollup";
 import {
@@ -35,8 +39,12 @@ export type PlanRow = {
 	depth: number;
 	// Summe mit Unterpunkten, nur bei Punkten mit Unterpunkten
 	withChildren?: Range;
-	// Stand aus Klick (lib/isms-plan/status.ts)
-	status: IsmsStatus;
+	// Stand aus Klick (lib/isms-plan/status.ts); null, wenn der Punkt entfällt
+	status: IsmsStatus | null;
+	// Aufwand nach Anpassung der Org (lib/isms-plan/adjust.ts)
+	numbers: IsmsNumbers;
+	adjust: IsmsItemAdjust | null;
+	off: IsmsOff | null;
 };
 
 export const STATE_BADGE: Record<
@@ -66,6 +74,7 @@ export async function ProgrammeSection({
 	rows,
 	totals,
 	isoActive,
+	canEdit,
 }: {
 	index: number;
 	section: IsmsSection;
@@ -73,6 +82,8 @@ export async function ProgrammeSection({
 	totals: SectionTotals;
 	// Normpunkte verlinken nur, wenn ISO 27001 gewählt ist
 	isoActive: boolean;
+	// Anpassen nur mit obligation:update
+	canEdit: boolean;
 }) {
 	const t = await getTranslations("IsmsPlan");
 	const tf = await getTranslations("Functions");
@@ -80,6 +91,7 @@ export async function ProgrammeSection({
 	const keep = sectionRetention(rows);
 	const keepText = (r: IsmsRetention) =>
 		t(`retention_${r.kind}`, { years: r.years });
+	const offCount = rows.filter((r) => r.off).length;
 	return (
 		<section aria-labelledby={headingId} className="scroll-mt-4">
 			<div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
@@ -95,7 +107,11 @@ export async function ProgrammeSection({
 				</p>
 			</div>
 			<p className="mb-2 text-footnote text-muted-foreground">
-				{t("statusCounts", countStates(rows.map((r) => r.status)))}
+				{t(
+					"statusCounts",
+					countStates(rows.flatMap((r) => (r.status ? [r.status] : []))),
+				)}
+				{offCount > 0 && <> · {t("offCount", { n: offCount })}</>}
 				{keep && <> · {keepText(keep)}</>}
 			</p>
 			<div className="rounded-2xl bg-card">
@@ -119,7 +135,9 @@ export async function ProgrammeSection({
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{rows.map(({ item, depth, withChildren, status }) => {
+						{rows.map((row) => {
+							const { item, depth, withChildren, status, numbers, off } = row;
+							const changed = !off && changedFrom(item, numbers);
 							const codes = item.clauses.map((c) => c.split(":")[1] ?? c);
 							const ownRetention =
 								item.retention &&
@@ -127,7 +145,12 @@ export async function ProgrammeSection({
 									? keepText(item.retention)
 									: null;
 							return (
-								<TableRow key={item.key} className="align-top">
+								<TableRow
+									key={item.key}
+									className={
+										off ? "align-top text-muted-foreground" : "align-top"
+									}
+								>
 									<TableCell data-m="title" className="whitespace-normal">
 										<div className={depth > 0 ? "pl-5" : undefined}>
 											<p
@@ -136,6 +159,11 @@ export async function ProgrammeSection({
 												}
 											>
 												{item.title}
+												{row.adjust && !off && (
+													<Badge variant="muted" className="ml-2 align-middle">
+														{t("adjusted")}
+													</Badge>
+												)}
 											</p>
 											<div className="mt-1 flex flex-col gap-0.5 font-normal text-footnote text-muted-foreground">
 												{item.note && <p>{item.note}</p>}
@@ -183,6 +211,20 @@ export async function ProgrammeSection({
 														})}
 													</p>
 												) : null}
+												{canEdit && !(off && "via" in off) && (
+													<span>
+														<IsmsAdjustDialog
+															itemKey={item.key}
+															title={item.title}
+															template={{
+																year: item.year,
+																isb: item.isb,
+																basis: item.basis,
+															}}
+															adjust={row.adjust}
+														/>
+													</span>
+												)}
 											</div>
 										</div>
 									</TableCell>
@@ -192,7 +234,7 @@ export async function ProgrammeSection({
 									</TableCell>
 									<TableCell data-m="meta" className="whitespace-normal">
 										<span data-m-label>{t("colReview")}:</span>
-										{reviewText(item, t)}
+										{reviewText(item, t, off ? undefined : row.adjust?.units)}
 									</TableCell>
 									<TableCell data-m="meta" className="whitespace-nowrap">
 										<span data-m-label>{t("colLead")}:</span>
@@ -209,32 +251,53 @@ export async function ProgrammeSection({
 										className="whitespace-nowrap text-right tabular-nums"
 									>
 										<span data-m-label>{t("colYear")}:</span>
-										{fmtRange(item.year)}
+										{off ? t("notApplicable") : fmtRange(numbers.year)}
+										{changed && (
+											<span className="block text-caption text-muted-foreground">
+												{t("templateValue", { pt: fmtRange(item.year) })}
+											</span>
+										)}
 									</TableCell>
 									<TableCell
 										data-m="meta"
 										className="whitespace-nowrap text-right tabular-nums"
 									>
 										<span data-m-label>{t("colIsbA")}:</span>
-										{fmtRange(item.isb.a)}
+										{off ? t("notApplicable") : fmtRange(numbers.isbA)}
 									</TableCell>
 									<TableCell
 										data-m="meta"
 										className="whitespace-nowrap text-right tabular-nums"
 									>
 										<span data-m-label>{t("colIsbB")}:</span>
-										{fmtRange(item.isb.b)}
+										{off ? t("notApplicable") : fmtRange(numbers.isbB)}
 									</TableCell>
 									<TableCell data-m="meta" className="whitespace-normal">
 										<span data-m-label>{t("colStatus")}:</span>
-										<span className="flex flex-col items-start gap-1">
-											<Badge variant={STATE_BADGE[status.state]}>
-												{t(`state_${status.state}`)}
-											</Badge>
-											<span className="text-footnote text-muted-foreground">
-												{statusText(status, t)}
+										{status ? (
+											<span className="flex flex-col items-start gap-1">
+												<Badge variant={STATE_BADGE[status.state]}>
+													{t(`state_${status.state}`)}
+												</Badge>
+												<span className="text-footnote text-muted-foreground">
+													{statusText(status, t)}
+												</span>
 											</span>
-										</span>
+										) : (
+											<span className="flex flex-col items-start gap-1">
+												<Badge variant="muted">{t("stateOff")}</Badge>
+												<span className="break-words text-footnote text-muted-foreground">
+													{off && "reason" in off
+														? t("offSelf", { reason: off.reason })
+														: t("offVia", {
+																parent:
+																	(off &&
+																		ISMS_ITEM_BY_KEY.get(off.via)?.title) ??
+																	"",
+															})}
+												</span>
+											</span>
+										)}
 										<span className="mt-1 inline-flex flex-wrap gap-x-3 gap-y-1">
 											{item.where.map((w) => (
 												<Link
@@ -259,6 +322,17 @@ export async function ProgrammeSection({
 
 type T = Awaited<ReturnType<typeof getTranslations<"IsmsPlan">>>;
 
+const same = (a: Range, b: Range) => a[0] === b[0] && a[1] === b[1];
+
+// weicht der Aufwand von der Vorlage ab?
+function changedFrom(item: IsmsItem, n: IsmsNumbers): boolean {
+	return (
+		!same(item.year, n.year) ||
+		!same(item.isb.a, n.isbA) ||
+		!same(item.isb.b, n.isbB)
+	);
+}
+
 function statusText(status: IsmsStatus, t: T): string {
 	const key = `status_${status.code}` as Parameters<T>[0];
 	return t(key, {
@@ -275,11 +349,14 @@ function cadenceText(item: IsmsItem, t: T): string {
 	return parts.join(", ");
 }
 
-function reviewText(item: IsmsItem, t: T): string {
+// eigene Anzahl der Org ersetzt die Einheiten der Vorlage
+function reviewText(item: IsmsItem, t: T, units?: number): string {
 	if (item.basis?.length) {
 		return item.basis
 			.map((b) => {
-				const times = basisTimes(b);
+				const times = basisTimes(
+					units !== undefined && b.units !== undefined ? { ...b, units } : b,
+				);
 				const pt = fmtRange(b.pt);
 				return times === 1
 					? t("basisOnce", { work: t(`work_${b.work}`), pt })
