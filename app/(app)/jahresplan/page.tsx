@@ -1,5 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { SummaryCard, SummaryGrid } from "@/components/entity/summary-card";
+import { withMessages } from "@/components/i18n/with-messages";
+import { IsmsWorkdaysDialog } from "@/components/isms-plan/adjust-dialog";
 import {
 	type PlanRow,
 	ProgrammeSection,
@@ -18,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
+import { allows } from "@/lib/auth/permissions";
 import {
 	ISMS_PROGRAMME,
 	ISMS_SCENARIO_B_OWNERS,
@@ -25,7 +28,8 @@ import {
 } from "@/lib/compliance/catalog/isms-programme";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
-import { loadIsmsFacts } from "@/lib/isms-plan/facts";
+import { applyIsmsPlan, ISMS_WORKDAYS_BOUNDS } from "@/lib/isms-plan/adjust";
+import { loadIsmsFacts, loadIsmsPlanSettings } from "@/lib/isms-plan/facts";
 import { fmtFte, fmtNum, fmtRange } from "@/lib/isms-plan/format";
 import { ismsTree, itemWithChildren, rollupIsms } from "@/lib/isms-plan/rollup";
 import { countStates, ismsStatus } from "@/lib/isms-plan/status";
@@ -33,22 +37,33 @@ import { countStates, ismsStatus } from "@/lib/isms-plan/status";
 // ISMS-Jahresplan (P1): Vorlage mit Turnus, Aufwand in PT und ISB-Anteil nach
 // Szenario A/B, je Punkt verknüpft mit der Stelle in Klick. Die Werte kommen
 // aus dem Katalog (lib/compliance/catalog/isms-programme.ts), gerechnet in
-// lib/isms-plan/rollup.ts.
+// lib/isms-plan/rollup.ts; Stand je Punkt aus Klick (P2a, status.ts),
+// Anpassungen der Org (P2b, adjust.ts).
 
 async function IsmsPlanPage() {
 	const ctx = await requireOrgPage({ obligation: ["read"] });
 	const t = await getTranslations("IsmsPlan");
-	const { profile, facts } = await readOrg(toOrgCtx(ctx), async (tx) => ({
-		profile: await getOrgProfile(tx, ctx.orgId),
-		facts: await loadIsmsFacts(tx, ctx.orgId),
-	}));
+	const { profile, facts, settings } = await readOrg(
+		toOrgCtx(ctx),
+		async (tx) => ({
+			profile: await getOrgProfile(tx, ctx.orgId),
+			facts: await loadIsmsFacts(tx, ctx.orgId),
+			settings: await loadIsmsPlanSettings(tx, ctx.orgId),
+		}),
+	);
 	const isoActive = profile?.frameworks.includes("iso27001") ?? false;
+	const canEdit = allows(ctx, { obligation: ["update"] });
+	// Anpassungen der Org: was entfällt, zählt weder im Aufwand noch im Stand
+	const plan = applyIsmsPlan(ISMS_PROGRAMME, settings);
 	const statuses = new Map(
-		ISMS_PROGRAMME.map((i) => [i.key, ismsStatus(i, facts)] as const),
+		ISMS_PROGRAMME.filter((i) => !plan.rows.get(i.key)?.off).map(
+			(i) => [i.key, ismsStatus(i, facts)] as const,
+		),
 	);
 	const counts = countStates([...statuses.values()]);
+	const offCount = ISMS_PROGRAMME.length - statuses.size;
 
-	const r = rollupIsms(ISMS_PROGRAMME);
+	const r = rollupIsms(plan.active, { workdays: settings.workdays });
 	const tree = ismsTree(ISMS_PROGRAMME);
 	const ops = r.sections.find((s) => s.section === "operations");
 
@@ -56,17 +71,29 @@ async function IsmsPlanPage() {
 	function rowsOf(items: IsmsItem[] | undefined, depth: number): PlanRow[] {
 		return (items ?? []).flatMap((item) => {
 			const kids = tree.get(item.key);
+			const row = plan.rows.get(item.key);
+			const off = row?.off ?? null;
 			return [
 				{
 					item,
 					depth,
-					status: statuses.get(item.key) ?? {
-						state: "none" as const,
-						code: "manual",
+					status: off
+						? null
+						: (statuses.get(item.key) ?? {
+								state: "none" as const,
+								code: "manual",
+							}),
+					numbers: row?.numbers ?? {
+						year: item.year,
+						isbA: item.isb.a,
+						isbB: item.isb.b,
 					},
-					withChildren: kids?.length
-						? itemWithChildren(item.key, ISMS_PROGRAMME).year
-						: undefined,
+					adjust: row?.adjust ?? null,
+					off,
+					withChildren:
+						kids?.length && !off
+							? itemWithChildren(item.key, plan.active).year
+							: undefined,
 				},
 				...rowsOf(kids, depth + 1),
 			];
@@ -130,6 +157,12 @@ async function IsmsPlanPage() {
 								<span className="tabular-nums">{counts[st]}</span>
 							</Badge>
 						))}
+						{offCount > 0 && (
+							<Badge variant="muted">
+								{t("stateOff")}
+								<span className="tabular-nums">{offCount}</span>
+							</Badge>
+						)}
 					</div>
 					<p className="mt-2 max-w-[46rem] text-footnote text-muted-foreground">
 						{t("statusHint")}
@@ -234,9 +267,17 @@ async function IsmsPlanPage() {
 							</TableBody>
 						</Table>
 					</div>
-					<p className="mt-2 max-w-[46rem] text-footnote text-muted-foreground">
-						{t("scenarios")} {t("ownerDefault")}
-					</p>
+					<div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+						<p className="max-w-[46rem] text-footnote text-muted-foreground">
+							{t("scenarios")} {t("ownerDefault")}
+						</p>
+						{canEdit && (
+							<IsmsWorkdaysDialog
+								workdays={settings.workdays}
+								bounds={ISMS_WORKDAYS_BOUNDS}
+							/>
+						)}
+					</div>
 				</section>
 
 				{r.sections.map((s, i) => (
@@ -246,6 +287,7 @@ async function IsmsPlanPage() {
 						section={s.section}
 						totals={s}
 						isoActive={isoActive}
+						canEdit={canEdit}
 						rows={rowsOf(
 							roots.filter((item) => item.section === s.section),
 							0,
@@ -261,4 +303,4 @@ async function IsmsPlanPage() {
 	);
 }
 
-export default IsmsPlanPage;
+export default withMessages(IsmsPlanPage, ["Common", "IsmsPlan"]);

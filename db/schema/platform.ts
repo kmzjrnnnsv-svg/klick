@@ -284,6 +284,10 @@ export const orgSettings = pgTable(
 		// automatischen Prüfungen; gelesen nur über identityPolicyOf, Lockern
 		// nur über Vier-Augen (Art identity_policy)
 		identityPolicy: json<Record<string, unknown>>().notNull().default({}),
+		// ISMS-Jahresplan je Org (P2b, lib/isms-plan/adjust.ts): was entfällt,
+		// eigener Aufwand, Einheiten, Arbeitstage; gelesen nur über
+		// ismsPlanSettingsOf
+		ismsPlan: json<Record<string, unknown>>().notNull().default({}),
 		// Standard (nach Rahmenwerk) oder individuell (ADR-024)
 		governanceMode: text({ enum: GOVERNANCE_MODES })
 			.notNull()

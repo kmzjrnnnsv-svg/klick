@@ -1,0 +1,1 @@
+ALTER TABLE "org_settings" ADD COLUMN "isms_plan" jsonb DEFAULT '{}'::jsonb NOT NULL;

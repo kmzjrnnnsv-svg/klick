@@ -4,7 +4,7 @@ import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { schema } from "@/db";
 import type { OrgTx } from "@/lib/db/with-org";
-import { loadIsmsFacts } from "@/lib/isms-plan/facts";
+import { loadIsmsFacts, loadIsmsPlanSettings } from "@/lib/isms-plan/facts";
 
 // Integrationstest (DATABASE_URL_TEST): der Lader für den Stand im
 // ISMS-Jahresplan zählt in SQL und sieht nur die eigene Org.
@@ -94,6 +94,30 @@ d("ISMS-Jahresplan: Stand aus Klick (Postgres)", () => {
 		});
 		expect(f.audits.internal.lastDone).toBe("2026-05-01");
 		expect(f.audits.external.lastDone).toBeNull();
+	});
+
+	it("liest Anpassungen der Org, ohne Zeile die Vorlage", async () => {
+		const none = await inOrg(orgId, (tx) => loadIsmsPlanSettings(tx, orgId));
+		expect(none).toEqual({ workdays: 200, items: {} });
+		const plan = JSON.stringify({
+			workdays: 210,
+			items: {
+				bcm: { off: { reason: "Liegt beim Konzern, eigener Plan dort." } },
+				risk_analyses: { units: 12 },
+				nope: { year: [1, 2] },
+			},
+		});
+		await inOrg(orgId, (tx) =>
+			tx.execute(sql`
+				insert into org_settings (organization_id, encrypted_dek, sector, isms_plan)
+				values (${orgId}, 'test', 'other', ${plan}::jsonb)`),
+		);
+		const s = await inOrg(orgId, (tx) => loadIsmsPlanSettings(tx, orgId));
+		expect(s.workdays).toBe(210);
+		expect(Object.keys(s.items).sort()).toEqual(["bcm", "risk_analyses"]);
+		// die andere Org sieht die Zeile nicht (RLS)
+		const other = await inOrg(otherId, (tx) => loadIsmsPlanSettings(tx, orgId));
+		expect(other).toEqual({ workdays: 200, items: {} });
 	});
 
 	it("sieht keine Daten anderer Orgs", async () => {
