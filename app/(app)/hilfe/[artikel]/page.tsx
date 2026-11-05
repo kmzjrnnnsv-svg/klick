@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { HelpToc } from "@/components/help/toc";
 import { PageHeader } from "@/components/page-header";
 import { NavIcon } from "@/components/shell/nav-icon";
+import { NavTitle } from "@/components/shell/nav-title";
 import { BackLink } from "@/components/ui/back-link";
 import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
@@ -13,6 +14,7 @@ import {
 	SourceItem,
 	SourceList,
 	SourceSection,
+	SPLIT_TOP,
 } from "@/components/ui/source-list";
 import { SplitPane } from "@/components/ui/split-pane";
 import { requireOrgPage } from "@/lib/auth/gates";
@@ -35,6 +37,7 @@ import { routesForArticle } from "@/lib/help/routes";
 import type { HelpSection } from "@/lib/help/types";
 import { NAV_SECTIONS, type NavIcon as NavIconName } from "@/lib/nav";
 import { loadOrgNav } from "@/lib/org/nav";
+import { cn } from "@/lib/utils";
 
 // Seiten ohne eigenen Navigationseintrag (Unterseiten von Heute, Suche)
 const SUBPAGES: Record<
@@ -155,6 +158,7 @@ export default async function HelpArticlePage({
 		// Seite“. Spalten nach der Breite der Seite (@container, in rem — bei
 		// großer Schrift einspaltig); darunter nur der Artikel mit Zurück.
 		<div data-split-page="flush" className="@container">
+			<NavTitle title={t("title")} href="/hilfe" />
 			<div
 				data-split-body=""
 				className="grid grid-cols-1 gap-8 @3xl:grid-cols-[15rem_minmax(0,1fr)] max-lg:@3xl:gap-6 @6xl:grid-cols-[16rem_minmax(0,1fr)_14rem] @min-[100rem]:grid-cols-[18rem_minmax(0,1fr)_16rem] lg:gap-0"
@@ -164,9 +168,13 @@ export default async function HelpArticlePage({
 					list
 					aria-label={t("title")}
 					// ab 1024 px auf der Fläche der Seitenleiste, Zeilen wie im Menü
-					className="hidden max-lg:@3xl:sticky max-lg:@3xl:top-16 max-lg:@3xl:max-h-[calc(100dvh-8rem)] max-lg:@3xl:self-start max-lg:@3xl:overflow-y-auto max-lg:@3xl:overscroll-contain @3xl:block lg:border-border/60 lg:border-r lg:bg-sidebar lg:px-3"
+					className={cn(
+						"hidden max-lg:@3xl:sticky max-lg:@3xl:top-16 max-lg:@3xl:max-h-[calc(100dvh-8rem)] max-lg:@3xl:self-start max-lg:@3xl:overflow-y-auto max-lg:@3xl:overscroll-contain @3xl:block lg:border-border/60 lg:border-r lg:bg-sidebar lg:px-3",
+						SPLIT_TOP,
+					)}
 				>
-					<h2 className="mb-4 font-bold text-foreground text-title-2 lg:px-2 lg:pt-6">
+					{/* ab 1024 px steht der Titel in der Kopfleiste (NavTitle) */}
+					<h2 className="mb-4 font-bold text-foreground text-title-2 lg:hidden">
 						<Link href="/hilfe" className="hit-area hover:opacity-70">
 							{t("title")}
 						</Link>
@@ -175,6 +183,7 @@ export default async function HelpArticlePage({
 					<ListSearch
 						sticky
 						source="always"
+						sidebarSearch
 						action="/hilfe"
 						items={visible.map((r) => ({
 							id: r.slug,
@@ -213,7 +222,7 @@ export default async function HelpArticlePage({
 					key={a.slug}
 					as="article"
 					main
-					className="lg:px-8 lg:pt-6 lg:pb-6 xl:px-10"
+					className={cn("lg:px-8 lg:pb-6 xl:px-10", SPLIT_TOP)}
 				>
 					{/* Lesebreite; auf breiten Bildschirmen mittig zwischen Liste
 					    und Verzeichnis statt endlos langer Zeilen */}
@@ -221,7 +230,9 @@ export default async function HelpArticlePage({
 						<div className="@3xl:hidden">
 							<BackLink href="/hilfe" label={t("title")} />
 						</div>
-						<div className="mb-8">
+						{/* -2 px: der Titel hat oben 2 px Abstand (PageHeader), so steht er auf
+						    der Linie der Liste und von „Auf dieser Seite“ */}
+						<div className="mb-8 lg:-mt-0.5">
 							<PageHeader compact title={a.title} lead={a.summary} />
 						</div>
 						{/* „In Klick öffnen“ steht erst ab 72rem rechts daneben */}
@@ -317,7 +328,10 @@ export default async function HelpArticlePage({
 					as="aside"
 					list
 					aria-label={t("onThisPage")}
-					className="hidden flex-col gap-6 @6xl:flex lg:pt-6 lg:pr-4 lg:pl-2"
+					className={cn(
+						"hidden flex-col gap-6 @6xl:flex lg:pr-4 lg:pl-2",
+						SPLIT_TOP,
+					)}
 				>
 					{context}
 					{toc.length > 1 && <HelpToc label={t("onThisPage")} items={toc} />}
