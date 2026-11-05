@@ -26,6 +26,11 @@ auditConfig:
 # GHSA-rxp7-6hxx-x8q5, behoben in 10.7.4.
 # fast-uri via ajv (SBOM-Werkzeug in CI, Resolver in @hookform/resolvers):
 # GHSA-w74x-v6f9-j3xg, -wjr9-j795-jxcr, -xhq7-xmqj-769h, -333x-w4r6-6crp, behoben in 3.1.9.
+# glob/minimatch via @cyclonedx/cyclonedx-npm → libxmljs2 → node-gyp →
+# make-fetch-happen → cacache: GHSA-3g3m-2fjr-6pw4 (glob, behoben in 14.0.2)
+# und GHSA-g3hv-75wg-m249 (minimatch, behoben in 11.0.1). Nur für cacache
+# gehoben; node-gyp läuft hier nie (Lifecycle-Skripte blockiert).
 overrides:
   ip-address: ^10.7.4
   fast-uri: ^3.1.9
+  cacache>glob: ^14.0.2
