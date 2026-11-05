@@ -54,6 +54,7 @@ import { SupplierMethodPanel } from "@/components/settings/supplier-method-panel
 import { TeamsPanel } from "@/components/settings/teams-panel";
 import { WalletLinkPanel } from "@/components/settings/wallet-link-panel";
 import { WorkflowsPanel } from "@/components/settings/workflows-panel";
+import { NavTitle } from "@/components/shell/nav-title";
 import { KeepActiveVisible } from "@/components/ui/keep-active-visible";
 import { ListGroup, ListRow, ListSection } from "@/components/ui/list";
 import { ListSearch } from "@/components/ui/list-search";
@@ -61,6 +62,7 @@ import {
 	SourceItem,
 	SourceList,
 	SourceSection,
+	SPLIT_TOP,
 } from "@/components/ui/source-list";
 import { SplitPane } from "@/components/ui/split-pane";
 import {
@@ -273,6 +275,7 @@ async function SettingsPage({
 		//   Breite, beide scrollen je für sich; erst ab 1920 px hat der Inhalt
 		//   eine Höchstbreite (links bündig, nahe an der Liste)
 		<div data-split-page="flush" className="@container">
+			<NavTitle title={t("title")} href="/einstellungen" />
 			{chosen && (
 				<div className="@3xl:hidden">
 					<Link
@@ -302,18 +305,19 @@ async function SettingsPage({
 						// ab 1024 px auf der Fläche der Seitenleiste: Menü und Liste
 						// wirken wie eine Spalte (gleiche Zeilen, gleicher Grund)
 						"lg:px-3 lg:@3xl:border-border/60 lg:@3xl:border-r lg:@3xl:bg-sidebar",
+						SPLIT_TOP,
 						chosen && "hidden @3xl:block",
 					)}
 				>
-					{/* Abstand oben am Titel, nicht an der Spalte: sonst hielte das
-					    klebende Suchfeld ihn frei und Zeilen schienen darüber durch */}
-					<div className="lg:px-2 lg:pt-6">
+					{/* ab 1024 px steht der Titel in der Kopfleiste (NavTitle) */}
+					<div className="lg:hidden">
 						<PageHeader compact title={t("title")} />
 					</div>
 					<KeepActiveVisible active={section} />
 					<ListSearch
 						sticky
 						source="wide"
+						sidebarSearch
 						items={visible.map((k) => ({
 							id: k,
 							title: t(SECTION_LABEL[k]),
@@ -371,7 +375,8 @@ async function SettingsPage({
 					main
 					aria-labelledby="einstellungen-bereich"
 					className={cn(
-						"lg:px-8 lg:pt-6 lg:pb-6 xl:px-10",
+						"lg:px-8 lg:pb-6 xl:px-10",
+						SPLIT_TOP,
 						!chosen && "hidden @3xl:block",
 					)}
 				>

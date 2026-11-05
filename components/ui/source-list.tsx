@@ -14,6 +14,12 @@ import { cn } from "@/lib/utils";
 export const SOURCE_HEAD =
 	"mb-0.5 flex min-h-7 items-center px-2 font-semibold text-footnote text-muted-foreground pointer-coarse:min-h-11";
 
+// Erste Zeile der Spalten einer bündigen geteilten Seite ab 1024 px (wie in
+// macOS): Liste und Inhalt beginnen auf einer Linie mit dem Org-Namen im Menü
+// der App, also unter dessen Suchfeld (Höhe des Felds + 0,75 rem). Die
+// Zeilen von Menü und Liste laufen danach im selben Raster.
+export const SPLIT_TOP = "lg:pt-[calc(var(--control-h-sm)+0.75rem)]";
+
 export function SourceList({
 	children,
 	className,

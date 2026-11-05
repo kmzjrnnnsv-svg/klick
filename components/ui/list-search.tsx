@@ -34,6 +34,7 @@ export function ListSearch({
 	sticky = false,
 	action,
 	source,
+	sidebarSearch = false,
 	children,
 }: {
 	items: ListSearchItem[];
@@ -43,6 +44,9 @@ export function ListSearch({
 	// Suchfeld bleibt oben in der eigenen Scrollfläche der Liste stehen,
 	// sobald die Liste neben dem Inhalt steht (Container-Abfrage der Seite)
 	sticky?: boolean;
+	// ab 1024 px ohne eigenes Suchfeld: die Suche oben in der Seitenleiste
+	// der App (⌘K) reicht, Liste und Menü beginnen auf einer Linie
+	sidebarSearch?: boolean;
 	children: ReactNode;
 }) {
 	const [query, setQuery] = useState("");
@@ -71,8 +75,9 @@ export function ListSearch({
 			: source === "wide"
 				? "@3xl:rounded-lg @3xl:pointer-fine:h-(--control-h-sm) @3xl:pointer-fine:text-subhead"
 				: undefined;
+	const hideWide = sidebarSearch && "lg:hidden";
 	const field = (
-		<label className={cn("relative block", !action && stick)}>
+		<label className={cn("relative block", !action && stick, !action && hideWide)}>
 			<span className="sr-only">{labels.placeholder}</span>
 			<Search
 				aria-hidden="true"
@@ -99,7 +104,7 @@ export function ListSearch({
 					method="get"
 					action={action}
 					role="search"
-					className={cn(stick)}
+					className={cn(stick, hideWide)}
 				>
 					{field}
 				</form>

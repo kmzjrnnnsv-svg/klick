@@ -76,7 +76,10 @@ export async function AppShell({
 					<SidebarSearch />
 				</div>
 				<ContainedScroll className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-1 pb-4">
-					<div className="mb-3 px-2">
+					{/* wie ein Gruppenkopf (28 px, 2 px Abstand): Org-Name, Kopf der
+					    Liste daneben (geteilte Seiten) und erster Eintrag stehen auf
+					    einer Linie (SPLIT_TOP in components/ui/source-list.tsx) */}
+					<div className="mb-0.5 flex min-h-7 flex-col justify-center px-2 pointer-coarse:min-h-11">
 						{orgs.length > 1 ? (
 							<div className="-mx-1">
 								<OrgSwitcher

@@ -11,22 +11,25 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { EVIDENCE_KIND_BY_CODE } from "@/lib/compliance/catalog/evidence-kinds";
-import {
-	ISMS_ITEM_BY_KEY,
-	type IsmsItem,
-	type IsmsRetention,
-	type IsmsSection,
-	type Range,
+import type {
+	IsmsItem,
+	IsmsRetention,
+	IsmsSection,
+	Range,
 } from "@/lib/compliance/catalog/isms-programme";
-import type { IsmsItemAdjust, IsmsOff } from "@/lib/isms-plan/adjust";
 import type { IsmsNumbers } from "@/lib/isms-plan/adjust-math";
-import { basisTimes, fmtDay, fmtRange } from "@/lib/isms-plan/format";
+import { fmtRange } from "@/lib/isms-plan/format";
 import type { SectionTotals } from "@/lib/isms-plan/rollup";
+import { countStates, type IsmsState } from "@/lib/isms-plan/status";
 import {
-	countStates,
-	type IsmsState,
-	type IsmsStatus,
-} from "@/lib/isms-plan/status";
+	cadenceText,
+	leadText,
+	offText,
+	retentionText,
+	reviewText,
+	statusText,
+} from "@/lib/isms-plan/texts";
+import type { PlanRow } from "@/lib/isms-plan/view";
 
 // Ein Abschnitt des ISMS-Jahresplans als Tabelle (am Handy als Liste über
 // .register-table): je Dokument oder Aufgabe Turnus, Prüfaufwand,
@@ -34,18 +37,7 @@ import {
 // Aufbewahrung steht einmal am Abschnitt, am Punkt nur, wenn sie abweicht;
 // „Zuständig“ nur, wenn es nicht die oder der ISB ist.
 
-export type PlanRow = {
-	item: IsmsItem;
-	depth: number;
-	// Summe mit Unterpunkten, nur bei Punkten mit Unterpunkten
-	withChildren?: Range;
-	// Stand aus Klick (lib/isms-plan/status.ts); null, wenn der Punkt entfällt
-	status: IsmsStatus | null;
-	// Aufwand nach Anpassung der Org (lib/isms-plan/adjust.ts)
-	numbers: IsmsNumbers;
-	adjust: IsmsItemAdjust | null;
-	off: IsmsOff | null;
-};
+export type { PlanRow } from "@/lib/isms-plan/view";
 
 export const STATE_BADGE: Record<
 	IsmsState,
@@ -89,8 +81,7 @@ export async function ProgrammeSection({
 	const tf = await getTranslations("Functions");
 	const headingId = `abschnitt-${section}`;
 	const keep = sectionRetention(rows);
-	const keepText = (r: IsmsRetention) =>
-		t(`retention_${r.kind}`, { years: r.years });
+	const keepText = (r: IsmsRetention) => retentionText(r, t);
 	const offCount = rows.filter((r) => r.off).length;
 	return (
 		<section aria-labelledby={headingId} className="scroll-mt-4">
@@ -238,13 +229,7 @@ export async function ProgrammeSection({
 									</TableCell>
 									<TableCell data-m="meta" className="whitespace-nowrap">
 										<span data-m-label>{t("colLead")}:</span>
-										{item.leadWeeks
-											? item.leadWeeks[0] === 1 && item.leadWeeks[1] === 1
-												? t("leadOne")
-												: t("leadWeeks", { weeks: fmtRange(item.leadWeeks) })
-											: item.cadence === "continuous"
-												? t("leadNone")
-												: t("notApplicable")}
+										{leadText(item, t)}
 									</TableCell>
 									<TableCell
 										data-m="meta"
@@ -287,14 +272,7 @@ export async function ProgrammeSection({
 											<span className="flex flex-col items-start gap-1">
 												<Badge variant="muted">{t("stateOff")}</Badge>
 												<span className="break-words text-footnote text-muted-foreground">
-													{off && "reason" in off
-														? t("offSelf", { reason: off.reason })
-														: t("offVia", {
-																parent:
-																	(off &&
-																		ISMS_ITEM_BY_KEY.get(off.via)?.title) ??
-																	"",
-															})}
+													{off && offText(off, t)}
 												</span>
 											</span>
 										)}
@@ -320,8 +298,6 @@ export async function ProgrammeSection({
 	);
 }
 
-type T = Awaited<ReturnType<typeof getTranslations<"IsmsPlan">>>;
-
 const same = (a: Range, b: Range) => a[0] === b[0] && a[1] === b[1];
 
 // weicht der Aufwand von der Vorlage ab?
@@ -331,39 +307,4 @@ function changedFrom(item: IsmsItem, n: IsmsNumbers): boolean {
 		!same(item.isb.a, n.isbA) ||
 		!same(item.isb.b, n.isbB)
 	);
-}
-
-function statusText(status: IsmsStatus, t: T): string {
-	const key = `status_${status.code}` as Parameters<T>[0];
-	return t(key, {
-		n: status.n ?? 0,
-		m: status.m ?? 0,
-		date: status.date ? fmtDay(status.date) : "",
-	});
-}
-
-function cadenceText(item: IsmsItem, t: T): string {
-	const parts = [t(`cadence_${item.cadence}`)];
-	for (const e of item.events ?? []) parts.push(t(`event_${e}`));
-	if (item.beforeReview) parts.push(t("beforeReview"));
-	return parts.join(", ");
-}
-
-// eigene Anzahl der Org ersetzt die Einheiten der Vorlage
-function reviewText(item: IsmsItem, t: T, units?: number): string {
-	if (item.basis?.length) {
-		return item.basis
-			.map((b) => {
-				const times = basisTimes(
-					units !== undefined && b.units !== undefined ? { ...b, units } : b,
-				);
-				const pt = fmtRange(b.pt);
-				return times === 1
-					? t("basisOnce", { work: t(`work_${b.work}`), pt })
-					: t("basisRun", { work: t(`work_${b.work}`), times, pt });
-			})
-			.join(" + ");
-	}
-	if (item.review) return t("reviewPt", { pt: fmtRange(item.review) });
-	return item.cadence === "continuous" ? t("reviewNone") : t("notApplicable");
 }
