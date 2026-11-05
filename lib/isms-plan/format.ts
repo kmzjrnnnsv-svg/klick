@@ -30,3 +30,15 @@ export function fmtFte(r: Range): string {
 export function basisTimes(b: IsmsBasis): number {
 	return b.perYear * (b.units ?? 1);
 }
+
+const DAY = new Intl.DateTimeFormat("de-DE", {
+	day: "2-digit",
+	month: "2-digit",
+	year: "numeric",
+	timeZone: "UTC",
+});
+
+// YYYY-MM-DD → TT.MM.JJJJ (Tagesdatum ohne Zeitzonen-Verschiebung)
+export function fmtDay(iso: string): string {
+	return DAY.format(new Date(`${iso.slice(0, 10)}T00:00:00Z`));
+}

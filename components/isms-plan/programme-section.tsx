@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { Badge } from "@/components/ui/badge";
 import {
 	Table,
 	TableBody,
@@ -15,8 +16,13 @@ import type {
 	IsmsSection,
 	Range,
 } from "@/lib/compliance/catalog/isms-programme";
-import { basisTimes, fmtRange } from "@/lib/isms-plan/format";
+import { basisTimes, fmtDay, fmtRange } from "@/lib/isms-plan/format";
 import type { SectionTotals } from "@/lib/isms-plan/rollup";
+import {
+	countStates,
+	type IsmsState,
+	type IsmsStatus,
+} from "@/lib/isms-plan/status";
 
 // Ein Abschnitt des ISMS-Jahresplans als Tabelle (am Handy als Liste über
 // .register-table): je Dokument oder Aufgabe Turnus, Prüfaufwand,
@@ -29,7 +35,14 @@ export type PlanRow = {
 	depth: number;
 	// Summe mit Unterpunkten, nur bei Punkten mit Unterpunkten
 	withChildren?: Range;
+	// Stand aus Klick (lib/isms-plan/status.ts)
+	status: IsmsStatus;
 };
+
+export const STATE_BADGE: Record<
+	IsmsState,
+	"success" | "warning" | "default" | "muted"
+> = { ok: "success", due: "warning", open: "default", none: "muted" };
 
 const retentionKey = (r: IsmsRetention | undefined) =>
 	r ? `${r.kind}:${r.years}` : "";
@@ -81,19 +94,18 @@ export async function ProgrammeSection({
 					})}
 				</p>
 			</div>
-			{keep && (
-				<p className="mb-2 text-footnote text-muted-foreground">
-					{keepText(keep)}
-				</p>
-			)}
+			<p className="mb-2 text-footnote text-muted-foreground">
+				{t("statusCounts", countStates(rows.map((r) => r.status)))}
+				{keep && <> · {keepText(keep)}</>}
+			</p>
 			<div className="rounded-2xl bg-card">
 				<Table className="register-table hyphens-auto sm:table-fixed">
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-[30%]">{t("colItem")}</TableHead>
-							<TableHead className="w-[15%]">{t("colCadence")}</TableHead>
-							<TableHead className="w-[12%]">{t("colReview")}</TableHead>
-							<TableHead className="w-[10%]">{t("colLead")}</TableHead>
+							<TableHead className="w-[28%]">{t("colItem")}</TableHead>
+							<TableHead className="w-[13%]">{t("colCadence")}</TableHead>
+							<TableHead className="w-[11%]">{t("colReview")}</TableHead>
+							<TableHead className="w-[9%]">{t("colLead")}</TableHead>
 							<TableHead className="w-[7%] text-right">
 								{t("colYear")}
 							</TableHead>
@@ -103,11 +115,11 @@ export async function ProgrammeSection({
 							<TableHead className="w-[6%] text-right">
 								{t("colIsbB")}
 							</TableHead>
-							<TableHead className="w-[14%]">{t("colWhere")}</TableHead>
+							<TableHead className="w-[20%]">{t("colStatus")}</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{rows.map(({ item, depth, withChildren }) => {
+						{rows.map(({ item, depth, withChildren, status }) => {
 							const codes = item.clauses.map((c) => c.split(":")[1] ?? c);
 							const ownRetention =
 								item.retention &&
@@ -214,8 +226,16 @@ export async function ProgrammeSection({
 										{fmtRange(item.isb.b)}
 									</TableCell>
 									<TableCell data-m="meta" className="whitespace-normal">
-										<span data-m-label>{t("colWhere")}:</span>
-										<span className="inline-flex flex-wrap gap-x-3 gap-y-1">
+										<span data-m-label>{t("colStatus")}:</span>
+										<span className="flex flex-col items-start gap-1">
+											<Badge variant={STATE_BADGE[status.state]}>
+												{t(`state_${status.state}`)}
+											</Badge>
+											<span className="text-footnote text-muted-foreground">
+												{statusText(status, t)}
+											</span>
+										</span>
+										<span className="mt-1 inline-flex flex-wrap gap-x-3 gap-y-1">
 											{item.where.map((w) => (
 												<Link
 													key={w.href}
@@ -238,6 +258,15 @@ export async function ProgrammeSection({
 }
 
 type T = Awaited<ReturnType<typeof getTranslations<"IsmsPlan">>>;
+
+function statusText(status: IsmsStatus, t: T): string {
+	const key = `status_${status.code}` as Parameters<T>[0];
+	return t(key, {
+		n: status.n ?? 0,
+		m: status.m ?? 0,
+		date: status.date ? fmtDay(status.date) : "",
+	});
+}
 
 function cadenceText(item: IsmsItem, t: T): string {
 	const parts = [t(`cadence_${item.cadence}`)];

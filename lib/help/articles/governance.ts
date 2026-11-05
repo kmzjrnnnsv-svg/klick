@@ -241,6 +241,7 @@ export const GOVERNANCE: HelpArticle[] = [
 					"Der Jahresplan zeigt, was dein ISMS im Jahr an Arbeit braucht: Leitlinie, Rahmendokumente, Richtlinien, Verfahren, Nachweise und laufende Aufgaben. Je Punkt siehst du Turnus, Prüfaufwand, Durchlaufzeit, Aufbewahrung und Personentage (PT) je Jahr.",
 					"Oben stehen die Summen: Aufwand je Jahr und der Anteil der oder des ISB in zwei Szenarien. In Szenario A schreiben die Fachbereiche selbst zu, in Szenario B schreibt und pflegt die oder der ISB alles. Daraus folgt der Stellenanteil bei 200 Arbeitstagen.",
 					"Jeder Punkt führt zur Stelle in Klick, an der du ihn erledigst, etwa zur Vorlage unter Dokumente, zu den Risiken oder zur Managementbewertung. Die Werte sind Richtwerte aus einem ISMS aus der Praxis.",
+					"Die Spalte „Stand in Klick“ zeigt, was schon erledigt ist: ob es zum Dokument eine gültige Fassung gibt und die Überprüfung ansteht, ob die ISB bestellt ist, wann Audit, Managementbewertung und Übung zuletzt waren, wie aktuell Risiken, BIA und Kennzahlen sind und ob Abweichungen, Schulungen oder Bewertungen von Dienstleistern überfällig sind. Punkte ohne Stand trägst du selbst nach.",
 				],
 			},
 			{
