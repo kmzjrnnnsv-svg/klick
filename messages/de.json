@@ -4068,7 +4068,11 @@
 		"workdaysLead": "Damit rechnet Klick den Stellenanteil der oder des ISB. Üblich sind 200 bis 220 Tage nach Urlaub, Feiertagen und Krankheit.",
 		"workdaysHint": "Zwischen {min} und {max} Tagen.",
 		"workdaysSaved": "Arbeitstage gespeichert.",
-		"stateOff": "Entfällt"
+		"stateOff": "Entfällt",
+		"pdfFte": "Stellen",
+		"pdfMiddle": "Mitte des Aufwands: {middle} PT je Jahr.",
+		"exportPdf": "Als PDF",
+		"exportCsv": "Als CSV"
 	},
 	"Roadmap": {
 		"title": "Roadmap",

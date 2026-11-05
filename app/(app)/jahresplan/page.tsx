@@ -3,13 +3,13 @@ import { SummaryCard, SummaryGrid } from "@/components/entity/summary-card";
 import { withMessages } from "@/components/i18n/with-messages";
 import { IsmsWorkdaysDialog } from "@/components/isms-plan/adjust-dialog";
 import {
-	type PlanRow,
 	ProgrammeSection,
 	STATE_BADGE,
 } from "@/components/isms-plan/programme-section";
 import { PageHeader } from "@/components/page-header";
 import { SectionSwitch } from "@/components/shell/section-switch";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
 	Table,
 	TableBody,
@@ -21,18 +21,13 @@ import {
 import { requireOrgPage } from "@/lib/auth/gates";
 import { toOrgCtx } from "@/lib/auth/guards";
 import { allows } from "@/lib/auth/permissions";
-import {
-	ISMS_PROGRAMME,
-	ISMS_SCENARIO_B_OWNERS,
-	type IsmsItem,
-} from "@/lib/compliance/catalog/isms-programme";
+import { ISMS_SCENARIO_B_OWNERS } from "@/lib/compliance/catalog/isms-programme";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
-import { applyIsmsPlan, ISMS_WORKDAYS_BOUNDS } from "@/lib/isms-plan/adjust";
+import { ISMS_WORKDAYS_BOUNDS } from "@/lib/isms-plan/adjust";
 import { loadIsmsFacts, loadIsmsPlanSettings } from "@/lib/isms-plan/facts";
 import { fmtFte, fmtNum, fmtRange } from "@/lib/isms-plan/format";
-import { ismsTree, itemWithChildren, rollupIsms } from "@/lib/isms-plan/rollup";
-import { countStates, ismsStatus } from "@/lib/isms-plan/status";
+import { buildIsmsPlanView } from "@/lib/isms-plan/view";
 
 // ISMS-Jahresplan (P1): Vorlage mit Turnus, Aufwand in PT und ISB-Anteil nach
 // Szenario A/B, je Punkt verknüpft mit der Stelle in Klick. Die Werte kommen
@@ -53,58 +48,39 @@ async function IsmsPlanPage() {
 	);
 	const isoActive = profile?.frameworks.includes("iso27001") ?? false;
 	const canEdit = allows(ctx, { obligation: ["update"] });
-	// Anpassungen der Org: was entfällt, zählt weder im Aufwand noch im Stand
-	const plan = applyIsmsPlan(ISMS_PROGRAMME, settings);
-	const statuses = new Map(
-		ISMS_PROGRAMME.filter((i) => !plan.rows.get(i.key)?.off).map(
-			(i) => [i.key, ismsStatus(i, facts)] as const,
-		),
-	);
-	const counts = countStates([...statuses.values()]);
-	const offCount = ISMS_PROGRAMME.length - statuses.size;
-
-	const r = rollupIsms(plan.active, { workdays: settings.workdays });
-	const tree = ismsTree(ISMS_PROGRAMME);
+	const canExport = allows(ctx, { export: ["create"] });
+	// Anpassungen der Org und Stand aus Klick (lib/isms-plan/view.ts); die
+	// Exporte rechnen mit demselben Modell
+	const view = buildIsmsPlanView(settings, facts);
+	const { counts, offCount } = view;
+	const r = view.rollup;
 	const ops = r.sections.find((s) => s.section === "operations");
-
-	// Baum je Abschnitt in Katalog-Reihenfolge, Unterpunkte eingerückt
-	function rowsOf(items: IsmsItem[] | undefined, depth: number): PlanRow[] {
-		return (items ?? []).flatMap((item) => {
-			const kids = tree.get(item.key);
-			const row = plan.rows.get(item.key);
-			const off = row?.off ?? null;
-			return [
-				{
-					item,
-					depth,
-					status: off
-						? null
-						: (statuses.get(item.key) ?? {
-								state: "none" as const,
-								code: "manual",
-							}),
-					numbers: row?.numbers ?? {
-						year: item.year,
-						isbA: item.isb.a,
-						isbB: item.isb.b,
-					},
-					adjust: row?.adjust ?? null,
-					off,
-					withChildren:
-						kids?.length && !off
-							? itemWithChildren(item.key, plan.active).year
-							: undefined,
-				},
-				...rowsOf(kids, depth + 1),
-			];
-		});
-	}
-	const roots = tree.get(null) ?? [];
 
 	return (
 		<>
 			<SectionSwitch group="planning" current="/jahresplan" ctx={ctx} />
-			<PageHeader title={t("title")} lead={t("lead")} />
+			<PageHeader
+				title={t("title")}
+				lead={t("lead")}
+				actions={
+					canExport ? (
+						<div className="flex flex-wrap gap-2">
+							<a
+								href="/api/export/jahresplan.pdf"
+								className={buttonVariants({ variant: "outline", size: "sm" })}
+							>
+								{t("exportPdf")}
+							</a>
+							<a
+								href="/api/export/jahresplan.csv"
+								className={buttonVariants({ variant: "outline", size: "sm" })}
+							>
+								{t("exportCsv")}
+							</a>
+						</div>
+					) : undefined
+				}
+			/>
 
 			<div className="flex flex-col gap-8">
 				<SummaryGrid>
@@ -280,18 +256,15 @@ async function IsmsPlanPage() {
 					</div>
 				</section>
 
-				{r.sections.map((s, i) => (
+				{view.sections.map(({ section, rows }, i) => (
 					<ProgrammeSection
-						key={s.section}
+						key={section}
 						index={i + 1}
-						section={s.section}
-						totals={s}
+						section={section}
+						totals={r.sections[i]}
 						isoActive={isoActive}
 						canEdit={canEdit}
-						rows={rowsOf(
-							roots.filter((item) => item.section === s.section),
-							0,
-						)}
+						rows={rows}
 					/>
 				))}
 
