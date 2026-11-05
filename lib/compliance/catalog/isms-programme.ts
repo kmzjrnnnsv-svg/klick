@@ -61,6 +61,25 @@ export type IsmsBasis = {
 	units?: number;
 };
 
+// Woher Klick den Stand eines Punkts ableitet (lib/isms-plan/status.ts);
+// ohne Quelle trägst du den Stand selbst nach
+export type IsmsSource =
+	| "documents"
+	| "appointment"
+	| "risks"
+	| "bia"
+	| "bcm_plans"
+	| "exercises"
+	| "internal_audit"
+	| "external_audit"
+	| "management_review"
+	| "kpis"
+	| "nonconformities"
+	| "suppliers"
+	| "trainings"
+	| "incidents"
+	| "changes";
+
 export type IsmsRetention =
 	| { kind: "validity_plus"; years: number }
 	| { kind: "years"; years: number }
@@ -91,6 +110,7 @@ export type IsmsItem = {
 	retention?: IsmsRetention;
 	// zuständige Funktion
 	owner: RoleFunction;
+	source?: IsmsSource;
 	// ein kurzer Satz zur Arbeit oder Abstimmung
 	note?: string;
 	annexes?: readonly string[];
@@ -109,6 +129,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "policy",
 		section: "policy",
+		source: "documents",
 		title: "Informationssicherheitsleitlinie",
 		clauses: ["iso27001:5.2", "iso27001:A.5.1"],
 		cadence: "triennial",
@@ -147,6 +168,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "scope",
 		section: "framework",
+		source: "documents",
 		title: "Geltungsbereich",
 		clauses: ["iso27001:4.3"],
 		cadence: "yearly",
@@ -168,6 +190,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "roles",
 		section: "framework",
+		source: "documents",
 		title: "Rollen und Verantwortlichkeiten (RACI)",
 		clauses: ["iso27001:5.3", "iso27001:A.5.2"],
 		cadence: "yearly",
@@ -187,6 +210,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "isb_appointment",
 		section: "framework",
+		source: "appointment",
 		parent: "roles",
 		title: "Bestellung der oder des ISB",
 		clauses: ["iso27001:5.3"],
@@ -220,6 +244,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "risk_policy",
 		section: "framework",
+		source: "documents",
 		title: "Richtlinie Risikomanagement",
 		clauses: ["iso27001:6.1.2"],
 		cadence: "yearly",
@@ -241,6 +266,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "soa",
 		section: "framework",
+		source: "documents",
 		title: "Erklärung zur Anwendbarkeit (SoA)",
 		clauses: ["iso27001:6.1.3"],
 		cadence: "yearly",
@@ -260,6 +286,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "objectives",
 		section: "framework",
+		source: "documents",
 		title: "Ziele und Kennzahlen der Informationssicherheit",
 		clauses: ["iso27001:6.2"],
 		cadence: "yearly",
@@ -278,6 +305,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "doc_control",
 		section: "guidelines",
+		source: "documents",
 		title: "Richtlinie Lenkung dokumentierter Information",
 		clauses: ["iso27001:7.5"],
 		cadence: "yearly",
@@ -311,6 +339,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "it_policy",
 		section: "guidelines",
+		source: "documents",
 		title: "IT-Richtlinie",
 		clauses: ["iso27001:A.5.15", "iso27001:A.8.1", "iso27001:A.8.8"],
 		cadence: "yearly",
@@ -327,6 +356,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "classification",
 		section: "guidelines",
+		source: "documents",
 		title: "Richtlinie Klassifizierung von Informationen",
 		clauses: ["iso27001:A.5.12", "iso27001:A.5.13"],
 		cadence: "yearly",
@@ -342,6 +372,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "personnel",
 		section: "guidelines",
+		source: "documents",
 		title: "Richtlinie Personalsicherheit",
 		clauses: ["iso27001:A.6.1", "iso27001:A.6.2", "iso27001:A.6.5"],
 		cadence: "yearly",
@@ -358,6 +389,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "incident_policy",
 		section: "guidelines",
+		source: "documents",
 		title: "Richtlinie Vorfallmanagement",
 		clauses: ["iso27001:A.5.24", "iso27001:A.5.26", "iso27001:A.5.28"],
 		cadence: "yearly",
@@ -375,6 +407,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "physical",
 		section: "guidelines",
+		source: "documents",
 		title: "Richtlinie Physische Sicherheit",
 		clauses: ["iso27001:A.7.1", "iso27001:A.7.2", "iso27001:A.7.4"],
 		cadence: "yearly",
@@ -398,6 +431,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "retention_policy",
 		section: "guidelines",
+		source: "documents",
 		title: "Lösch- und Aufbewahrungsrichtlinie",
 		clauses: ["iso27001:A.5.33", "iso27001:A.8.10"],
 		cadence: "yearly",
@@ -416,6 +450,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "bcm",
 		section: "procedures",
+		source: "documents",
 		title: "Verfahren Notfallmanagement (BCM)",
 		clauses: ["iso27001:A.5.29", "iso27001:A.5.30"],
 		cadence: "yearly",
@@ -431,6 +466,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "bia",
 		section: "procedures",
+		source: "bia",
 		parent: "bcm",
 		title: "Business-Impact-Analyse",
 		clauses: ["iso27001:A.5.30"],
@@ -459,6 +495,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "bcm_plans",
 		section: "procedures",
+		source: "bcm_plans",
 		parent: "bcm",
 		title: "Wiederanlaufpläne",
 		clauses: ["iso27001:A.5.29", "iso27001:A.5.30"],
@@ -474,6 +511,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "bcm_exercise",
 		section: "procedures",
+		source: "exercises",
 		parent: "bcm",
 		title: "Notfalltests und Übungen",
 		clauses: ["iso27001:A.5.30"],
@@ -490,6 +528,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "change",
 		section: "procedures",
+		source: "documents",
 		title: "Verfahren Change Management",
 		clauses: ["iso27001:A.8.32"],
 		cadence: "yearly",
@@ -505,6 +544,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "training_plan",
 		section: "procedures",
+		source: "documents",
 		title: "Schulungsplan und Awareness",
 		clauses: ["iso27001:7.3", "iso27001:A.6.3"],
 		cadence: "yearly",
@@ -519,6 +559,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "training_delivery",
 		section: "procedures",
+		source: "trainings",
 		parent: "training_plan",
 		title: "Schulungen durchführen und nachverfolgen",
 		clauses: ["iso27001:7.3", "iso27001:A.6.3"],
@@ -539,6 +580,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "communication",
 		section: "procedures",
+		source: "documents",
 		title: "Kommunikationsmatrix",
 		clauses: ["iso27001:7.4"],
 		cadence: "yearly",
@@ -561,6 +603,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "risk_analyses",
 		section: "records",
+		source: "risks",
 		title: "Risikoanalysen und Behandlungsplan",
 		clauses: ["iso27001:8.2", "iso27001:8.3"],
 		cadence: "yearly",
@@ -577,6 +620,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "measures",
 		section: "records",
+		source: "nonconformities",
 		title: "Maßnahmen und Korrekturmaßnahmen",
 		clauses: ["iso27001:8.3", "iso27001:10.2"],
 		cadence: "continuous",
@@ -672,6 +716,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "kpis",
 		section: "records",
+		source: "kpis",
 		title: "Kennzahlen erheben und auswerten",
 		clauses: ["iso27001:9.1"],
 		cadence: "quarterly",
@@ -690,6 +735,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "internal_audit",
 		section: "records",
+		source: "internal_audit",
 		title: "Internes Audit",
 		clauses: ["iso27001:9.2"],
 		cadence: "yearly",
@@ -706,6 +752,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "management_review",
 		section: "records",
+		source: "management_review",
 		title: "Managementbewertung",
 		clauses: ["iso27001:9.3"],
 		cadence: "yearly",
@@ -741,6 +788,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "suppliers",
 		section: "operations",
+		source: "suppliers",
 		title: "Lieferanten und Dienstleister",
 		clauses: [
 			"iso27001:A.5.19",
@@ -773,6 +821,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "change_advice",
 		section: "operations",
+		source: "changes",
 		title: "Beratung bei Änderungen",
 		clauses: ["iso27001:A.8.32"],
 		cadence: "continuous",
@@ -786,6 +835,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "incidents",
 		section: "operations",
+		source: "incidents",
 		title: "Sicherheitsvorfälle und Meldungen",
 		clauses: [
 			"iso27001:A.5.24",
@@ -805,6 +855,7 @@ export const ISMS_PROGRAMME: readonly IsmsItem[] = [
 	{
 		key: "external_audit",
 		section: "operations",
+		source: "external_audit",
 		title: "Externes Audit und Zertifizierung",
 		clauses: ["iso27001:9.2", "iso27001:10.2"],
 		cadence: "yearly",

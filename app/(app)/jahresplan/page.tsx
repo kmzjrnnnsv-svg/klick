@@ -3,9 +3,11 @@ import { SummaryCard, SummaryGrid } from "@/components/entity/summary-card";
 import {
 	type PlanRow,
 	ProgrammeSection,
+	STATE_BADGE,
 } from "@/components/isms-plan/programme-section";
 import { PageHeader } from "@/components/page-header";
 import { SectionSwitch } from "@/components/shell/section-switch";
+import { Badge } from "@/components/ui/badge";
 import {
 	Table,
 	TableBody,
@@ -23,8 +25,10 @@ import {
 } from "@/lib/compliance/catalog/isms-programme";
 import { getOrgProfile } from "@/lib/compliance/queries";
 import { readOrg } from "@/lib/db/with-org";
+import { loadIsmsFacts } from "@/lib/isms-plan/facts";
 import { fmtFte, fmtNum, fmtRange } from "@/lib/isms-plan/format";
 import { ismsTree, itemWithChildren, rollupIsms } from "@/lib/isms-plan/rollup";
+import { countStates, ismsStatus } from "@/lib/isms-plan/status";
 
 // ISMS-Jahresplan (P1): Vorlage mit Turnus, Aufwand in PT und ISB-Anteil nach
 // Szenario A/B, je Punkt verknüpft mit der Stelle in Klick. Die Werte kommen
@@ -34,10 +38,15 @@ import { ismsTree, itemWithChildren, rollupIsms } from "@/lib/isms-plan/rollup";
 async function IsmsPlanPage() {
 	const ctx = await requireOrgPage({ obligation: ["read"] });
 	const t = await getTranslations("IsmsPlan");
-	const profile = await readOrg(toOrgCtx(ctx), (tx) =>
-		getOrgProfile(tx, ctx.orgId),
-	);
+	const { profile, facts } = await readOrg(toOrgCtx(ctx), async (tx) => ({
+		profile: await getOrgProfile(tx, ctx.orgId),
+		facts: await loadIsmsFacts(tx, ctx.orgId),
+	}));
 	const isoActive = profile?.frameworks.includes("iso27001") ?? false;
+	const statuses = new Map(
+		ISMS_PROGRAMME.map((i) => [i.key, ismsStatus(i, facts)] as const),
+	);
+	const counts = countStates([...statuses.values()]);
 
 	const r = rollupIsms(ISMS_PROGRAMME);
 	const tree = ismsTree(ISMS_PROGRAMME);
@@ -51,6 +60,10 @@ async function IsmsPlanPage() {
 				{
 					item,
 					depth,
+					status: statuses.get(item.key) ?? {
+						state: "none" as const,
+						code: "manual",
+					},
 					withChildren: kids?.length
 						? itemWithChildren(item.key, ISMS_PROGRAMME).year
 						: undefined,
@@ -106,12 +119,29 @@ async function IsmsPlanPage() {
 					</SummaryCard>
 				</SummaryGrid>
 
+				<section aria-labelledby="stand">
+					<h2 id="stand" className="mb-2 font-semibold text-title-3">
+						{t("colStatus")}
+					</h2>
+					<div className="flex flex-wrap gap-2">
+						{(["ok", "due", "open", "none"] as const).map((st) => (
+							<Badge key={st} variant={STATE_BADGE[st]}>
+								{t(`state_${st}`)}
+								<span className="tabular-nums">{counts[st]}</span>
+							</Badge>
+						))}
+					</div>
+					<p className="mt-2 max-w-[46rem] text-footnote text-muted-foreground">
+						{t("statusHint")}
+					</p>
+				</section>
+
 				<section aria-labelledby="ueberblick">
 					<h2 id="ueberblick" className="mb-2 font-semibold text-title-3">
 						{t("overviewTitle")}
 					</h2>
 					<div className="rounded-2xl bg-card">
-						<Table>
+						<Table className="register-table">
 							<TableHeader>
 								<TableRow>
 									<TableHead>{t("colSection")}</TableHead>
@@ -123,7 +153,7 @@ async function IsmsPlanPage() {
 							<TableBody>
 								{r.sections.map((s, i) => (
 									<TableRow key={s.section}>
-										<TableCell className="whitespace-normal">
+										<TableCell data-m="title" className="whitespace-normal">
 											<a
 												href={`#abschnitt-${s.section}`}
 												className="hover:underline"
@@ -131,38 +161,73 @@ async function IsmsPlanPage() {
 												{i + 1}. {t(`section_${s.section}`)}
 											</a>
 										</TableCell>
-										<TableCell className="whitespace-nowrap text-right tabular-nums">
+										<TableCell
+											data-m="meta"
+											className="whitespace-nowrap text-right tabular-nums"
+										>
+											<span data-m-label>{t("colYear")}:</span>
 											{fmtRange(s.year)}
 										</TableCell>
-										<TableCell className="whitespace-nowrap text-right tabular-nums">
+										<TableCell
+											data-m="meta"
+											className="whitespace-nowrap text-right tabular-nums"
+										>
+											<span data-m-label>{t("colIsbA")}:</span>
 											{fmtRange(s.isbA)}
 										</TableCell>
-										<TableCell className="whitespace-nowrap text-right tabular-nums">
+										<TableCell
+											data-m="meta"
+											className="whitespace-nowrap text-right tabular-nums"
+										>
+											<span data-m-label>{t("colIsbB")}:</span>
 											{fmtRange(s.isbB)}
 										</TableCell>
 									</TableRow>
 								))}
 								<TableRow className="font-semibold">
-									<TableCell>{t("total")}</TableCell>
-									<TableCell className="whitespace-nowrap text-right tabular-nums">
+									<TableCell data-m="title">{t("total")}</TableCell>
+									<TableCell
+										data-m="meta"
+										className="whitespace-nowrap text-right tabular-nums"
+									>
+										<span data-m-label>{t("colYear")}:</span>
 										{fmtRange(r.total.year)}
 									</TableCell>
-									<TableCell className="whitespace-nowrap text-right tabular-nums">
+									<TableCell
+										data-m="meta"
+										className="whitespace-nowrap text-right tabular-nums"
+									>
+										<span data-m-label>{t("colIsbA")}:</span>
 										{fmtRange(r.total.isbA)}
 									</TableCell>
-									<TableCell className="whitespace-nowrap text-right tabular-nums">
+									<TableCell
+										data-m="meta"
+										className="whitespace-nowrap text-right tabular-nums"
+									>
+										<span data-m-label>{t("colIsbB")}:</span>
 										{fmtRange(r.total.isbB)}
 									</TableCell>
 								</TableRow>
 								<TableRow>
-									<TableCell className="whitespace-normal text-muted-foreground">
+									<TableCell
+										data-m="title"
+										className="whitespace-normal text-muted-foreground"
+									>
 										{t("fteRow", { days: r.workdays })}
 									</TableCell>
-									<TableCell />
-									<TableCell className="whitespace-nowrap text-right tabular-nums">
+									<TableCell data-m="hide" />
+									<TableCell
+										data-m="meta"
+										className="whitespace-nowrap text-right tabular-nums"
+									>
+										<span data-m-label>{t("colIsbA")}:</span>
 										{fmtFte(r.fte.a)}
 									</TableCell>
-									<TableCell className="whitespace-nowrap text-right tabular-nums">
+									<TableCell
+										data-m="meta"
+										className="whitespace-nowrap text-right tabular-nums"
+									>
+										<span data-m-label>{t("colIsbB")}:</span>
 										{fmtFte(r.fte.b)}
 									</TableCell>
 								</TableRow>
